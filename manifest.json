@@ -1,18 +1,1 @@
-{
-  "name": "一天 · One Day",
-  "short_name": "一天",
-  "description": "一个长期陪伴你的个人成长系统",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
-  "orientation": "any",
-  "icons": [
-    {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
-  ]
-}
+{"name": "一天 · One Day", "short_name": "一天", "start_url": "./index.html", "display": "standalone", "background_color": "#ffffff", "theme_color": "#ffffff", "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml"}]}
