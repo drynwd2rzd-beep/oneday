@@ -36,8 +36,10 @@ function activityDates(){
 function recordDates(){return activityDates()}
 function reviewTasks(k){return S.tasks.filter(t=>taskForDate(t,k))}
 function reviewMarkers(k){
-  const list=reviewTasks(k);if(!list.length)return '<span class="reviewMarker empty"></span>';
-  return list.slice(0,4).map(t=>`<span class="reviewMarker ${taskDone(t,k)?'done':''}"></span>`).join('');
+  // 右上角标记只代表“值得留下”的文字记录，不参与事项完成状态。
+  // 有记录显示一个实心点；没有记录不显示点，避免与任务完成混淆。
+  const hasNote=Array.isArray(S.notes[k])&&S.notes[k].length>0;
+  return hasNote?'<span class="reviewMarker done note" title="有文字记录"></span>':'';
 }
 function monthKey(k){const d=parseDate(k);return `${d.getFullYear()}年${d.getMonth()+1}月`}
 function reviewExcerpt(notes,k){
@@ -79,7 +81,7 @@ function renderReviewCalendar(){
   let h='';const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
   for(let i=0;i<first;i++)h+='<div></div>';
   for(let day=1;day<=days;day++){
-    const k=keyOf(new Date(y,m,day)),has=activityDates().includes(k);
+    const k=keyOf(new Date(y,m,day)),has=recordDates().includes(k);
     h+=`<button class="day ${k===selectedReviewDate?'selected':''}" data-rdate="${k}">${day}${has?'<i class="dot"></i>':''}</button>`;
   }
   reviewCalendarDays.innerHTML=h;
