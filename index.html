@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>一天</title>
+<style>
+:root{--bg:#fff;--ink:#111114;--muted:#7b7b82;--line:#e9e9ed;--soft:#f6f6f8;--blue:#007aff;--danger:#d92d35;--radius:18px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",Arial,sans-serif}
+button,input,textarea{font:inherit}.app{max-width:720px;margin:auto;padding:max(16px,env(safe-area-inset-top)) 20px calc(94px + env(safe-area-inset-bottom));min-height:100vh}
+.page{display:none}.page.active{display:block}.top{display:flex;justify-content:space-between;align-items:center;padding:6px 0 28px}
+.brand{font-size:21px;font-weight:750;letter-spacing:-.05em}.iconBtn{border:0;background:var(--soft);width:42px;height:42px;border-radius:14px;font-size:18px}
+.eyebrow{font-size:13px;color:var(--muted);margin-bottom:12px}.hero h1{font-size:45px;line-height:1.04;letter-spacing:-.065em;margin:0 0 12px}.hero p{margin:0;color:var(--muted);line-height:1.6}
+.focus{margin-top:28px;padding:20px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.label{font-size:11px;letter-spacing:.12em;font-weight:700;color:var(--muted)}.focusText{font-size:24px;line-height:1.35;font-weight:680;letter-spacing:-.035em;margin-top:9px}.textBtn{border:0;background:none;color:var(--blue);padding:10px 0 0;font-size:14px}
+.section{margin-top:32px}.sectionHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.sectionHead h2{font-size:21px;letter-spacing:-.04em;margin:0}.muted{font-size:13px;color:var(--muted)}
+.task{display:flex;align-items:center;gap:13px;padding:15px 0;border-bottom:1px solid var(--line)}.check{width:29px;height:29px;border:1.5px solid #c7c7cd;background:#fff;border-radius:50%;flex:none}.check.done{background:var(--ink);border-color:var(--ink);position:relative}.check.done:after{content:"✓";color:white;font-size:16px}
+.taskMain{flex:1;border:0;background:none;text-align:left;padding:0}.taskName{font-size:16px;font-weight:560}.task.done .taskName{text-decoration:line-through;color:var(--muted)}.taskNote{font-size:12px;color:var(--muted);margin-top:4px}.dots{border:0;background:none;color:var(--muted);font-size:19px;padding:8px}
+.add{width:100%;padding:17px 0;text-align:left;color:var(--blue);font-weight:650;border:0;background:none}
+.summary{margin-top:28px;padding:19px;background:var(--soft);border-radius:var(--radius);display:flex;justify-content:space-between;align-items:center}.summary strong{display:block;font-size:34px;letter-spacing:-.06em;margin-top:4px}.summaryRight{text-align:right;max-width:160px}
+.cardBtn{width:100%;border:1px solid var(--line);background:#fff;border-radius:var(--radius);padding:18px;text-align:left;margin-top:14px}.cardBtn b{font-size:16px}.cardBtn span{display:block;font-size:13px;color:var(--muted);margin-top:6px}
+.list{border-top:1px solid var(--line)}.row{width:100%;border:0;border-bottom:1px solid var(--line);background:none;padding:17px 0;display:flex;align-items:center;gap:13px;text-align:left}.rowIcon{width:40px;height:40px;background:var(--soft);border-radius:13px;display:grid;place-items:center}.rowMain{flex:1}.rowMain b{display:block;font-size:16px}.rowMain span{display:block;font-size:12px;color:var(--muted);margin-top:4px}.chev{color:#aaa;font-size:22px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.day{border:0;background:var(--soft);border-radius:13px;padding:11px 2px}.day.today{background:var(--ink);color:#fff}.day small{display:block;opacity:.6}.day b{display:block;margin-top:6px;font-size:12px}
+.life{padding:24px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.life h2{font-size:30px;letter-spacing:-.05em;margin:0 0 8px}.bar{height:8px;border-radius:99px;background:var(--soft);overflow:hidden;margin-top:18px}.bar i{display:block;height:100%;background:var(--ink);width:0}
+.navWrap{position:fixed;bottom:0;left:0;right:0;padding:0 12px max(9px,env(safe-area-inset-bottom));z-index:20}.nav{height:66px;max-width:720px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);padding:5px;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:22px}.nav button{border:0;background:none;color:var(--muted);font-size:11px;border-radius:15px}.nav button.active{background:var(--soft);color:var(--ink);font-weight:650}.nav i{display:block;font-style:normal;font-size:18px;margin-bottom:2px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;align-items:flex-end;z-index:50}.modal.active{display:flex}.sheet{width:100%;max-width:720px;margin:auto;background:#fff;border-radius:25px 25px 0 0;padding:12px 20px calc(24px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}.handle{width:38px;height:4px;background:#d7d7dc;border-radius:99px;margin:0 auto 18px}.sheetHead{display:flex;align-items:center;justify-content:space-between}.sheetHead h2{margin:0;font-size:21px}.close{width:34px;height:34px;border:0;border-radius:50%;background:var(--soft);font-size:20px}
+input,textarea{width:100%;border:1px solid var(--line);background:#fafafa;border-radius:14px;padding:14px;margin-top:15px}textarea{min-height:130px;resize:vertical}.primary,.secondary{width:100%;padding:15px;border:0;border-radius:14px;margin-top:12px;font-weight:650}.primary{background:var(--ink);color:white}.secondary{background:var(--soft);color:var(--ink)}.danger{color:var(--danger)}.empty{padding:25px 0;color:var(--muted)}
+.toast{position:fixed;top:max(20px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:100;background:#151517;color:white;padding:10px 15px;border-radius:999px;font-size:13px;display:none}
+@media(min-width:800px){.app{padding-left:32px;padding-right:32px}.hero h1{font-size:54px}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<main class="app">
+<section class="page active" id="today">
+ <div class="top"><div class="brand">一天</div><button class="iconBtn" data-go="me">◉</button></div>
+ <div class="hero"><div class="eyebrow" id="date"></div><h1 id="hello">今天。</h1><p>不需要过得完美。把真正重要的事，往前推进一点。</p></div>
+ <div class="focus"><div class="label">TODAY'S FOCUS</div><div class="focusText" id="focusText"></div><button class="textBtn" id="focusEdit">编辑今天重点</button></div>
+ <div class="section"><div class="sectionHead"><h2>今天</h2><span class="muted" id="taskCount"></span></div><div id="taskList"></div><button class="add" id="addTask">＋ 添加一件事情</button></div>
+ <div class="summary"><div><span class="muted">今天的完成情况</span><strong id="progress">0%</strong></div><div class="muted summaryRight" id="remain"></div></div>
+ <button class="cardBtn" id="writeJournal"><b>写下今天</b><span id="journalHint">不用写得很好，只留下真实的你。</span></button>
+</section>
+
+<section class="page" id="plan">
+ <div class="top"><div class="brand">计划</div><button class="iconBtn" id="addArea">＋</button></div>
+ <div class="hero"><div class="eyebrow">LONG TERM</div><h1>慢一点，<br>但不要停。</h1><p>这里放长期方向，而不是塞满今天。</p></div>
+ <div class="section"><div class="sectionHead"><h2>长期方向</h2><span class="muted" id="areaCount"></span></div><div class="list" id="areaList"></div></div>
+ <div class="section"><div class="sectionHead"><h2>以后想做</h2></div><div class="list" id="somedayList"></div><button class="add" id="addSomeday">＋ 留下一件以后想做的事</button></div>
+</section>
+
+<section class="page" id="review">
+ <div class="top"><div class="brand">回顾</div><button class="iconBtn" id="reviewInfo">i</button></div>
+ <div class="hero"><div class="eyebrow">LOOK BACK</div><h1>看看时间<br>留下了什么。</h1></div>
+ <div class="section"><div class="sectionHead"><h2>最近 7 天</h2></div><div class="week" id="week"></div></div>
+ <div class="section"><div class="sectionHead"><h2>时间线</h2></div><div class="list" id="timeline"></div></div>
+</section>
+
+<section class="page" id="me">
+ <div class="top"><div class="brand">我的</div><button class="iconBtn" id="settings">⚙</button></div>
+ <div class="hero"><div class="eyebrow">ONE DAY</div><h1>一个长期的<br>过程。</h1><p>成长不需要每天证明自己，只需要继续留下行动。</p></div>
+ <div class="section life"><h2>今年</h2><p class="muted" id="yearText"></p><div class="bar"><i id="yearBar"></i></div></div>
+ <div class="section list">
+   <button class="row" id="growth"><span class="rowIcon">↗</span><span class="rowMain"><b>我的成长</b><span>任务、方向与记录</span></span><span class="chev">›</span></button>
+   <button class="row" id="backup"><span class="rowIcon">⇅</span><span class="rowMain"><b>数据与备份</b><span>导入、导出你的记录</span></span><span class="chev">›</span></button>
+ </div>
+</section>
+</main>
+
+<div class="navWrap"><nav class="nav">
+ <button class="active" data-go="today"><i>◉</i>今天</button>
+ <button data-go="plan"><i>□</i>计划</button>
+ <button data-go="review"><i>⌁</i>回顾</button>
+ <button data-go="me"><i>○</i>我的</button>
+</nav></div>
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+<script>
+(function(){
+'use strict';
+const KEY='oneday_pwa_v1';
+const $=id=>document.getElementById(id);
+const todayKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+let D={focus:'',tasks:[],journals:{},areas:[],someday:[],daily:{}};
+try{const raw=localStorage.getItem(KEY);if(raw)D=Object.assign(D,JSON.parse(raw))}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}render()}
+function e(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(t){$('toast').textContent=t;$('toast').style.display='block';clearTimeout(window._tt);window._tt=setTimeout(()=>{$('toast').style.display='none'},1600)}
+function openSheet(title,body){$('sheet').innerHTML='<div class="handle"></div><div class="sheetHead"><h2>'+title+'</h2><button class="close" id="sheetClose">×</button></div>'+body;$('modal').classList.add('active');$('sheetClose').onclick=closeSheet}
+function closeSheet(){$('modal').classList.remove('active')}
+$('modal').addEventListener('click',ev=>{if(ev.target===$('modal'))closeSheet()});
+
+function go(id){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));window.scrollTo({top:0,behavior:'instant'});render()}
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
+
+function render(){
+ const n=new Date(),h=n.getHours();
+ $('date').textContent=new Intl.DateTimeFormat('zh-CN',{month:'long',day:'numeric',weekday:'long'}).format(n);
+ $('hello').textContent=h<12?'早上好。':h<18?'下午好。':'晚上好。';
+ $('focusText').textContent=D.focus||'给今天留下一件真正重要的事。';
+ const key=todayKey(), tasks=D.tasks.filter(t=>t.date===key),done=tasks.filter(t=>t.done).length,total=tasks.length,p=total?Math.round(done/total*100):0;
+ $('taskCount').textContent=total?done+' / '+total+' 完成':'还没有安排';$('progress').textContent=p+'%';$('remain').textContent=total?(p===100?'今天安排的事情已完成':'还剩 '+(total-done)+' 件'):'从一件小事开始';
+ $('taskList').innerHTML=total?tasks.map(t=>'<div class="task '+(t.done?'done':'')+'"><button class="check '+(t.done?'done':'')+'" data-toggle="'+t.id+'"></button><button class="taskMain" data-edit="'+t.id+'"><div class="taskName">'+e(t.title)+'</div>'+(t.note?'<div class="taskNote">'+e(t.note)+'</div>':'')+'</button><button class="dots" data-menu="'+t.id+'">···</button></div>').join(''):'<div class="empty">今天还是空的。</div>';
+ document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>toggle(b.dataset.toggle));
+ document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>taskEditor(b.dataset.edit));
+ document.querySelectorAll('[data-menu]').forEach(b=>b.onclick=()=>taskMenu(b.dataset.menu));
+ $('journalHint').textContent=D.journals[key]?'今天已经留下了一段记录。':'不用写得很好，只留下真实的你。';
+ renderPlan();renderReview();renderMe();
+}
+function focusEditor(){openSheet('今天最重要的一件事','<textarea id="focusInput">'+e(D.focus)+'</textarea><button class="primary" id="focusSave">保存</button>');$('focusSave').onclick=()=>{D.focus=$('focusInput').value.trim();save();closeSheet()}}
+function taskEditor(id){const t=D.tasks.find(x=>x.id===id)||{title:'',note:''};openSheet(id?'编辑任务':'添加今天的事','<input id="taskTitle" placeholder="例如：阅读 30 分钟" value="'+e(t.title)+'"><textarea id="taskNote" placeholder="简单说明（可选）">'+e(t.note)+'</textarea><button class="primary" id="taskSave">保存</button>');$('taskSave').onclick=()=>{const title=$('taskTitle').value.trim();if(!title)return toast('先写下任务');if(id){const x=D.tasks.find(a=>a.id===id);x.title=title;x.note=$('taskNote').value.trim()}else D.tasks.push({id:String(Date.now()),title,note:$('taskNote').value.trim(),done:false,date:todayKey()});save();closeSheet()}}
+function toggle(id){const t=D.tasks.find(x=>x.id===id);if(!t)return;t.done=!t.done;archiveToday();save();toast(t.done?'已完成':'已取消完成')}
+function taskMenu(id){openSheet('任务操作','<button class="secondary" id="editAction">编辑</button><button class="secondary danger" id="deleteAction">删除</button>');$('editAction').onclick=()=>{closeSheet();taskEditor(id)};$('deleteAction').onclick=()=>{D.tasks=D.tasks.filter(x=>x.id!==id);save();closeSheet()}}
+function archiveToday(){const key=todayKey(),ts=D.tasks.filter(t=>t.date===key),done=ts.filter(t=>t.done).length;D.daily[key]={total:ts.length,done,percent:ts.length?Math.round(done/ts.length*100):0}}
+function journalEditor(){const key=todayKey();openSheet('写下今天','<textarea id="journalInput" placeholder="今天发生了什么？">'+e(D.journals[key]||'')+'</textarea><button class="primary" id="journalSave">保存记录</button>');$('journalSave').onclick=()=>{D.journals[key]=$('journalInput').value.trim();save();closeSheet();toast('已保存')}}
+function renderPlan(){$('areaCount').textContent=D.areas.length+' 个方向';$('areaList').innerHTML=D.areas.length?D.areas.map(a=>'<button class="row" data-area="'+a.id+'"><span class="rowIcon">◎</span><span class="rowMain"><b>'+e(a.name)+'</b><span>已记录 '+(a.count||0)+' 次 · 点击记录今天</span></span><span class="chev">＋</span></button>').join(''):'<div class="empty">还没有长期方向。</div>';document.querySelectorAll('[data-area]').forEach(b=>b.onclick=()=>{const a=D.areas.find(x=>x.id===b.dataset.area);a.count=(a.count||0)+1;save();toast('今天已记录')});$('somedayList').innerHTML=D.someday.length?D.someday.map((s,i)=>'<button class="row" data-someday="'+i+'"><span class="rowIcon">○</span><span class="rowMain"><b>'+e(s)+'</b><span>暂时不放进今天</span></span><span class="chev">···</span></button>').join(''):'<div class="empty">把不需要今天完成的事情留在这里。</div>';document.querySelectorAll('[data-someday]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.someday);openSheet('以后想做','<button class="secondary danger" id="removeSomeday">删除</button>');$('removeSomeday').onclick=()=>{D.someday.splice(i,1);save();closeSheet()}})}
+function addArea(){openSheet('添加长期方向','<input id="areaInput" placeholder="例如：英语、阅读、身体"><button class="primary" id="areaSave">添加</button>');$('areaSave').onclick=()=>{const n=$('areaInput').value.trim();if(!n)return;D.areas.push({id:String(Date.now()),name:n,count:0});save();closeSheet()}}
+function addSomeday(){openSheet('以后想做','<input id="someInput" placeholder="留给未来的一件事"><button class="primary" id="someSave">保存</button>');$('someSave').onclick=()=>{const n=$('someInput').value.trim();if(!n)return;D.someday.push(n);save();closeSheet()}}
+function renderReview(){let html='';for(let i=6;i>=0;i--){let d=new Date();d.setDate(d.getDate()-i);let k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');let v=D.daily[k]?.percent||0;html+='<button class="day '+(k===todayKey()?'today':'')+'" data-day="'+k+'"><small>'+d.getDate()+'</small><b>'+v+'%</b></button>'}$('week').innerHTML=html;document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>toast(b.dataset.day+'：'+(D.daily[b.dataset.day]?.percent||0)+'%'));let entries=Object.keys(D.journals).filter(k=>D.journals[k]).sort().reverse();$('timeline').innerHTML=entries.length?entries.map(k=>'<button class="row" data-journal="'+k+'"><span class="rowIcon">✎</span><span class="rowMain"><b>'+k+'</b><span>'+e(D.journals[k].slice(0,45))+'</span></span><span class="chev">›</span></button>').join(''):'<div class="empty">从今天开始，时间线会慢慢出现。</div>';document.querySelectorAll('[data-journal]').forEach(b=>b.onclick=()=>openSheet(b.dataset.journal,'<div style="white-space:pre-wrap;line-height:1.75;padding-top:14px">'+e(D.journals[b.dataset.journal])+'</div>'))}
+function renderMe(){const n=new Date(),start=new Date(n.getFullYear(),0,1),end=new Date(n.getFullYear()+1,0,1),p=Math.round((n-start)/(end-start)*100);$('yearText').textContent=n.getFullYear()+' 年已经走过 '+p+'%。今天仍然属于你。';$('yearBar').style.width=p+'%'}
+function growth(){const all=D.tasks.length,done=D.tasks.filter(t=>t.done).length;openSheet('我的成长','<div class="muted" style="line-height:2">累计完成任务：'+done+' / '+all+'<br>长期方向：'+D.areas.length+' 个<br>留下记录：'+Object.keys(D.journals).filter(k=>D.journals[k]).length+' 次</div>')}
+function backup(){openSheet('数据与备份','<p class="muted">数据保存在当前浏览器。建议定期导出备份。</p><button class="primary" id="exportBtn">导出备份</button><button class="secondary" id="importBtn">导入备份</button>');$('exportBtn').onclick=exportData;$('importBtn').onclick=()=>{$('importFile').click()}}
+function exportData(){const blob=new Blob([JSON.stringify(D,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='一天-备份-'+todayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);toast('已导出备份')}
+$('importFile').onchange=ev=>{const f=ev.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x||typeof x!=='object')throw Error();D=Object.assign({focus:'',tasks:[],journals:{},areas:[],someday:[],daily:{}},x);save();closeSheet();toast('导入成功')}catch(err){toast('备份文件无效')}};r.readAsText(f);ev.target.value=''}
+function settings(){openSheet('设置','<button class="secondary" id="settingsBackup">数据与备份</button><button class="secondary danger" id="clearData">清空当前数据</button>');$('settingsBackup').onclick=backup;$('clearData').onclick=()=>{if(confirm('确定清空所有本地数据吗？')){D={focus:'',tasks:[],journals:{},areas:[],someday:[],daily:{}};save();closeSheet();toast('已清空')}}}
+$('focusEdit').onclick=focusEditor;$('addTask').onclick=()=>taskEditor();$('writeJournal').onclick=journalEditor;$('addArea').onclick=addArea;$('addSomeday').onclick=addSomeday;$('reviewInfo').onclick=()=>toast('回顾只展示你真实留下的数据');$('settings').onclick=settings;$('growth').onclick=growth;$('backup').onclick=backup;
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}));
+archiveToday();save();
+})();
+</script>
+</body></html>
