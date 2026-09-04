@@ -1,334 +1,57 @@
-<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f6f5f1">
-<title>一天 · OneDay</title>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f5f4ef"><title>OneDay</title>
 <style>
-:root{--bg:#f6f5f1;--surface:#fffefa;--ink:#20252d;--muted:#707883;--line:#e5e2db;--blue:#356a9a;--green:#236449;--soft:#eef2ee;--danger:#a74444}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink)}
-body{padding-bottom:112px}.app{max-width:760px;margin:auto;padding:env(safe-area-inset-top) 20px 24px}
-.page{display:none;animation:fade .18s ease}.page.active{display:block}@keyframes fade{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
-.top{display:flex;align-items:center;justify-content:space-between;padding:22px 0 16px}.brand{font-weight:800;font-size:20px;letter-spacing:-.04em}
-.iconBtn{width:54px;height:54px;border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.72);font-size:22px;color:var(--ink);display:grid;place-items:center}
-.hero{padding:12px 0 30px}.eyebrow{font-size:15px;color:var(--muted);font-weight:650}.hero h1{font-size:46px;line-height:1;margin:14px 0 18px;letter-spacing:-.065em}.hero p{font-size:18px;line-height:1.55;color:var(--muted);margin:0;max-width:650px}
-.section{border-top:1px solid var(--line);padding:26px 0}.section:first-of-type{border-top:0}.sectionHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.section h2{font-size:25px;letter-spacing:-.04em;margin:0}.linkBtn{border:0;background:none;color:var(--blue);font-size:17px;font-weight:750;padding:8px 0}
-.card{background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:28px;padding:22px;box-shadow:0 12px 35px rgba(34,37,43,.035)}
-.card+.card{margin-top:12px}.empty{color:var(--muted);font-size:16px;line-height:1.6}
-.progressRow{display:flex;justify-content:space-between;align-items:end}.progressNum{font-size:46px;font-weight:850;letter-spacing:-.06em}.bar{height:10px;background:#e8e6df;border-radius:999px;margin-top:18px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--green);border-radius:999px;transition:.25s}
-.noteList{display:grid;gap:10px}.noteItem{padding:14px 0;border-bottom:1px solid var(--line)}.noteItem:last-child{border:0}.noteTime{font-size:13px;color:var(--muted);margin-bottom:6px}.noteText{font-size:16px;line-height:1.5}
-.taskList{display:grid;gap:10px}.task{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}.task:last-child{border:0}.check{width:30px;height:30px;border:2px solid #9ba2aa;border-radius:10px;background:#fff;flex:0 0 auto}.check.done{background:var(--green);border-color:var(--green);color:white}.task.done .taskTitle{text-decoration:line-through;color:var(--muted)}.taskTitle{font-size:17px;font-weight:700;flex:1}.taskMeta{font-size:13px;color:var(--muted);margin-top:4px}.dots{border:0;background:none;color:var(--muted);font-size:24px}
-.quick{display:flex;gap:10px;align-items:center}.quick input,.quick textarea,.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);background:#fffefa;border-radius:18px;padding:15px 16px;font:inherit;color:var(--ink);outline:none}.quick input:focus,.quick textarea:focus,.field input:focus,.field textarea:focus{border-color:#94aec6;box-shadow:0 0 0 3px rgba(53,106,154,.08)}
-.primary{border:0;background:var(--ink);color:#fff;padding:16px 20px;border-radius:18px;font-size:17px;font-weight:750}.secondary{border:1px solid var(--line);background:#fffefa;color:var(--blue);padding:14px 18px;border-radius:18px;font-size:16px;font-weight:750}
-.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:max(16px,env(safe-area-inset-bottom));width:min(760px,calc(100vw - 32px));background:rgba(255,255,255,.92);backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:28px;padding:8px;display:grid;grid-template-columns:repeat(5,1fr);z-index:20;box-shadow:0 12px 40px rgba(0,0,0,.08)}
-.nav button{border:0;background:transparent;border-radius:20px;padding:12px 4px;color:var(--muted);font:inherit;font-size:13px;font-weight:650;display:grid;gap:6px;place-items:center}.nav button.active{color:var(--ink);background:#f2f1ed}.nav .ico{font-size:22px}
-.pageTitle{font-size:38px;letter-spacing:-.06em;margin:10px 0 8px}.sub{color:var(--muted);font-size:16px;line-height:1.5;margin:0 0 26px}
-.calendar{padding:18px}.calHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.monthBtn{border:0;background:none;font-size:24px;padding:8px}.monthLabel{font-weight:800;font-size:20px}.week,.days{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;gap:8px}.week{font-size:14px;color:var(--muted);margin-bottom:10px}.day{height:54px;display:grid;place-items:center;position:relative;border-radius:18px;border:0;background:transparent;font:inherit;font-weight:700}.day.selected{background:var(--ink);color:white}.day .dot{position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%;background:var(--green)}.day.selected .dot{background:#fff}
-.dateTitle{font-size:26px;margin:26px 0 14px}.collapsed{font-size:16px;color:var(--muted);padding:14px 0;cursor:pointer}
-.planCard{position:relative}.planStatus{color:var(--green);font-weight:800;font-size:14px;margin-top:12px}.planActions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}.collapseBox{margin-top:18px}.collapseHead{width:100%;display:flex;justify-content:space-between;align-items:center;border:0;background:transparent;padding:14px 0;color:var(--ink);font:inherit;font-weight:800;font-size:17px}.collapseHead span{color:var(--muted);font-weight:650}.collapseBody{display:none}.collapseBody.open{display:block}.metricGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}.metricCard{padding:16px;border:1px solid var(--line);border-radius:22px;background:#fffefa}.metricCard b{display:block;font-size:28px;letter-spacing:-.04em}.metricCard span{font-size:13px;color:var(--muted)}.taskStatRow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}.taskStatRow:last-child{border-bottom:0}.taskStatCount{font-weight:850;font-size:20px}.reviewChosen{margin-bottom:14px;color:var(--muted);font-size:15px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{padding:18px;border:1px solid var(--line);border-radius:22px;background:#fffefa}.stat b{display:block;font-size:28px}.stat span{font-size:13px;color:var(--muted)}
-.reviewDay{padding:18px 0;border-bottom:1px solid var(--line)}.reviewDay:last-child{border:0}.reviewDate{font-size:15px;color:var(--muted);margin-bottom:8px}.reviewSummary{font-size:19px;font-weight:750}.reviewText{margin-top:10px;color:var(--muted);line-height:1.6}
-.modal{position:fixed;inset:0;background:rgba(18,22,28,.42);display:none;align-items:flex-end;justify-content:center;z-index:50}.modal.open{display:flex}.sheet{width:min(760px,100%);background:var(--bg);border-radius:32px 32px 0 0;padding:26px 20px calc(24px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}.sheet h3{font-size:30px;margin:0 0 18px;letter-spacing:-.04em}.field{margin:14px 0}.field label{display:block;color:var(--muted);font-size:14px;font-weight:700;margin:0 0 8px}.field textarea{min-height:170px;resize:vertical}.sheetActions{display:flex;gap:12px;margin-top:18px}.sheetActions>*{flex:1}
-.toast{position:fixed;top:calc(20px + env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-30px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;opacity:0;transition:.2s;z-index:100;font-weight:700}.toast.show{opacity:1;transform:translateX(-50%)}
-.small{font-size:14px;color:var(--muted)}.danger{color:var(--danger)}
-@media(max-width:420px){.app{padding-left:16px;padding-right:16px}.hero h1{font-size:42px}.pageTitle{font-size:34px}.card{border-radius:25px}.nav{width:calc(100vw - 24px)}}
-</style>
-</head>
-<body>
-<div class="app">
-<section class="page active" id="today">
-  <div class="top"><div class="brand">一天</div></div>
-  <div class="hero"><div class="eyebrow" id="dateLabel"></div><h1 id="greeting">下午好。</h1><p id="dailyQuote"></p></div>
-
-  <div class="section">
-    <div class="sectionHead"><h2>值得留下</h2><button class="linkBtn" onclick="openNote()">写下来 ›</button></div>
-    <div class="card" id="notePreview"></div>
-  </div>
-
-  <div class="section">
-    <div class="sectionHead"><h2>今天</h2><button class="linkBtn" onclick="go('tasks')">查看事项 ›</button></div>
-    <div class="card" id="todayTasks"></div>
-  </div>
-
-  <div class="section">
-    <div class="card">
-      <div class="progressRow"><div><div class="small">今天的完成情况</div><div class="progressNum" id="progressNum">0%</div></div><div class="small" id="progressDetail">从一件小事开始</div></div>
-      <div class="bar"><i id="progressBar"></i></div>
-    </div>
-  </div>
-</section>
-
-<section class="page" id="tasks">
- <div class="top"><div class="brand">事项</div><button class="iconBtn" onclick="openTask()">＋</button></div>
- <h1 class="pageTitle">每一天都有记录。</h1><p class="sub">循环事项会自动出现在对应日期，完成次数会被保留。</p>
- <div class="metricGrid"><div class="metricCard"><b id="taskTotalCompletions">0</b><span>累计完成次数</span></div><div class="metricCard"><b id="taskActiveCount">0</b><span>当前事项</span></div></div>
- <div class="card" id="taskStatsList"></div>
- <div class="card calendar"><div class="calHead"><button class="monthBtn" onclick="changeMonth(-1)">‹</button><div class="monthLabel" id="monthLabel"></div><button class="monthBtn" onclick="changeMonth(1)">›</button></div><div class="week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div><div class="days" id="calendarDays"></div></div>
- <h2 class="dateTitle" id="selectedDateTitle"></h2>
- <div class="card" id="selectedTasks"></div>
- <div class="collapsed" id="doneToggle" onclick="toggleDone()">▾ 已完成 <span id="doneCount"></span> 件</div>
- <div class="card" id="doneTasks" style="display:none"></div>
-</section>
-
-<section class="page" id="plans">
- <div class="top"><div class="brand">计划</div><button class="iconBtn" onclick="openPlan()">＋</button></div>
- <h1 class="pageTitle">以后要去哪里。</h1><p class="sub">记录长期方向，真正行动，也允许暂停、完成或归档。</p>
- <div id="plansList"></div>
-</section>
-
-<section class="page" id="review">
- <div class="top"><div class="brand">回顾</div><button class="iconBtn" onclick="openReviewCalendar()" aria-label="选择日期">▦</button></div>
- <h1 class="pageTitle">回头看，也继续向前。</h1><p class="sub">这里不是完成任务的成绩单，只留下你真实经历过的日子。</p>
- <div class="reviewChosen" id="reviewChosen"></div>
- <div class="section" id="reviewList"></div>
-</section>
-
-<section class="page" id="me">
- <div class="top"><div class="brand">我的</div><button class="iconBtn" onclick="openSettings()">⚙</button></div>
- <h1 class="pageTitle">慢慢来。</h1><p class="sub">这是你的个人成长系统，不是另一张逼迫自己的成绩单。</p>
- <div class="card"><h2 style="margin-top:0">数据</h2><p class="empty">所有内容默认保存在当前设备的浏览器本地。</p><div class="planActions"><button class="secondary" onclick="exportData()">导出数据</button><button class="secondary danger" onclick="resetData()">清空数据</button></div></div>
-</section>
+:root{--bg:#f5f4ef;--surface:#fffefa;--surface2:#faf9f5;--ink:#20252d;--muted:#747d87;--line:#e4e1d9;--blue:#386b98;--green:#287052;--greenSoft:#e8f2ed;--danger:#a64c4c;--shadow:0 16px 42px rgba(30,35,42,.055)}
+:root[data-theme="dark"]{--bg:#151a20;--surface:#20262e;--surface2:#1b2128;--ink:#f1f4f6;--muted:#a8b0b8;--line:#323b45;--blue:#7aa9d2;--green:#56aa82;--greenSoft:#1e362b;--danger:#e38a8a;--shadow:0 16px 42px rgba(0,0,0,.18)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink)}body{padding-bottom:112px}.app{max-width:760px;margin:auto;padding:env(safe-area-inset-top) 20px 28px}.page{display:none}.page.active{display:block;animation:fade .18s ease}@keyframes fade{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:none}}
+.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0 14px}.brand{font-size:21px;font-weight:850;letter-spacing:-.04em}.iconBtn{width:52px;height:52px;border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--ink);font-size:22px;display:grid;place-items:center;box-shadow:var(--shadow)}
+.hero{padding:18px 0 34px}.eyebrow,.small{font-size:14px;color:var(--muted);font-weight:650}.hero h1{font-size:48px;line-height:1;margin:12px 0 18px;letter-spacing:-.07em}.hero p{font-size:18px;line-height:1.6;color:var(--muted);margin:0}.pageTitle{font-size:38px;line-height:1.12;letter-spacing:-.065em;margin:12px 0 10px}.sub{font-size:16px;line-height:1.65;color:var(--muted);margin:0 0 26px}.section{border-top:1px solid var(--line);padding:24px 0}.sectionHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.section h2{margin:0;font-size:25px;letter-spacing:-.04em}.linkBtn{border:0;background:none;color:var(--blue);font-size:17px;font-weight:800;padding:8px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:var(--shadow)}.card+.card{margin-top:12px}.empty{color:var(--muted);font-size:16px;line-height:1.65}.noteList{display:grid;gap:0}.noteItem{padding:13px 0;border-bottom:1px solid var(--line)}.noteItem:first-child{padding-top:0}.noteItem:last-child{border:0;padding-bottom:0}.noteTime{font-size:12px;color:var(--muted);margin-bottom:6px}.noteText{font-size:16px;line-height:1.55;white-space:pre-wrap}
+.task{display:flex;align-items:center;gap:13px;padding:13px 0;border-bottom:1px solid var(--line)}.task:last-child{border:0}.check{width:28px;height:28px;border:2px solid #99a1a9;border-radius:50%;background:transparent;display:grid;place-items:center;flex:0 0 auto;color:#fff;font-weight:850}.check.done{background:var(--green);border-color:var(--green)}.taskTitle{font-size:16px;font-weight:760}.task.done .taskTitle{text-decoration:line-through;color:var(--muted)}.taskMeta{font-size:13px;color:var(--muted);margin-top:4px}.dots{border:0;background:none;color:var(--muted);font-size:21px;padding:6px}
+.progressRow{display:flex;justify-content:space-between;align-items:end}.progressNum{font-size:44px;font-weight:880;letter-spacing:-.06em}.bar{height:9px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:16px}.bar i{display:block;height:100%;width:0;background:var(--green);border-radius:999px}
+.nav{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:max(14px,env(safe-area-inset-bottom));width:min(760px,calc(100vw - 28px));display:grid;grid-template-columns:repeat(5,1fr);gap:3px;padding:7px;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:26px;box-shadow:0 15px 44px rgba(0,0,0,.09)}.nav button{border:0;background:transparent;color:var(--muted);border-radius:18px;padding:11px 3px;font:inherit;font-size:13px;font-weight:700;display:grid;gap:5px;place-items:center}.nav button.active{background:var(--surface2);color:var(--ink)}.ico{font-size:21px;line-height:1}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 16px}.tabs button,.filter button{border:0;background:var(--surface2);color:var(--muted);border-radius:15px;padding:12px 8px;font:inherit;font-weight:750}.tabs button.active,.filter button.active{background:var(--ink);color:var(--surface)}.taskPanel{display:none}.taskPanel.active{display:block}.metricGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:4px 0 18px}.metric{padding:0 10px;border-right:1px solid var(--line);text-align:center}.metric:last-child{border:0}.metric b{display:block;font-size:26px;letter-spacing:-.04em}.metric span{display:block;margin-top:6px;font-size:12px;color:var(--muted)}.chart{height:165px;display:flex;align-items:flex-end;gap:9px;padding:12px 4px 0;border-top:1px solid var(--line)}.barCol{flex:1;text-align:center;font-size:11px;color:var(--muted)}.barStack{height:112px;display:flex;align-items:flex-end;justify-content:center;gap:3px}.barDone,.barMiss{width:13px;border-radius:8px 8px 3px 3px}.barDone{background:var(--green)}.barMiss{background:#d9dde0}.legend{display:flex;justify-content:center;gap:18px;font-size:12px;color:var(--muted);margin-top:8px}.dotLegend{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px;background:var(--green)}
+.calendar{padding:17px}.calHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}.monthBtn{border:0;background:transparent;color:var(--ink);font-size:24px;padding:7px 10px}.monthLabel{font-size:18px;font-weight:850}.week,.days{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;gap:7px}.week{font-size:13px;color:var(--muted);margin-bottom:7px}.day{height:46px;border:0;background:transparent;border-radius:15px;color:var(--ink);font:inherit;font-weight:700;position:relative}.day.selected{background:var(--ink);color:var(--surface)}.day .dot{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--green);bottom:5px;left:calc(50% - 2.5px)}.day.selected .dot{background:var(--surface)}
+.filter{display:flex;gap:8px;overflow:auto;padding:2px 0 10px}.filter button{white-space:nowrap;padding:10px 13px}.dateTitle{font-size:25px;margin:20px 0 12px}.collapseBox{margin-top:12px}.collapseHead{width:100%;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:18px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;font:inherit;font-size:16px;font-weight:800}.collapseBody{display:none;margin-top:10px}.collapseBody.open{display:block}
+.planCard{position:relative}.planCard h2{font-size:23px;margin:7px 0}.planStatus{font-size:13px;color:var(--green);font-weight:850}.planActions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}.primary,.secondary{border-radius:17px;padding:13px 16px;font:inherit;font-size:15px;font-weight:780}.primary{border:0;background:var(--ink);color:var(--surface)}.secondary{border:1px solid var(--line);background:var(--surface2);color:var(--blue)}.danger{color:var(--danger)}
+.reviewHero{border-radius:24px;padding:24px;background:linear-gradient(135deg,color-mix(in srgb,var(--ink) 88%,var(--bg)),var(--surface));color:var(--surface);margin-bottom:16px}.reviewHero h1{font-size:31px;line-height:1.2;margin:0 0 9px;letter-spacing:-.05em}.reviewHero p{margin:0;color:color-mix(in srgb,var(--surface) 72%,transparent);line-height:1.55}.reviewNav{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 0;margin:10px 0 16px}.reviewNav button{border:0;background:none;color:var(--ink);font:inherit;font-weight:800;font-size:16px}.reviewDate{font-size:14px;color:var(--muted);margin-bottom:10px}.reviewDay{padding:19px 0;border-bottom:1px solid var(--line)}.reviewDay:last-child{border:0}.reviewSummary{font-size:20px;font-weight:800;margin-bottom:10px}.reviewText{font-size:16px;line-height:1.7;color:var(--muted);white-space:pre-wrap;padding:8px 0}.countBadge{border:1px solid var(--line);background:var(--surface2);border-radius:999px;padding:4px 9px;font-size:13px;color:var(--muted)}
+.profile{display:flex;align-items:center;gap:15px}.avatar{width:70px;height:70px;border-radius:50%;object-fit:cover;background:var(--surface2);border:1px solid var(--line)}.avatarFallback{display:grid;place-items:center;font-size:28px;color:var(--muted)}.profileName{font-size:21px;font-weight:850}.profileSub{font-size:14px;color:var(--muted);margin-top:5px}.settingsList{padding:0}.settingRow{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);display:flex;align-items:center;gap:14px;padding:18px 2px;text-align:left;font:inherit}.settingRow:last-child{border:0}.settingIcon{font-size:22px;width:30px;text-align:center}.settingRow .grow{flex:1;font-weight:750}.chev{color:var(--muted);font-size:22px}.meFooter{text-align:center;color:var(--muted);font-size:13px;margin:32px 0 0;line-height:1.7}
+.modal{position:fixed;inset:0;background:rgba(14,18,23,.45);display:none;align-items:flex-end;justify-content:center;z-index:50}.modal.open{display:flex}.sheet{width:min(760px,100%);max-height:88vh;overflow:auto;background:var(--bg);border-radius:28px 28px 0 0;padding:24px 20px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -15px 45px rgba(0,0,0,.14)}.sheet h3{font-size:28px;letter-spacing:-.05em;margin:0 0 16px}.field{margin:13px 0}.field label{display:block;font-size:13px;color:var(--muted);font-weight:700;margin-bottom:7px}.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);border-radius:16px;padding:14px;background:var(--surface);color:var(--ink);font:inherit;outline:none}.field textarea{min-height:150px;resize:vertical}.sheetActions{display:flex;gap:10px;margin-top:18px}.sheetActions>*{flex:1}.toast{position:fixed;z-index:100;top:calc(18px + env(safe-area-inset-top));left:50%;transform:translate(-50%,-20px);opacity:0;background:var(--ink);color:var(--surface);padding:11px 16px;border-radius:13px;font-weight:750;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}.themeChoices{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.themeChoice{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:17px;padding:18px 8px;font:inherit;font-weight:750}.themeChoice.active{outline:2px solid var(--blue);outline-offset:-2px}.colorChoices{display:flex;gap:12px;flex-wrap:wrap}.colorDot{width:38px;height:38px;border:2px solid var(--surface);outline:1px solid var(--line);border-radius:50%}.colorDot.active{outline:3px solid var(--ink)}
+@media(max-width:430px){.app{padding-left:16px;padding-right:16px}.hero h1{font-size:44px}.pageTitle{font-size:34px}.metricGrid{grid-template-columns:repeat(4,1fr)}.metric{padding:0 4px}.metric b{font-size:23px}.metric span{font-size:11px}.nav{width:calc(100vw - 24px)}}
+</style></head><body><div class="app">
+<section class="page active" id="today"><div class="top"><div class="brand">一天</div></div><div class="hero"><div class="eyebrow" id="dateLabel"></div><h1 id="greeting"></h1><p id="dailyQuote"></p></div><div class="section"><div class="sectionHead"><h2>值得留下</h2><button class="linkBtn" onclick="openNote()">写下来 ›</button></div><div class="card" id="notePreview"></div></div><div class="section"><div class="sectionHead"><h2>今天</h2><button class="linkBtn" onclick="go('tasks')">查看事项 ›</button></div><div class="card" id="todayTasks"></div></div><div class="section"><div class="card"><div class="progressRow"><div><div class="small">今天的完成情况</div><div class="progressNum" id="progressNum">0%</div></div><div class="small" id="progressDetail"></div></div><div class="bar"><i id="progressBar"></i></div></div></div></section>
+<section class="page" id="tasks"><div class="top"><div class="brand">事项</div><button class="iconBtn" onclick="openTask()">＋</button></div><div class="tabs"><button class="active" data-task-tab="today">今日</button><button data-task-tab="calendar">日历</button><button data-task-tab="stats">统计</button></div><div class="taskPanel active" id="taskPanelToday"><div class="card"><div class="sectionHead"><h2 id="selectedDateTitle">今天</h2><button class="linkBtn" onclick="openTask()">＋ 添加</button></div><div class="filter"><button class="active" data-filter="all">全部 (<span id="fAll">0</span>)</button><button data-filter="active">进行中 (<span id="fActive">0</span>)</button><button data-filter="done">已完成 (<span id="fDone">0</span>)</button></div><div id="selectedTasks"></div></div></div><div class="taskPanel" id="taskPanelCalendar"><div class="card calendar"><div class="calHead"><button class="monthBtn" onclick="changeMonth(-1)">‹</button><div class="monthLabel" id="monthLabel"></div><button class="monthBtn" onclick="changeMonth(1)">›</button></div><div class="week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div><div class="days" id="calendarDays"></div></div><h2 class="dateTitle" id="calendarDateTitle"></h2><div class="card" id="calendarTasks"></div></div><div class="taskPanel" id="taskPanelStats"><div class="card"><div class="sectionHead"><h2>完成概览</h2><span class="countBadge">近 7 天</span></div><div class="metricGrid"><div class="metric"><b id="taskTotalCompletions">0</b><span>累计完成</span></div><div class="metric"><b id="weekCompletions">0</b><span>本周完成</span></div><div class="metric"><b id="streakDays">0</b><span>坚持天数</span></div><div class="metric"><b id="completionRate">0%</b><span>完成率</span></div></div><div class="chart" id="taskChart"></div><div class="legend"><span><i class="dotLegend"></i>已完成</span><span>● 未完成</span></div></div><div class="sectionHead" style="margin:22px 0 10px"><h2>事项列表</h2><button class="linkBtn" onclick="openTask()">＋ 添加</button></div><div class="filter"><button class="active" data-stat-filter="all">全部</button><button data-stat-filter="active">进行中</button><button data-stat-filter="done">已完成</button></div><div class="card" id="taskStatsList"></div></div></section>
+<section class="page" id="plans"><div class="top"><div class="brand">计划</div><button class="iconBtn" onclick="openPlan()">＋</button></div><h1 class="pageTitle">以后要去哪里。</h1><p class="sub">记录长期方向，真正行动，也允许计划完成、暂停或归档。</p><div id="plansList"></div></section>
+<section class="page" id="review"><div class="top"><div class="brand">回顾</div><button class="iconBtn" onclick="openReviewCalendar()">▦</button></div><div class="reviewHero"><h1>回头看，也继续向前。</h1><p>这里不是完成任务的成绩单，只留下你真实经历过的日子。</p></div><div class="reviewNav"><button onclick="openReviewCalendar()">‹</button><button id="reviewChosen" onclick="openReviewCalendar()"></button><button onclick="clearReviewDate()">查看全部</button></div><div id="reviewList"></div></section>
+<section class="page" id="me"><div class="top"><div class="brand">我的</div></div><div class="card profile"><img class="avatar" id="avatarImg" alt="头像"><div><div class="profileName">OneDay</div><div class="profileSub">记录生活，成为更好的自己。</div></div><button class="linkBtn" onclick="document.getElementById('avatarInput').click()">更换</button><input id="avatarInput" type="file" accept="image/*" hidden></div><div class="card settingsList" style="margin-top:16px"><button class="settingRow" onclick="openTheme()"><span class="settingIcon">◐</span><span class="grow">主题设置</span><span class="small" id="themeLabel">跟随系统</span><span class="chev">›</span></button><button class="settingRow" onclick="exportData()"><span class="settingIcon">⇧</span><span class="grow">导出数据</span><span class="chev">›</span></button><button class="settingRow" onclick="openImport()"><span class="settingIcon">☁</span><span class="grow">数据备份</span><span class="chev">›</span></button></div><div class="card settingsList" style="margin-top:16px"><button class="settingRow" onclick="openHelp()"><span class="settingIcon">▤</span><span class="grow">使用说明</span><span class="chev">›</span></button><button class="settingRow" onclick="openAbout()"><span class="settingIcon">ⓘ</span><span class="grow">关于</span><span class="small">v4.1</span><span class="chev">›</span></button></div><div class="meFooter">一直走，就会看到不一样的风景。<br>OneDay v4.1</div></section>
 </div>
-
-<nav class="nav">
-<button class="active" data-go="today"><span class="ico">◎</span>今天</button>
-<button data-go="tasks"><span class="ico">□</span>事项</button>
-<button data-go="plans"><span class="ico">◇</span>计划</button>
-<button data-go="review"><span class="ico">↝</span>回顾</button>
-<button data-go="me"><span class="ico">○</span>我的</button>
-</nav>
-
+<nav class="nav"><button class="active" data-go="today"><span class="ico">◎</span>今天</button><button data-go="tasks"><span class="ico">□</span>事项</button><button data-go="plans"><span class="ico">◇</span>计划</button><button data-go="review"><span class="ico">↝</span>回顾</button><button data-go="me"><span class="ico">○</span>我的</button></nav>
 <div class="modal" id="noteModal"><div class="sheet"><h3>今天有什么值得留下的吗？</h3><div class="field"><textarea id="noteInput" placeholder="不需要写得很好，只留下真实的你。"></textarea></div><div class="sheetActions"><button class="secondary" onclick="closeModal('noteModal')">取消</button><button class="primary" onclick="saveNote()">保存</button></div></div></div>
 <div class="modal" id="taskModal"><div class="sheet"><h3>添加一件事</h3><div class="field"><label>事项</label><input id="taskInput" placeholder="例如：阅读 20 分钟"></div><div class="field"><label>类型</label><select id="taskRepeat"><option value="once">仅这一天</option><option value="daily">每天循环</option></select></div><div class="sheetActions"><button class="secondary" onclick="closeModal('taskModal')">取消</button><button class="primary" onclick="saveTask()">添加</button></div></div></div>
 <div class="modal" id="planModal"><div class="sheet"><h3>新的计划</h3><div class="field"><label>计划名称</label><input id="planTitle" placeholder="例如：成为更强大的人"></div><div class="field"><label>说明</label><textarea id="planDesc" placeholder="为什么要做？下一步是什么？"></textarea></div><div class="sheetActions"><button class="secondary" onclick="closeModal('planModal')">取消</button><button class="primary" onclick="savePlan()">保存计划</button></div></div></div>
-<div class="modal" id="reviewCalModal"><div class="sheet"><h3>选择回顾日期</h3><p class="small">点击某一天后，将只查看那一天留下的记录。</p><div class="card calendar"><div class="calHead"><button class="monthBtn" onclick="changeReviewMonth(-1)">‹</button><div class="monthLabel" id="reviewMonthLabel"></div><button class="monthBtn" onclick="changeReviewMonth(1)">›</button></div><div class="week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div><div class="days" id="reviewCalendarDays"></div></div><div class="sheetActions"><button class="secondary" onclick="closeModal('reviewCalModal')">关闭</button></div></div></div>
-<div class="modal" id="settingsModal"><div class="sheet"><h3>设置</h3><div class="field"><label>每日一句</label><select id="quoteMode"><option value="daily">每天自动变化</option><option value="static">固定一句</option></select></div><div class="sheetActions"><button class="primary" onclick="saveSettings()">保存</button></div></div></div>
+<div class="modal" id="reviewCalModal"><div class="sheet"><h3>选择回顾日期</h3><p class="small">有记录的日期会显示绿色圆点。</p><div class="card calendar"><div class="calHead"><button class="monthBtn" onclick="changeReviewMonth(-1)">‹</button><div class="monthLabel" id="reviewMonthLabel"></div><button class="monthBtn" onclick="changeReviewMonth(1)">›</button></div><div class="week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div><div class="days" id="reviewCalendarDays"></div></div><div class="sheetActions"><button class="secondary" onclick="closeModal('reviewCalModal')">关闭</button></div></div></div>
+<div class="modal" id="themeModal"><div class="sheet"><h3>主题设置</h3><div class="field"><label>外观模式</label><div class="themeChoices"><button class="themeChoice" data-theme-choice="light">☀<br>浅色</button><button class="themeChoice" data-theme-choice="dark">☾<br>深色</button><button class="themeChoice" data-theme-choice="system">▣<br>跟随系统</button></div></div><div class="field"><label>主题色</label><div class="colorChoices" id="colorChoices"></div></div><div class="sheetActions"><button class="primary" onclick="saveTheme()">保存设置</button></div></div></div>
+<div class="modal" id="infoModal"><div class="sheet"><h3 id="infoTitle"></h3><div class="empty" id="infoText"></div><div class="sheetActions"><button class="primary" onclick="closeModal('infoModal')">知道了</button></div></div></div>
 <div class="toast" id="toast"></div>
-
 <script>
-const KEY='oneday_app_v3';
-const quotes=['今天不需要改变人生，认真完成一件事就已经很好。','慢一点没关系，方向没有丢就好。','不要追求完美，把真正重要的事往前推一点。','你不需要证明什么，持续行动就够了。','今天的微小完成，会成为以后回头看的证据。','生活不是冲刺，长期走下去比一时用力更重要。','允许普通的一天，也认真过好普通的一天。'];
-const D=()=>new Date();
-const pad=n=>String(n).padStart(2,'0');
-const keyOf=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const parseDate=s=>{const [y,m,d]=String(s).split('-').map(Number);return new Date(y,m-1,d)};
-const blankState=()=>({tasks:[],notes:{},plans:[],settings:{quoteMode:'daily'}});
-function normalize(raw){
-  const x=(raw&&typeof raw==='object')?raw:blankState();
-  x.tasks=Array.isArray(x.tasks)?x.tasks.filter(Boolean).map(t=>({
-    id:String(t.id||crypto.randomUUID()),
-    title:String(t.title??'').trim(),
-    date:typeof t.date==='string'?t.date:keyOf(D()),
-    repeat:t.repeat==='daily'?'daily':'once',
-    done:(t.done&&typeof t.done==='object')?t.done:{}
-  })).filter(t=>t.title):[];
-  x.notes=(x.notes&&typeof x.notes==='object'&&!Array.isArray(x.notes))?x.notes:{};
-  for(const k of Object.keys(x.notes)){
-    const v=Array.isArray(x.notes[k])?x.notes[k]:[x.notes[k]];
-    x.notes[k]=v.map(n=>typeof n==='string'?{text:n,time:''}:{
-      text:String(n?.text??'').trim(),
-      time:String(n?.time??'')
-    }).filter(n=>n.text);
-    if(!x.notes[k].length) delete x.notes[k];
-  }
-  x.plans=Array.isArray(x.plans)?x.plans.filter(Boolean).map(p=>({
-    id:String(p.id||crypto.randomUUID()),
-    title:String(p.title??'').trim(),
-    desc:String(p.desc??''),
-    status:['active','done','archived'].includes(p.status)?p.status:'active',
-    created:typeof p.created==='string'?p.created:keyOf(D())
-  })).filter(p=>p.title):[];
-  x.settings=(x.settings&&typeof x.settings==='object')?x.settings:{};
-  x.settings.quoteMode=x.settings.quoteMode==='static'?'static':'daily';
-  return x;
-}
-function data(){try{return normalize(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{return blankState()}}
-let S=data();
-let selected=keyOf(D());
-let viewMonth=new Date(D().getFullYear(),D().getMonth(),1);
-let reviewMonth=new Date(viewMonth);
-let selectedReviewDate=null;
-function save(){S=normalize(S);localStorage.setItem(KEY,JSON.stringify(S))}
-function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>x.classList.remove('show'),1800)}
-function fmtDate(d){return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`}
-function weekday(d){return ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()]}
-function greeting(){const h=D().getHours();return h<11?'早上好。':h<18?'下午好。':'晚上好。'}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function openModal(id){document.getElementById(id).classList.add('open')}
-function closeModal(id){document.getElementById(id).classList.remove('open')}
-function go(id){
-  document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));
-  document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));
-  if(id==='today')renderToday();
-  if(id==='tasks')renderTasks();
-  if(id==='plans')renderPlans();
-  if(id==='review')renderReview();
-}
-document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.go));
-function taskForDate(t,date){return t.repeat==='daily'||t.date===date}
-function taskDone(t,date){return !!(t.done&&t.done[date])}
-function setDone(t,date,v){t.done=t.done||{};t.done[date]=v}
-function completionCount(t){return Object.values(t.done||{}).filter(Boolean).length}
-
-function renderToday(){
- const d=D(),k=keyOf(d);
- document.getElementById('dateLabel').textContent=`${d.getMonth()+1}月${d.getDate()}日 ${weekday(d)}`;
- document.getElementById('greeting').textContent=greeting();
- document.getElementById('dailyQuote').textContent=S.settings.quoteMode==='static'?quotes[0]:quotes[Math.floor(d.getTime()/86400000)%quotes.length];
- const notes=Array.isArray(S.notes[k])?S.notes[k]:[];
- const np=document.getElementById('notePreview');
- np.innerHTML=notes.length?`<div class="noteList">${notes.slice(-3).reverse().map(n=>`<div class="noteItem"><div class="noteTime">${esc(n.time||'今天')}</div><div class="noteText">${esc(n.text)}</div></div>`).join('')}</div>`:`<div class="empty">今天还没有留下什么。想到的时候，随时写下来。</div>`;
- const ts=S.tasks.filter(t=>taskForDate(t,k)&&!taskDone(t,k));
- const done=S.tasks.filter(t=>taskForDate(t,k)&&taskDone(t,k));
- document.getElementById('todayTasks').innerHTML=ts.length?`<div class="taskList">${ts.slice(0,5).map(t=>taskHTML(t,k)).join('')}</div>`:`<div class="empty">${done.length?'今天的事项已经完成了。':'今天没有待办事项。'}</div>`;
- document.querySelectorAll('#todayTasks .check').forEach(b=>b.onclick=()=>toggleTask(b.dataset.id,k));
- const total=ts.length+done.length,p=total?Math.round(done.length/total*100):0;
- document.getElementById('progressNum').textContent=p+'%';
- document.getElementById('progressBar').style.width=p+'%';
- document.getElementById('progressDetail').textContent=total?`${done.length}/${total} 已完成`:'从一件小事开始';
-}
-function taskHTML(t,date){
- return `<div class="task"><button class="check ${taskDone(t,date)?'done':''}" data-id="${esc(t.id)}">${taskDone(t,date)?'✓':''}</button><div style="flex:1"><div class="taskTitle">${esc(t.title)}</div><div class="taskMeta">${t.repeat==='daily'?'循环事项':'单次事项'} · 已完成 ${completionCount(t)} 次</div></div><button class="dots" onclick="event.stopPropagation();deleteTask('${String(t.id).replace(/'/g,"\\'")}')">⋯</button></div>`;
-}
-function toggleTask(id,date){
- const t=S.tasks.find(x=>x.id===id);if(!t)return;
- setDone(t,date,!taskDone(t,date));save();renderToday();renderTasks();renderReview();
-}
-function deleteTask(id){
- if(confirm('删除这个事项？')){
-   S.tasks=S.tasks.filter(t=>t.id!==id);save();renderToday();renderTasks();renderReview();toast('已删除');
- }
-}
-function openTask(){document.getElementById('taskInput').value='';document.getElementById('taskRepeat').value='once';openModal('taskModal')}
-function saveTask(){
- const title=document.getElementById('taskInput').value.trim();
- if(!title)return toast('先写下要做什么');
- S.tasks.push({id:crypto.randomUUID(),title,date:selected,repeat:document.getElementById('taskRepeat').value,done:{}});
- save();closeModal('taskModal');renderToday();renderTasks();toast('已添加');
-}
-function openNote(){document.getElementById('noteInput').value='';openModal('noteModal')}
-function saveNote(){
- const text=document.getElementById('noteInput').value.trim();
- if(!text)return toast('写一点真实的想法吧');
- const k=keyOf(D());S.notes[k]=Array.isArray(S.notes[k])?S.notes[k]:[];
- S.notes[k].push({text,time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
- save();closeModal('noteModal');renderToday();renderReview();toast('已经留下');
-}
-function renderTaskStats(){
- const total=S.tasks.reduce((n,t)=>n+completionCount(t),0);
- document.getElementById('taskTotalCompletions').textContent=total;
- document.getElementById('taskActiveCount').textContent=S.tasks.length;
- const list=document.getElementById('taskStatsList');
- if(!S.tasks.length){list.innerHTML='<div class="empty">添加事项后，这里会记录每个事项完成了多少次。</div>';return}
- const ranked=[...S.tasks].sort((a,b)=>completionCount(b)-completionCount(a)||a.title.localeCompare(b.title,'zh-CN'));
- list.innerHTML=ranked.map(t=>`<div class="taskStatRow"><div><div class="taskTitle">${esc(t.title)}</div><div class="taskMeta">${t.repeat==='daily'?'循环事项':'单次事项'}</div></div><div class="taskStatCount">${completionCount(t)} 次</div></div>`).join('');
-}
-function renderCalendar(){
- const y=viewMonth.getFullYear(),m=viewMonth.getMonth();
- document.getElementById('monthLabel').textContent=`${y}年${m+1}月`;
- const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();let h='';
- for(let i=0;i<first;i++)h+='<div></div>';
- for(let day=1;day<=days;day++){
-   const d=new Date(y,m,day),k=keyOf(d);
-   const has=S.tasks.some(t=>taskForDate(t,k))||(Array.isArray(S.notes[k])&&S.notes[k].length);
-   h+=`<button class="day ${k===selected?'selected':''}" onclick="selectDate('${k}')">${day}${has?'<i class="dot"></i>':''}</button>`;
- }
- document.getElementById('calendarDays').innerHTML=h;
-}
-function renderTasks(){
- renderTaskStats();renderCalendar();
- const sd=parseDate(selected);
- document.getElementById('selectedDateTitle').textContent=fmtDate(sd)+' '+weekday(sd);
- const list=S.tasks.filter(t=>taskForDate(t,selected)&&!taskDone(t,selected));
- const done=S.tasks.filter(t=>taskForDate(t,selected)&&taskDone(t,selected));
- document.getElementById('selectedTasks').innerHTML=list.length?list.map(t=>taskHTML(t,selected)).join(''):`<div class="empty">这一天没有待完成事项。</div>`;
- document.getElementById('doneCount').textContent=done.length;
- document.getElementById('doneTasks').innerHTML=done.length?done.map(t=>taskHTML(t,selected)).join(''):`<div class="empty">还没有完成事项。</div>`;
- document.querySelectorAll('#tasks .check').forEach(b=>b.onclick=()=>toggleTask(b.dataset.id,selected));
-}
-function changeMonth(n){viewMonth.setMonth(viewMonth.getMonth()+n);renderTasks()}
-function selectDate(k){selected=k;const d=parseDate(k);viewMonth=new Date(d.getFullYear(),d.getMonth(),1);renderTasks()}
-function toggleDone(){const x=document.getElementById('doneTasks');x.style.display=x.style.display==='none'?'block':'none'}
-
-function openPlan(){document.getElementById('planTitle').value='';document.getElementById('planDesc').value='';openModal('planModal')}
-function savePlan(){
- const title=document.getElementById('planTitle').value.trim();
- if(!title)return toast('计划需要一个名字');
- S.plans.push({id:crypto.randomUUID(),title,desc:document.getElementById('planDesc').value.trim(),status:'active',created:keyOf(D())});
- save();closeModal('planModal');renderPlans();toast('计划已保存');
-}
-function planCard(p){
- const statusText=p.status==='active'?'进行中':p.status==='done'?'已完成':'已归档';
- return `<div class="card planCard"><div class="small">${statusText}</div><h2 style="margin:8px 0;font-size:25px">${esc(p.title)}</h2><div class="empty">${esc(p.desc||'没有额外说明。')}</div><div class="planActions">${p.status==='active'?`<button class="secondary" onclick="planStatus('${p.id}','done')">完成</button><button class="secondary" onclick="planStatus('${p.id}','archived')">归档</button>`:`<button class="secondary" onclick="planStatus('${p.id}','active')">重新进行</button>`}<button class="secondary danger" onclick="deletePlan('${p.id}')">删除</button></div></div>`;
-}
-function collapseSection(id,title,items){
- return `<div class="collapseBox"><button class="collapseHead" onclick="toggleCollapse('${id}')"><span>${title}</span><span>${items.length} 个 ›</span></button><div class="collapseBody" id="${id}">${items.map(planCard).join('')}</div></div>`;
-}
-function renderPlans(){
- const box=document.getElementById('plansList');
- const active=S.plans.filter(p=>p.status==='active');
- const done=S.plans.filter(p=>p.status==='done');
- const archived=S.plans.filter(p=>p.status==='archived');
- box.innerHTML=active.length?active.map(planCard).join(''):`<div class="card empty">还没有进行中的计划。先写下真正重要的方向。</div>`;
- box.innerHTML+=collapseSection('donePlans','已完成',done)+collapseSection('archivedPlans','已归档',archived);
-}
-function toggleCollapse(id){document.getElementById(id)?.classList.toggle('open')}
-function planStatus(id,status){
- const p=S.plans.find(x=>x.id===id);if(!p)return;
- p.status=status;save();renderPlans();
- toast(status==='done'?'计划已完成':status==='archived'?'计划已归档':'计划已重新进行');
-}
-function deletePlan(id){
- if(confirm('删除这个计划？')){S.plans=S.plans.filter(x=>x.id!==id);save();renderPlans();toast('已删除')}
-}
-
-function recordDates(){
- return Object.keys(S.notes).filter(k=>Array.isArray(S.notes[k])&&S.notes[k].length).sort((a,b)=>b.localeCompare(a));
-}
-function renderReview(){
- const box=document.getElementById('reviewList');
- const dates=selectedReviewDate?[selectedReviewDate]:recordDates();
- const chosen=document.getElementById('reviewChosen');
- chosen.textContent=selectedReviewDate?`正在查看：${fmtDate(parseDate(selectedReviewDate))} · 点击右上角可更换日期`:'按日期回看你留下的文字。';
- if(!dates.length){
-   box.innerHTML=selectedReviewDate?'<div class="card empty">这一天没有留下文字记录。</div>':'<div class="card empty">开始记录后，这里会慢慢长出属于你的时间线。</div>';
-   return;
- }
- box.innerHTML=dates.map(k=>{
-   const notes=Array.isArray(S.notes[k])?S.notes[k]:[];
-   const d=parseDate(k);
-   return `<div class="reviewDay"><div class="reviewDate">${fmtDate(d)} ${weekday(d)}</div><div class="reviewSummary">这一天留下的记录</div>${notes.map(n=>`<div class="reviewText">${esc(n.text)}</div>`).join('')}</div>`;
- }).join('');
-}
-function openReviewCalendar(){
- reviewMonth=selectedReviewDate?new Date(parseDate(selectedReviewDate).getFullYear(),parseDate(selectedReviewDate).getMonth(),1):new Date(D().getFullYear(),D().getMonth(),1);
- renderReviewCalendar();openModal('reviewCalModal');
-}
-function renderReviewCalendar(){
- const y=reviewMonth.getFullYear(),m=reviewMonth.getMonth();
- document.getElementById('reviewMonthLabel').textContent=`${y}年${m+1}月`;
- let h='';const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
- for(let i=0;i<first;i++)h+='<div></div>';
- for(let day=1;day<=days;day++){
-   const k=keyOf(new Date(y,m,day));
-   const has=Array.isArray(S.notes[k])&&S.notes[k].length;
-   h+=`<button class="day ${k===selectedReviewDate?'selected':''}" onclick="selectReviewDate('${k}')">${day}${has?'<i class="dot"></i>':''}</button>`;
- }
- document.getElementById('reviewCalendarDays').innerHTML=h;
-}
-function selectReviewDate(k){selectedReviewDate=k;closeModal('reviewCalModal');go('review');renderReview()}
-function changeReviewMonth(n){reviewMonth.setMonth(reviewMonth.getMonth()+n);renderReviewCalendar()}
-
-function openSettings(){document.getElementById('quoteMode').value=S.settings.quoteMode||'daily';openModal('settingsModal')}
-function saveSettings(){S.settings.quoteMode=document.getElementById('quoteMode').value==='static'?'static':'daily';save();closeModal('settingsModal');renderToday();toast('设置已保存')}
-function exportData(){
- const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));
- a.download='oneday-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-}
-function resetData(){if(confirm('确定清空所有本地数据？此操作无法恢复。')){localStorage.removeItem(KEY);S=blankState();renderToday();renderTasks();renderPlans();renderReview();toast('已清空')}}
-save();
-renderToday();renderTasks();renderPlans();renderReview();
-</script>
-</body></html>
+const KEY='oneday_app_v3';const colors=['#287052','#386b98','#8057b8','#c75c88','#d77b48','#68717a'];const quotes=['今天不需要改变人生，认真完成一件事就已经很好。','慢一点没关系，方向没有丢就好。','不要追求完美，把真正重要的事往前推一点。','你不需要证明什么，持续行动就够了。','今天的微小完成，会成为以后回头看的证据。','生活不是冲刺，长期走下去比一时用力更重要。','允许普通的一天，也认真过好普通的一天。'];const D=()=>new Date(),pad=n=>String(n).padStart(2,'0'),keyOf=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,parseDate=s=>{const [y,m,d]=String(s).split('-').map(Number);return new Date(y,m-1,d)};const uuid=()=>crypto?.randomUUID?.()||String(Date.now()+Math.random());
+const blankState=()=>({tasks:[],notes:{},plans:[],settings:{theme:'system',accent:'#287052',avatar:'',quoteMode:'daily'}});
+function normalize(raw){const x=(raw&&typeof raw==='object')?raw:blankState();x.tasks=Array.isArray(x.tasks)?x.tasks.filter(Boolean).map(t=>({id:String(t.id||uuid()),title:String(t.title??t.name??'').trim(),date:typeof t.date==='string'?t.date:keyOf(D()),repeat:t.repeat==='daily'?'daily':'once',done:(t.done&&typeof t.done==='object')?t.done:{}})).filter(t=>t.title):[];x.notes=(x.notes&&typeof x.notes==='object'&&!Array.isArray(x.notes))?x.notes:{};Object.keys(x.notes).forEach(k=>{const v=Array.isArray(x.notes[k])?x.notes[k]:[x.notes[k]];x.notes[k]=v.map(n=>typeof n==='string'?{text:n,time:''}:{text:String(n?.text??n?.content??n?.value??'').trim(),time:String(n?.time??'')}).filter(n=>n.text);if(!x.notes[k].length)delete x.notes[k]});x.plans=Array.isArray(x.plans)?x.plans.filter(Boolean).map(p=>({id:String(p.id||uuid()),title:String(p.title??p.name??'').trim(),desc:String(p.desc??p.description??''),status:['active','done','archived'].includes(p.status)?p.status:'active',created:typeof p.created==='string'?p.created:keyOf(D())})).filter(p=>p.title):[];x.settings=(x.settings&&typeof x.settings==='object')?x.settings:{};x.settings.theme=['light','dark','system'].includes(x.settings.theme)?x.settings.theme:'system';x.settings.accent=colors.includes(x.settings.accent)?x.settings.accent:colors[0];x.settings.avatar=typeof x.settings.avatar==='string'?x.settings.avatar:'';x.settings.quoteMode=x.settings.quoteMode==='static'?'static':'daily';return x}
+function load(){try{return normalize(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{return blankState()}}let S=load(),selected=keyOf(D()),viewMonth=new Date(D().getFullYear(),D().getMonth(),1),reviewMonth=new Date(viewMonth),selectedReviewDate=null,taskFilter='all',statFilter='all',taskTab='today',pendingTheme=S.settings.theme,pendingAccent=S.settings.accent;function save(){S=normalize(S);localStorage.setItem(KEY,JSON.stringify(S))}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function fmtDate(d){return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`}function weekday(d){return ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()]}function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>x.classList.remove('show'),1700)}function openModal(id){document.getElementById(id).classList.add('open')}function closeModal(id){document.getElementById(id).classList.remove('open')}function applyTheme(){const mode=S.settings.theme;const dark=mode==='dark'||(mode==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=dark?'dark':'';document.documentElement.style.setProperty('--green',S.settings.accent);document.documentElement.style.setProperty('--blue',S.settings.accent)}
+function go(id){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));({today:renderToday,tasks:renderTasks,plans:renderPlans,review:renderReview,me:renderMe}[id]||(()=>{}))()}document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.go));
+function greeting(){const h=D().getHours();return h<11?'早上好。':h<18?'下午好。':'晚上好。'}function taskForDate(t,k){return t.repeat==='daily'||t.date===k}function taskDone(t,k){return !!t.done?.[k]}function setDone(t,k,v){t.done=t.done||{};t.done[k]=v}function completionCount(t){return Object.values(t.done||{}).filter(Boolean).length}
+function taskHTML(t,k){const done=taskDone(t,k);return `<div class="task ${done?'done':''}"><button class="check ${done?'done':''}" data-id="${esc(t.id)}">${done?'✓':''}</button><div style="flex:1"><div class="taskTitle">${esc(t.title)}</div><div class="taskMeta">${t.repeat==='daily'?'每天':'单次'} · 已完成 ${completionCount(t)} 次</div></div><button class="dots" data-del="${esc(t.id)}">⋯</button></div>`}function bindTaskActions(root,k){root.querySelectorAll('.check').forEach(b=>b.onclick=()=>toggleTask(b.dataset.id,k));root.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>deleteTask(b.dataset.del))}function toggleTask(id,k){const t=S.tasks.find(x=>x.id===id);if(!t)return;setDone(t,k,!taskDone(t,k));save();renderToday();renderTasks();renderReview()}function deleteTask(id){if(confirm('删除这个事项？')){S.tasks=S.tasks.filter(t=>t.id!==id);save();renderTasks();renderToday();toast('已删除')}}
+function renderToday(){const d=D(),k=keyOf(d);dateLabel.textContent=`${d.getMonth()+1}月${d.getDate()}日 ${weekday(d)}`;document.getElementById('greeting').textContent=greeting();dailyQuote.textContent=S.settings.quoteMode==='static'?quotes[0]:quotes[Math.floor(d.getTime()/86400000)%quotes.length];const notes=S.notes[k]||[];notePreview.innerHTML=notes.length?`<div class="noteList">${notes.slice(-3).reverse().map(n=>`<div class="noteItem"><div class="noteTime">${esc(n.time||'今天')}</div><div class="noteText">${esc(n.text)}</div></div>`).join('')}</div>`:'<div class="empty">今天还没有留下什么。想到的时候，随时写下来。</div>';const list=S.tasks.filter(t=>taskForDate(t,k)),todo=list.filter(t=>!taskDone(t,k)),done=list.filter(t=>taskDone(t,k));todayTasks.innerHTML=todo.length?todo.map(t=>taskHTML(t,k)).join(''):`<div class="empty">${done.length?'今天的事项已经完成了。':'今天没有待办事项。'}</div>`;bindTaskActions(todayTasks,k);const total=list.length,p=total?Math.round(done.length/total*100):0;progressNum.textContent=p+'%';progressBar.style.width=p+'%';progressDetail.textContent=total?`${done.length}/${total} 已完成`:'从一件小事开始'}
+function openNote(){noteInput.value='';openModal('noteModal')}function saveNote(){const text=noteInput.value.trim();if(!text)return toast('写一点真实的想法吧');const k=keyOf(D());S.notes[k]=Array.isArray(S.notes[k])?S.notes[k]:[];S.notes[k].push({text,time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});save();closeModal('noteModal');renderToday();renderReview();toast('已经留下')}
+function openTask(){taskInput.value='';taskRepeat.value='once';openModal('taskModal')}function saveTask(){const title=taskInput.value.trim();if(!title)return toast('先写下要做什么');S.tasks.push({id:uuid(),title,date:selected,repeat:taskRepeat.value,done:{}});save();closeModal('taskModal');renderTasks();renderToday();toast('已添加')}
+function setTaskTab(tab){taskTab=tab;document.querySelectorAll('[data-task-tab]').forEach(b=>b.classList.toggle('active',b.dataset.taskTab===tab));document.querySelectorAll('.taskPanel').forEach(p=>p.classList.toggle('active',p.id==='taskPanel'+tab[0].toUpperCase()+tab.slice(1)))}document.querySelectorAll('[data-task-tab]').forEach(b=>b.onclick=()=>setTaskTab(b.dataset.taskTab));document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{taskFilter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x.dataset.filter===taskFilter));renderTasks()});document.querySelectorAll('[data-stat-filter]').forEach(b=>b.onclick=()=>{statFilter=b.dataset.statFilter;document.querySelectorAll('[data-stat-filter]').forEach(x=>x.classList.toggle('active',x.dataset.statFilter===statFilter));renderTaskStats()});
+function renderTasks(){const all=S.tasks.filter(t=>taskForDate(t,selected)),done=all.filter(t=>taskDone(t,selected)),active=all.filter(t=>!taskDone(t,selected));fAll.textContent=all.length;fActive.textContent=active.length;fDone.textContent=done.length;let show=taskFilter==='all'?all:taskFilter==='active'?active:done;selectedDateTitle.textContent=selected===keyOf(D())?'今天':fmtDate(parseDate(selected));selectedTasks.innerHTML=show.length?show.map(t=>taskHTML(t,selected)).join(''):'<div class="empty">这里还没有事项。</div>';bindTaskActions(selectedTasks,selected);renderCalendar();renderTaskStats();setTaskTab(taskTab)}
+function changeMonth(n){viewMonth.setMonth(viewMonth.getMonth()+n);renderCalendar()}function selectDate(k){selected=k;viewMonth=new Date(parseDate(k).getFullYear(),parseDate(k).getMonth(),1);renderTasks();setTaskTab('today')}function renderCalendar(){const y=viewMonth.getFullYear(),m=viewMonth.getMonth();monthLabel.textContent=`${y}年${m+1}月`;let h='';const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();for(let i=0;i<first;i++)h+='<div></div>';for(let day=1;day<=days;day++){const k=keyOf(new Date(y,m,day)),has=S.tasks.some(t=>taskForDate(t,k));h+=`<button class="day ${k===selected?'selected':''}" data-date="${k}">${day}${has?'<i class="dot"></i>':''}</button>`}calendarDays.innerHTML=h;calendarDays.querySelectorAll('[data-date]').forEach(b=>b.onclick=()=>{selected=b.dataset.date;renderCalendar();renderTasks();setTaskTab('calendar')});calendarDateTitle.textContent=fmtDate(parseDate(selected))+' '+weekday(parseDate(selected));const list=S.tasks.filter(t=>taskForDate(t,selected));calendarTasks.innerHTML=list.length?list.map(t=>taskHTML(t,selected)).join(''):'<div class="empty">这一天没有事项。</div>';bindTaskActions(calendarTasks,selected)}
+function lastNDays(n=7){const out=[];for(let i=n-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);out.push(keyOf(d))}return out}function renderTaskStats(){const total=S.tasks.reduce((n,t)=>n+completionCount(t),0),days=lastNDays(),vals=days.map(k=>{const list=S.tasks.filter(t=>taskForDate(t,k));return {k,total:list.length,done:list.filter(t=>taskDone(t,k)).length}}),week=vals.reduce((n,v)=>n+v.done,0),possible=vals.reduce((n,v)=>n+v.total,0),rate=possible?Math.round(week/possible*100):0;let streak=0;for(let i=0;i<365;i++){const d=new Date();d.setDate(d.getDate()-i);const k=keyOf(d),list=S.tasks.filter(t=>taskForDate(t,k));if(list.length&&list.every(t=>taskDone(t,k)))streak++;else if(list.length)break}taskTotalCompletions.textContent=total;weekCompletions.textContent=week;streakDays.textContent=streak;completionRate.textContent=rate+'%';const max=Math.max(1,...vals.map(v=>v.total));taskChart.innerHTML=vals.map(v=>{const dh=Math.round(v.done/max*100),mh=Math.round(Math.max(0,v.total-v.done)/max*100),d=parseDate(v.k);return `<div class="barCol"><div class="barStack"><i class="barDone" style="height:${dh}%"></i><i class="barMiss" style="height:${mh}%"></i></div>${d.getMonth()+1}/${d.getDate()}</div>`}).join('');let items=statFilter==='all'?S.tasks:statFilter==='active'?S.tasks.filter(t=>!(t.repeat==='once'&&taskDone(t,t.date))):S.tasks.filter(t=>t.repeat==='once'&&taskDone(t,t.date));taskStatsList.innerHTML=items.length?items.map(t=>`<div class="task"><div class="check ${completionCount(t)?'done':''}">${completionCount(t)?'✓':''}</div><div style="flex:1"><div class="taskTitle">${esc(t.title)}</div><div class="taskMeta">${t.repeat==='daily'?'每天':'单次'} · 已完成 ${completionCount(t)} 次</div></div><span class="chev">›</span></div>`).join(''):'<div class="empty">这里还没有符合条件的事项。</div>'}
+function openPlan(){planTitle.value='';planDesc.value='';openModal('planModal')}function savePlan(){const title=planTitle.value.trim();if(!title)return toast('计划需要一个名字');S.plans.push({id:uuid(),title,desc:planDesc.value.trim(),status:'active',created:keyOf(D())});save();closeModal('planModal');renderPlans();toast('计划已保存')}function planCard(p){const text=p.status==='active'?'进行中':p.status==='done'?'已完成':'已归档';return `<div class="card planCard"><div class="small">${text}</div><h2>${esc(p.title)}</h2><div class="empty">${esc(p.desc||'没有额外说明。')}</div><div class="planStatus">${p.status==='active'?'正在前进':p.status==='done'?'已经完成':'暂时归档'}</div><div class="planActions">${p.status==='active'?`<button class="secondary" onclick="planStatus('${p.id}','done')">完成</button><button class="secondary" onclick="planStatus('${p.id}','archived')">归档</button>`:`<button class="secondary" onclick="planStatus('${p.id}','active')">重新进行</button>`}<button class="secondary danger" onclick="deletePlan('${p.id}')">删除</button></div></div>`}function renderPlans(){const a=S.plans.filter(p=>p.status==='active'),d=S.plans.filter(p=>p.status==='done'),r=S.plans.filter(p=>p.status==='archived');plansList.innerHTML=(a.length?a.map(planCard).join(''):'<div class="card empty">还没有进行中的计划。先写下真正重要的方向。</div>')+collapseSection('donePlans','已完成',d)+collapseSection('archivedPlans','已归档',r)}function collapseSection(id,title,items){return `<div class="collapseBox"><button class="collapseHead" onclick="toggleCollapse('${id}')"><span>${title}</span><span>${items.length} 个 ›</span></button><div class="collapseBody" id="${id}">${items.map(planCard).join('')}</div></div>`}function toggleCollapse(id){document.getElementById(id)?.classList.toggle('open')}function planStatus(id,status){const p=S.plans.find(x=>x.id===id);if(!p)return;p.status=status;save();renderPlans();toast('已更新计划状态')}function deletePlan(id){if(confirm('删除这个计划？')){S.plans=S.plans.filter(x=>x.id!==id);save();renderPlans();toast('已删除')}}
+function recordDates(){return Object.keys(S.notes).filter(k=>S.notes[k]?.length).sort((a,b)=>b.localeCompare(a))}function renderReview(){reviewChosen.textContent=selectedReviewDate?fmtDate(parseDate(selectedReviewDate)):'所有记录';const dates=selectedReviewDate?[selectedReviewDate]:recordDates();reviewList.innerHTML=dates.length?dates.map(k=>{const d=parseDate(k),notes=S.notes[k]||[];return `<div class="reviewDay"><div class="reviewDate">${fmtDate(d)} ${weekday(d)}</div><div class="reviewSummary">这一天留下的记录 <span class="countBadge">${notes.length}</span></div>${notes.map(n=>`<div class="reviewText">${esc(n.text)}</div>`).join('')}</div>`}).join(''):`<div class="card empty">${selectedReviewDate?'这一天没有留下文字记录。':'开始记录后，这里会慢慢长出属于你的时间线。'}</div>`}function clearReviewDate(){selectedReviewDate=null;renderReview()}function openReviewCalendar(){reviewMonth=selectedReviewDate?new Date(parseDate(selectedReviewDate).getFullYear(),parseDate(selectedReviewDate).getMonth(),1):new Date(D().getFullYear(),D().getMonth(),1);renderReviewCalendar();openModal('reviewCalModal')}function changeReviewMonth(n){reviewMonth.setMonth(reviewMonth.getMonth()+n);renderReviewCalendar()}function renderReviewCalendar(){const y=reviewMonth.getFullYear(),m=reviewMonth.getMonth();reviewMonthLabel.textContent=`${y}年${m+1}月`;let h='';const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();for(let i=0;i<first;i++)h+='<div></div>';for(let day=1;day<=days;day++){const k=keyOf(new Date(y,m,day)),has=!!S.notes[k]?.length;h+=`<button class="day ${k===selectedReviewDate?'selected':''}" data-rdate="${k}">${day}${has?'<i class="dot"></i>':''}</button>`}reviewCalendarDays.innerHTML=h;reviewCalendarDays.querySelectorAll('[data-rdate]').forEach(b=>b.onclick=()=>{selectedReviewDate=b.dataset.rdate;closeModal('reviewCalModal');renderReview()})}
+function renderMe(){const fallback='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140"><rect width="140" height="140" fill="%23eef0ee"/><circle cx="70" cy="52" r="24" fill="%239aa2aa"/><path d="M28 128c5-30 23-45 42-45s37 15 42 45" fill="%239aa2aa"/></svg>');avatarImg.src=S.settings.avatar||fallback;themeLabel.textContent=S.settings.theme==='light'?'浅色':S.settings.theme==='dark'?'深色':'跟随系统'}avatarInput.onchange=e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>4*1024*1024)return toast('图片请小于 4MB');const r=new FileReader();r.onload=()=>{S.settings.avatar=String(r.result);save();renderMe();toast('头像已更换')};r.readAsDataURL(f)}
+function openTheme(){pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;renderThemeChoices();openModal('themeModal')}function renderThemeChoices(){document.querySelectorAll('[data-theme-choice]').forEach(b=>b.classList.toggle('active',b.dataset.themeChoice===pendingTheme));colorChoices.innerHTML=colors.map(c=>`<button class="colorDot ${c===pendingAccent?'active':''}" data-color="${c}" style="background:${c}"></button>`).join('');document.querySelectorAll('[data-theme-choice]').forEach(b=>b.onclick=()=>{pendingTheme=b.dataset.themeChoice;renderThemeChoices()});colorChoices.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{pendingAccent=b.dataset.color;renderThemeChoices()})}function saveTheme(){S.settings.theme=pendingTheme;S.settings.accent=pendingAccent;save();applyTheme();renderMe();closeModal('themeModal');toast('主题已保存')}
+function exportData(){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.href=u;a.download='oneday-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),800);toast('数据已导出')}function openImport(){infoTitle.textContent='数据备份';infoText.textContent='当前版本的数据默认保存在本设备浏览器中。你可以随时通过“导出数据”保存一份备份。导入功能将在下一版本加入。';openModal('infoModal')}function openHelp(){infoTitle.textContent='使用说明';infoText.textContent='今天：记录当天的想法并完成事项。\n事项：查看今日、日历和统计，循环事项会保留完成次数。\n计划：管理长期方向，可完成或归档。\n回顾：只回看真实记录，不把人生变成任务成绩单。';openModal('infoModal')}function openAbout(){infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v4.1';openModal('infoModal')}
+applyTheme();save();renderToday();renderTasks();renderPlans();renderReview();renderMe();
+</script></body></html>
