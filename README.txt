@@ -1,8 +1,10 @@
-OneDay v4.9.5 · MYTHOS Redesign
+OneDay v4.9.6 · MYTHOS Clean
 
 个人成长记录应用
 
 本版本更新
+- 已彻底移除旧照片主题、照片文件及全部相关代码引用
+- 已移除内嵌照片 Base64 数据，项目不再携带该照片内容
 - 重做「神话 · 暗色 / 亮色」特别版主题
 - 移除旧版仅使用太阳符号的单一装饰
 - 建立完整 MYTHOS 古典视觉语言：黑曜石 / 大理石 / 羊皮纸 / 古铜 / 暖金 / 铭文 / 古典边框
@@ -38,7 +40,6 @@ OneDay v4.9.5 · MYTHOS Redesign
 - 头像
 - 默认浅色 / 深色 / 跟随系统
 - 神话 · 暗色 / 亮色
-- aespa · Purple Era
 - 首页自定义
 - 数据导入 / 导出 / 恢复
 
@@ -49,4 +50,4 @@ OneDay v4.9.5 · MYTHOS Redesign
 - ZIP 完整性检查
 
 版本
-OneDay v4.9.5
+OneDay v4.9.6 · Mythos Clean
