@@ -1,4 +1,4 @@
-OneDay v4.8
+OneDay v4.8.2
 
 个人成长记录应用
 
@@ -56,4 +56,4 @@ OneDay v4.8
 - 不包含日期轴、方格趋势图或旧统计筛选器
 
 版本
-OneDay v4.8
+OneDay v4.8.2
