@@ -38,208 +38,23 @@
 
 /* 首页模块自定义 */
 .homeCustomizeBtn{border:0;background:none;color:var(--blue);font-size:15px;font-weight:850;padding:8px 0}.homeModule{display:block}.homeModule.hidden{display:none}.customizeList{display:grid;gap:10px}.customizeItem{display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:12px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}.moduleSwitch{width:28px;height:28px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);color:transparent;font-size:18px;font-weight:900}.moduleSwitch.on{background:var(--green);border-color:var(--green);color:#fff}.moduleTitle{font-size:16px;font-weight:850}.moduleDesc{font-size:12px;color:var(--muted);margin-top:3px}.moduleMove{display:flex;gap:6px}.moduleMove button{width:32px;height:32px;border:1px solid var(--line);background:var(--surface2);border-radius:9px;color:var(--ink);font-size:16px}.moduleMove button:disabled{opacity:.35}.customizeHint{margin:0 0 12px;line-height:1.55}.homePlanList{display:grid;gap:10px}.homePlanItem{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface2)}.homePlanTitle{font-size:17px;font-weight:850}.homePlanDesc{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
-/* 神话特别版：深色 / 浅色 */
-:root[data-edition="myth-dark"]{--bg:#0d1013;--surface:#171a1d;--surface2:#111417;--ink:#f0e6d4;--muted:#b9ae9b;--line:#4a4033;--blue:#c7a56a;--green:#b38b4e;--greenSoft:#2b241a;--danger:#d38b7b;--shadow:0 18px 46px rgba(0,0,0,.34)}
-:root[data-edition="myth-light"]{--bg:#f2ecdf;--surface:#fbf8f0;--surface2:#efe7d8;--ink:#34291f;--muted:#827466;--line:#d5c6b0;--blue:#9a7139;--green:#9a7139;--greenSoft:#efe2c8;--danger:#a85b50;--shadow:0 16px 42px rgba(76,57,35,.10)}
-:root[data-edition^="myth"] body{background:radial-gradient(circle at 88% 2%,rgba(197,158,90,.12),transparent 25%),radial-gradient(circle at 5% 40%,rgba(197,158,90,.06),transparent 24%),var(--bg);font-family:Georgia,"Times New Roman","Songti SC","STSong",serif}
-:root[data-edition^="myth"] .brand,:root[data-edition^="myth"] h1,:root[data-edition^="myth"] h2,:root[data-edition^="myth"] h3,:root[data-edition^="myth"] .pageTitle,:root[data-edition^="myth"] .profileName{font-family:Georgia,"Times New Roman","Songti SC","STSong",serif;letter-spacing:.01em}
-:root[data-edition^="myth"] .brand:after{content:" · MYTHOLOGY";font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;font-size:8px;letter-spacing:.16em;color:var(--muted);margin-left:7px;vertical-align:middle}
-:root[data-edition^="myth"] .card,:root[data-edition^="myth"] .nav,:root[data-edition^="myth"] .iconBtn{box-shadow:var(--shadow);border-radius:10px}
-:root[data-edition^="myth"] .primary{background:linear-gradient(135deg,#d2b27a,#a67d43);color:#21180f}
-:root[data-edition^="myth"] .nav{border-radius:10px}
-:root[data-edition^="myth"] .hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
-:root[data-edition^="myth"] .hero:after{content:"☼";position:absolute;right:0;top:4px;font-size:108px;line-height:1;color:var(--blue);opacity:.16;font-family:Georgia,serif}
-.editionField{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
-.editionChoices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.editionChoice{position:relative;min-height:118px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:16px;padding:16px;text-align:left;font:inherit;font-weight:850;overflow:hidden}
 .editionChoice small{display:block;color:var(--muted);font-weight:650;margin-top:6px;line-height:1.4}
-.editionChoice:after{content:"☼";position:absolute;right:10px;bottom:-26px;font-size:88px;color:var(--blue);opacity:.12;font-family:Georgia,serif}
 .editionChoice.active{outline:2px solid var(--blue);outline-offset:-2px}
-.editionChoice.mythDark{background:linear-gradient(145deg,#0e1114,#201b15);color:#f0e6d4;border-color:#5a4934}
-.editionChoice.mythLight{background:linear-gradient(145deg,#fffdf7,#e7dcc7);color:#34291f;border-color:#d5c6b0}
-.editionChoice.off{grid-column:1/-1;min-height:auto;padding:13px 16px}
 
-
-/* v4.9.5 · MYTHOS redesign — replace the old "sun + color" skin with a full classical visual language */
-:root[data-edition="myth-dark"]{
-  --bg:#12100d;--surface:#1b1712;--surface2:#211b14;--ink:#efe5d1;--muted:#b7a994;
-  --line:#5d4b37;--blue:#c9a86a;--green:#b98b4c;--greenSoft:#2a2118;--danger:#d38b7b;
-  --shadow:0 18px 46px rgba(0,0,0,.38)
-}
-:root[data-edition="myth-light"]{
-  --bg:#ece4d6;--surface:#f8f3e9;--surface2:#efe5d6;--ink:#2f251d;--muted:#7d6d5e;
-  --line:#cbb89c;--blue:#8b6233;--green:#8b6233;--greenSoft:#e8dac3;--danger:#a85b50;
-  --shadow:0 16px 38px rgba(76,57,35,.12)
-}
-:root[data-edition^="myth"] body{
-  background:
-    linear-gradient(90deg,transparent 0 7%,rgba(185,139,76,.055) 7.2% 7.45%,transparent 7.7% 92.3%,rgba(185,139,76,.055) 92.55% 92.8%,transparent 93%),
-    radial-gradient(circle at 15% 8%,rgba(207,172,106,.11),transparent 27%),
-    radial-gradient(circle at 90% 78%,rgba(207,172,106,.08),transparent 31%),
-    var(--bg);
-  font-family:Georgia,"Times New Roman","Songti SC","STSong",serif
-}
-:root[data-edition^="myth"] .app{position:relative}
-:root[data-edition^="myth"] .brand,
-:root[data-edition^="myth"] h1,
-:root[data-edition^="myth"] h2,
-:root[data-edition^="myth"] h3,
-:root[data-edition^="myth"] .pageTitle,
-:root[data-edition^="myth"] .profileName{
-  font-family:Georgia,"Times New Roman","Songti SC","STSong",serif;
-  letter-spacing:.025em
-}
-:root[data-edition^="myth"] .brand:after{
-  content:" · M Y T H O S";
-  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;
-  font-size:8px;letter-spacing:.22em;color:var(--blue);margin-left:8px;vertical-align:middle
-}
-:root[data-edition^="myth"] .hero{
-  position:relative;isolation:isolate;overflow:hidden;
-  min-height:340px;padding:34px 32px 38px;
-  border:1px solid var(--line);border-radius:2px;
-  background:
-    linear-gradient(90deg,rgba(0,0,0,.10),transparent 42%,rgba(0,0,0,.05)),
-    radial-gradient(circle at 78% 36%,rgba(207,172,106,.18),transparent 23%),
-    linear-gradient(135deg,var(--surface2),var(--bg));
-  box-shadow:var(--shadow)
-}
-:root[data-edition^="myth"] .hero:before{
-  content:"ATHENA";
-  position:absolute;right:-16px;bottom:-23px;z-index:-1;
-  font-size:clamp(72px,20vw,152px);font-weight:700;letter-spacing:-.08em;
-  color:var(--blue);opacity:.08;line-height:.78;white-space:nowrap
-}
-:root[data-edition^="myth"] .hero:after{
-  content:"⚜";
-  position:absolute;right:22px;top:20px;z-index:-1;
-  font-size:48px;line-height:1;color:var(--blue);opacity:.55;
-  font-family:Georgia,serif
-}
-:root[data-edition^="myth"] .hero .eyebrow{
-  color:var(--blue);letter-spacing:.11em;text-transform:uppercase;
-  padding-bottom:13px;margin-bottom:20px;border-bottom:1px solid var(--line);
-  position:relative
-}
-:root[data-edition^="myth"] .hero .eyebrow:after{
-  content:"  ·  THE DAILY CHRONICLE";
-  font-size:9px;font-weight:800;letter-spacing:.16em
-}
-:root[data-edition^="myth"] .hero h1{
-  max-width:74%;font-size:clamp(46px,11vw,68px);line-height:.98;margin-bottom:22px
-}
-:root[data-edition^="myth"] .hero p{
-  max-width:76%;font-size:17px;line-height:1.7;color:var(--muted)
-}
-:root[data-edition^="myth"] .sectionHead{
-  padding-bottom:9px;border-bottom:1px solid var(--line)
-}
-:root[data-edition^="myth"] .sectionHead h2:before{
-  content:"◆";font-size:10px;color:var(--blue);margin-right:8px;vertical-align:2px
-}
-:root[data-edition^="myth"] .card,
-:root[data-edition^="myth"] .reviewEntry,
-:root[data-edition^="myth"] .habitMetric,
-:root[data-edition^="myth"] .homePlanItem{
-  border-radius:2px;
-  border:1px solid var(--line);
-  box-shadow:var(--shadow);
-  position:relative
-}
-:root[data-edition^="myth"] .card:before,
-:root[data-edition^="myth"] .reviewEntry:before,
-:root[data-edition^="myth"] .homePlanItem:before{
-  content:"";position:absolute;inset:5px;border:1px solid color-mix(in srgb,var(--line) 68%,transparent);
-  pointer-events:none
-}
-:root[data-edition^="myth"] .primary{
-  border-radius:2px;
-  background:linear-gradient(135deg,#d8bb82,#9a6f37);
-  color:#21180f;border:1px solid rgba(255,255,255,.22);
-  box-shadow:0 8px 18px rgba(0,0,0,.13)
-}
-:root[data-edition^="myth"] .secondary,
-:root[data-edition^="myth"] .linkBtn{
-  border-radius:2px;color:var(--blue)
-}
-:root[data-edition^="myth"] .check{
-  border-radius:2px;border-color:var(--line)
-}
-:root[data-edition^="myth"] .check.done{
-  background:var(--blue);border-color:var(--blue);color:#fff8ea
-}
-:root[data-edition^="myth"] .progressNum{color:var(--blue)}
-:root[data-edition^="myth"] .bar,
-:root[data-edition^="myth"] .bar i{border-radius:0}
-:root[data-edition^="myth"] .bar i{background:linear-gradient(90deg,var(--blue),#d7b777)}
-:root[data-edition^="myth"] .nav{
-  border-radius:2px;border:1px solid var(--line);
-  background:color-mix(in srgb,var(--surface) 94%,transparent);
-  box-shadow:0 -4px 28px rgba(0,0,0,.14)
-}
-:root[data-edition^="myth"] .nav button.active{
-  background:var(--greenSoft);color:var(--blue);border-radius:2px
-}
-:root[data-edition^="myth"] .pageTitle:before{
-  content:"ODYSSEY · ";font-size:.35em;letter-spacing:.18em;color:var(--blue);display:block;margin-bottom:10px
-}
-:root[data-edition^="myth"] .reviewIntro h1:before{
-  content:"CHRONICLE · ";font-size:.32em;letter-spacing:.16em;color:var(--blue);display:block;margin-bottom:8px
-}
-:root[data-edition^="myth"] #me .profile{
-  background:
-    linear-gradient(90deg,rgba(185,139,76,.06),transparent 30%,rgba(185,139,76,.05)),
-    var(--surface)
-}
-:root[data-edition^="myth"] .settingRow{border-radius:0}
-:root[data-edition^="myth"] .sheet{
-  border-radius:0;border-top:2px solid var(--blue);
-  background:var(--bg)
-}
-:root[data-edition^="myth"] .field input,
-:root[data-edition^="myth"] .field textarea,
-:root[data-edition^="myth"] .field select{
-  border-radius:2px;background:var(--surface)
-}
-:root[data-edition^="myth"] .tabs button.active,
-:root[data-edition^="myth"] .filter button.active{
-  border-radius:2px;background:var(--greenSoft);color:var(--blue)
-}
-:root[data-edition^="myth"] .calendar .day.selected{
-  border-radius:2px;background:var(--blue);color:#fff8ea
-}
-:root[data-edition^="myth"] .editionChoice:after{content:"⚜";font-size:62px;opacity:.18}
-:root[data-edition^="myth"] .editionChoice.mythDark{
-  background:linear-gradient(145deg,#17120d,#332618);color:#f0e6d4;border-color:#7b613d
-}
-:root[data-edition^="myth"] .editionChoice.mythLight{
-  background:linear-gradient(145deg,#fffaf0,#e3d0af);color:#34291f;border-color:#b89a6f
-}
-/* page-level myth markers: a consistent identity beyond a single hero decoration */
-:root[data-edition^="myth"] #tasks .top,
-:root[data-edition^="myth"] #plans .top,
-:root[data-edition^="myth"] #review .top,
-:root[data-edition^="myth"] #me .top{
-  border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:18px
-}
-:root[data-edition^="myth"] #tasks .top .brand:before{content:"✦ ";color:var(--blue)}
-:root[data-edition^="myth"] #plans .top .brand:before{content:"⌁ ";color:var(--blue)}
-:root[data-edition^="myth"] #review .top .brand:before{content:"✧ ";color:var(--blue)}
-:root[data-edition^="myth"] #me .top .brand:before{content:"◆ ";color:var(--blue)}
 
 </style></head><body><div class="app">
 <section class="page active" id="today"><div class="top"><div class="brand">一天</div></div><div class="homeModule" data-home-module="hero"><div class="hero"><div class="eyebrow" id="dateLabel"></div><h1 id="greeting"></h1><p id="dailyQuote"></p></div></div><div class="section homeModule" data-home-module="tasks"><div class="sectionHead"><h2>今天</h2><button class="linkBtn" onclick="go('tasks')">查看事项 ›</button></div><div class="card" id="todayTasks"></div></div><div class="section homeModule" data-home-module="note"><div class="sectionHead"><h2>值得留下</h2></div><div class="card"><div class="field" style="margin:0"><textarea id="quickNoteInput" placeholder="今天有什么值得留下的吗？不需要写得很好，只留下真实的你。"></textarea></div><div class="sheetActions" style="margin-top:12px"><button class="primary" onclick="saveQuickNote()">留下这段话</button></div></div></div><div class="section homeModule" data-home-module="progress"><div class="card"><div class="progressRow"><div><div class="small">今天的完成情况</div><div class="progressNum" id="progressNum">0%</div></div><div class="small" id="progressDetail"></div></div><div class="bar"><i id="progressBar"></i></div></div></div><div class="section homeModule" data-home-module="plans"><div class="sectionHead"><h2>我的计划</h2><button class="linkBtn" onclick="go('plans')">查看计划 ›</button></div><div class="homePlanList" id="homePlans"></div></div></section>
 <section class="page" id="tasks"><div class="top"><div class="brand">事项</div><button class="iconBtn" onclick="openTask()">＋</button></div><div class="tabs"><button class="active" data-task-tab="today">今日</button><button data-task-tab="calendar">日历</button><button data-task-tab="stats">统计</button></div><div class="taskPanel active" id="taskPanelToday"><div class="card"><div class="sectionHead"><h2 id="selectedDateTitle">今天</h2><button class="linkBtn" onclick="openTask()">＋ 添加</button></div><div class="filter"><button class="active" data-filter="all">全部 (<span id="fAll">0</span>)</button><button data-filter="active">进行中 (<span id="fActive">0</span>)</button><button data-filter="done">已完成 (<span id="fDone">0</span>)</button></div><div id="selectedTasks"></div></div></div><div class="taskPanel" id="taskPanelCalendar"><div class="card calendar"><div class="calHead"><button class="monthBtn" onclick="changeMonth(-1)">‹</button><div class="monthLabel" id="monthLabel"></div><button class="monthBtn" onclick="changeMonth(1)">›</button></div><div class="week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div><div class="days" id="calendarDays"></div></div><h2 class="dateTitle" id="calendarDateTitle"></h2><div class="card" id="calendarTasks"></div></div><div class="taskPanel" id="taskPanelStats"><div class="card"><div class="sectionHead"><h2>完成概览</h2></div><p class="small" style="margin:0 0 14px">记录每件事情累计完成的天数。</p><div class="habitGrid" id="habitStats"></div></div></div></section>
 <section class="page" id="plans"><div class="top"><div class="brand">计划</div><button class="iconBtn" onclick="openPlan()">＋</button></div><h1 class="pageTitle">以后要去哪里。</h1><p class="sub">记录长期方向，真正行动，也允许计划完成、暂停或归档。</p><div id="plansList"></div></section>
 <section class="page" id="review"><div class="top"><div class="brand">回顾</div><button class="iconBtn" onclick="openReviewCalendar()">▦</button></div><div class="reviewIntro"><h1>你的时间线。</h1><p>不是成绩单，只留下那些真实发生过的日子。</p></div><div class="reviewNav"><button onclick="openReviewCalendar()">‹</button><button id="reviewChosen" onclick="openReviewCalendar()"></button><button onclick="clearReviewDate()">全部</button></div><div id="reviewList"></div></section>
-<section class="page" id="me"><div class="top"><div class="brand">我的</div></div><div class="card profile"><img class="avatar" id="avatarImg" alt="头像"><div><div class="profileName">OneDay</div><div class="profileSub">记录生活，成为更好的自己。</div></div><button class="linkBtn" onclick="document.getElementById('avatarInput').click()">更换</button><input id="avatarInput" type="file" accept="image/*" hidden><input id="importInput" type="file" accept="application/json,.json" hidden></div><div class="card settingsList" style="margin-top:16px"><button class="settingRow" onclick="openTheme()"><span class="settingIcon">◐</span><span class="grow">主题设置</span><span class="small" id="themeLabel">跟随系统</span><span class="chev">›</span></button><button class="settingRow" onclick="openHomeCustomize()"><span class="settingIcon">▦</span><span class="grow">首页自定义</span><span class="small">模块与排序</span><span class="chev">›</span></button><button class="settingRow" onclick="exportData()"><span class="settingIcon">⇧</span><span class="grow">导出数据</span><span class="chev">›</span></button><button class="settingRow" onclick="document.getElementById('importInput').click()"><span class="settingIcon">⇩</span><span class="grow">导入数据</span><span class="chev">›</span></button><button class="settingRow" onclick="openRestore()"><span class="settingIcon">↺</span><span class="grow">恢复初始设置</span><span class="chev">›</span></button></div><div class="card settingsList" style="margin-top:16px"><button class="settingRow" onclick="openHelp()"><span class="settingIcon">▤</span><span class="grow">使用说明</span><span class="chev">›</span></button><button class="settingRow" onclick="openAbout()"><span class="settingIcon">ⓘ</span><span class="grow">关于</span><span class="small">v4.9.5</span><span class="chev">›</span></button></div><div class="meFooter">一直走，就会看到不一样的风景。<br>OneDay v4.9.5</div></section>
+<section class="page" id="me"><div class="top"><div class="brand">我的</div></div><div class="card profile"><img class="avatar" id="avatarImg" alt="头像"><div><div class="profileName">OneDay</div><div class="profileSub">记录生活，成为更好的自己。</div></div><button class="linkBtn" onclick="document.getElementById('avatarInput').click()">更换</button><input id="avatarInput" type="file" accept="image/*" hidden><input id="importInput" type="file" accept="application/json,.json" hidden></div><div class="card settingsList" style="margin-top:16px"><button class="settingRow" onclick="openTheme()"><span class="settingIcon">◐</span><span class="grow">主题设置</span><span class="small" id="themeLabel">跟随系统</span><span class="chev">›</span></button><button class="settingRow" onclick="openHomeCustomize()"><span class="settingIcon">▦</span><span class="grow">首页自定义</span><span class="small">模块与排序</span><span class="chev">›</span></button><button class="settingRow" onclick="exportData()"><span class="settingIcon">⇧</span><span class="grow">导出数据</span><span class="chev">›</span></button><button class="settingRow" onclick="document.getElementById('importInput').click()"><span class="settingIcon">⇩</span><span class="grow">导入数据</span><span class="chev">›</span></button><button class="settingRow" onclick="openRestore()"><span class="settingIcon">↺</span><span class="grow">恢复初始设置</span><span class="chev">›</span></button></div><div class="card settingsList" style="margin-top:16px"><button class="settingRow" onclick="openHelp()"><span class="settingIcon">▤</span><span class="grow">使用说明</span><span class="chev">›</span></button><button class="settingRow" onclick="openAbout()"><span class="settingIcon">ⓘ</span><span class="grow">关于</span><span class="small">v4.9.8</span><span class="chev">›</span></button></div><div class="meFooter">一直走，就会看到不一样的风景。<br>OneDay v4.9.8</div></section>
 </div>
 <nav class="nav"><button class="active" data-go="today"><span class="ico">◎</span>今天</button><button data-go="tasks"><span class="ico">□</span>事项</button><button data-go="plans"><span class="ico">◇</span>计划</button><button data-go="review"><span class="ico">↝</span>回顾</button><button data-go="me"><span class="ico">○</span>我的</button></nav>
 <div class="modal" id="noteModal"><div class="sheet"><h3>今天有什么值得留下的吗？</h3><div class="field"><textarea id="noteInput" placeholder="不需要写得很好，只留下真实的你。"></textarea></div><div class="sheetActions"><button class="secondary" onclick="closeModal('noteModal')">取消</button><button class="primary" onclick="saveNote()">保存</button></div></div></div>
 <div class="modal" id="taskModal"><div class="sheet"><h3>添加一件事</h3><div class="field"><label>事项</label><input id="taskInput" placeholder="例如：阅读 20 分钟"></div><div class="field"><label>类型</label><select id="taskRepeat"><option value="once">仅这一天</option><option value="daily">每天循环</option></select></div><div class="sheetActions"><button class="secondary" onclick="closeModal('taskModal')">取消</button><button class="primary" onclick="saveTask()">添加</button></div></div></div>
 <div class="modal" id="planModal"><div class="sheet"><h3>新的计划</h3><div class="field"><label>计划名称</label><input id="planTitle" placeholder="例如：成为更强大的人"></div><div class="field"><label>说明</label><textarea id="planDesc" placeholder="为什么要做？下一步是什么？"></textarea></div><div class="sheetActions"><button class="secondary" onclick="closeModal('planModal')">取消</button><button class="primary" onclick="savePlan()">保存计划</button></div></div></div>
 <div class="modal" id="reviewCalModal"><div class="sheet"><h3>选择回顾日期</h3><p class="small">有记录的日期会显示绿色圆点。</p><div class="card calendar"><div class="calHead"><button class="monthBtn" onclick="changeReviewMonth(-1)">‹</button><div class="monthLabel" id="reviewMonthLabel"></div><button class="monthBtn" onclick="changeReviewMonth(1)">›</button></div><div class="week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div><div class="days" id="reviewCalendarDays"></div></div><div class="sheetActions"><button class="secondary" onclick="closeModal('reviewCalModal')">关闭</button></div></div></div>
-<div class="modal" id="themeModal"><div class="sheet"><h3>主题设置</h3><div class="field"><label>默认主题</label><div class="themeChoices"><button class="themeChoice" data-theme-choice="light">☀<br>浅色</button><button class="themeChoice" data-theme-choice="dark">☾<br>深色</button><button class="themeChoice" data-theme-choice="system">▣<br>跟随系统</button></div></div><div class="field"><label>主题色</label><div class="colorChoices" id="colorChoices"></div></div><div class="editionField"><label class="small" style="display:block;margin-bottom:10px">特别版主题</label><div class="editionChoices"><button type="button" class="editionChoice mythDark" data-edition-choice="myth-dark" onclick="selectEdition('myth-dark')">神话 · 暗色<small>黑曜石、古铜、铭文与神庙结构，沉稳庄重。</small></button><button type="button" class="editionChoice mythLight" data-edition-choice="myth-light" onclick="selectEdition('myth-light')">神话 · 亮色<small>大理石、羊皮纸、铭文与古典结构，明亮克制。</small></button><button type="button" class="editionChoice off" data-edition-choice="none" onclick="selectEdition('none')">使用默认主题<small>退出特别版，恢复普通浅色 / 深色 / 跟随系统。</small></button></div></div><div class="sheetActions"><button class="primary" onclick="saveTheme()">应用主题</button></div></div></div>
+<div class="modal" id="themeModal"><div class="sheet"><h3>主题设置</h3><div class="field"><label>默认主题</label><div class="themeChoices"><button class="themeChoice" data-theme-choice="light">☀<br>浅色</button><button class="themeChoice" data-theme-choice="dark">☾<br>深色</button><button class="themeChoice" data-theme-choice="system">▣<br>跟随系统</button></div></div><div class="field"><label>主题色</label><div class="colorChoices" id="colorChoices"></div></div><div class="sheetActions"><button class="primary" onclick="saveTheme()">应用主题</button></div></div></div>
 <div class="modal" id="restoreModal"><div class="sheet"><h3>恢复初始设置</h3><p class="small">这会清除 OneDay 当前的全部个人数据，并恢复到第一次打开 App 时的状态，包括头像、主题、事项、计划、回顾记录、完成历史和统计数据。</p><div class="card settingsList"><button class="settingRow" onclick="restoreAllData()"><span class="settingIcon">↺</span><span class="grow">恢复全部初始数据与设置</span><span class="chev">›</span></button></div><div class="sheetActions"><button class="secondary" onclick="closeModal('restoreModal')">取消</button></div></div></div><div class="modal" id="homeCustomizeModal"><div class="sheet"><h3>首页自定义</h3><p class="small customizeHint">选择首页显示的模块，并用上下按钮调整顺序。设置会自动保存。</p><div class="customizeList" id="homeCustomizeList"></div><div class="sheetActions"><button class="secondary" onclick="resetHomeModules()">恢复默认</button><button class="primary" onclick="closeModal('homeCustomizeModal')">完成</button></div></div></div><div class="modal" id="infoModal"><div class="sheet"><h3 id="infoTitle"></h3><div class="empty" id="infoText"></div><div class="sheetActions"><button class="primary" onclick="closeModal('infoModal')">知道了</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script src="app.js"></script></body></html>
