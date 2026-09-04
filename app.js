@@ -27,15 +27,50 @@ function renderTaskStats(){
     :'<div class="habitEmpty">先添加一件想长期坚持的事情，这里会记录它完成过多少天。</div>';
 }
 function openPlan(){planTitle.value='';planDesc.value='';openModal('planModal')}function savePlan(){const title=planTitle.value.trim();if(!title)return toast('计划需要一个名字');S.plans.push({id:uuid(),title,desc:planDesc.value.trim(),status:'active',created:keyOf(D())});save();closeModal('planModal');renderPlans();toast('计划已保存')}function planCard(p){const text=p.status==='active'?'进行中':p.status==='done'?'已完成':'已归档';return `<div class="card planCard"><div class="small">${text}</div><h2>${esc(p.title)}</h2><div class="empty">${esc(p.desc||'没有额外说明。')}</div><div class="planStatus">${p.status==='active'?'正在前进':p.status==='done'?'已经完成':'暂时归档'}</div><div class="planActions">${p.status==='active'?`<button class="secondary" onclick="planStatus('${p.id}','done')">完成</button><button class="secondary" onclick="planStatus('${p.id}','archived')">归档</button>`:`<button class="secondary" onclick="planStatus('${p.id}','active')">重新进行</button>`}<button class="secondary danger" onclick="deletePlan('${p.id}')">删除</button></div></div>`}function renderPlans(){const a=S.plans.filter(p=>p.status==='active'),d=S.plans.filter(p=>p.status==='done'),r=S.plans.filter(p=>p.status==='archived');plansList.innerHTML=(a.length?a.map(planCard).join(''):'<div class="card empty">还没有进行中的计划。先写下真正重要的方向。</div>')+collapseSection('donePlans','已完成',d)+collapseSection('archivedPlans','已归档',r)}function collapseSection(id,title,items){return `<div class="collapseBox"><button class="collapseHead" onclick="toggleCollapse('${id}')"><span>${title}</span><span>${items.length} 个 ›</span></button><div class="collapseBody" id="${id}">${items.map(planCard).join('')}</div></div>`}function toggleCollapse(id){document.getElementById(id)?.classList.toggle('open')}function planStatus(id,status){const p=S.plans.find(x=>x.id===id);if(!p)return;p.status=status;save();renderPlans();toast('已更新计划状态')}function deletePlan(id){if(confirm('删除这个计划？')){S.plans=S.plans.filter(x=>x.id!==id);save();renderPlans();toast('已删除')}}
-function saveQuickNote(){const input=document.getElementById('quickNoteInput'),text=input?.value.trim();if(!text)return toast('先写下一点真实的内容');const k=keyOf(D()),time=`${pad(D().getHours())}:${pad(D().getMinutes())}`;S.notes[k]=S.notes[k]||[];S.notes[k].push({text,time});save();input.value='';toast('已经留下来了')}
-function recordDates(){return Object.keys(S.notes).filter(k=>S.notes[k]?.length).sort((a,b)=>b.localeCompare(a))}
+function saveQuickNote(){const input=document.getElementById('quickNoteInput'),text=input?.value.trim();if(!text)return toast('先写下一点真实的内容');const k=keyOf(D()),time=`${pad(D().getHours())}:${pad(D().getMinutes())}`;S.notes[k]=S.notes[k]||[];S.notes[k].push({text,time});save();input.value='';renderReview();toast('已经留下来了')}
+function activityDates(){
+  const out=new Set(Object.keys(S.notes).filter(k=>S.notes[k]?.length));
+  S.tasks.forEach(t=>Object.entries(t.done||{}).forEach(([k,v])=>{if(v)out.add(k)}));
+  return [...out].sort((a,b)=>b.localeCompare(a));
+}
+function recordDates(){return activityDates()}
+function reviewTasks(k){return S.tasks.filter(t=>taskForDate(t,k))}
+function reviewMarkers(k){
+  const list=reviewTasks(k);if(!list.length)return '<span class="reviewMarker empty"></span>';
+  return list.slice(0,4).map(t=>`<span class="reviewMarker ${taskDone(t,k)?'done':''}"></span>`).join('');
+}
+function monthKey(k){const d=parseDate(k);return `${d.getFullYear()}年${d.getMonth()+1}月`}
+function reviewExcerpt(notes,k){
+  if(notes?.length)return esc(notes[0].text).replace(/\n+/g,' ');
+  const done=reviewTasks(k).filter(t=>taskDone(t,k)).length;
+  return done?`完成了 ${done} 件事项`:'没有留下文字';
+}
 function renderReview(){
-  reviewChosen.textContent=selectedReviewDate?fmtDate(parseDate(selectedReviewDate)):'所有记录';
-  const dates=selectedReviewDate?[selectedReviewDate]:recordDates();
-  reviewList.innerHTML=dates.length?dates.map(k=>{
-    const d=parseDate(k),notes=S.notes[k]||[];
-    return `<article class="reviewDay"><div class="reviewDate">${fmtDate(d)} · ${weekday(d)}</div><div class="reviewSummary">这一天留下的记录 <span class="countBadge">${notes.length}</span></div><div class="reviewEntries">${notes.map((n,i)=>`<div class="reviewEntry"><div class="reviewEntryMeta">${n.time?esc(n.time):`记录 ${i+1}`}</div><div class="reviewText">${esc(n.text)}</div></div>`).join('')}</div></article>`;
-  }).join(''):`<div class="card empty">${selectedReviewDate?'这一天没有留下文字记录。':'开始记录后，这里会慢慢长出属于你的时间线。'}</div>`;
+  const list=selectedReviewDate?[selectedReviewDate]:activityDates();
+  const title=document.getElementById('reviewChosen');if(title)title.textContent=selectedReviewDate?fmtDate(parseDate(selectedReviewDate)):'时间线';
+  if(selectedReviewDate){
+    const k=selectedReviewDate,d=parseDate(k),notes=S.notes[k]||[],tasks=reviewTasks(k);
+    reviewList.innerHTML=`
+      <div class="reviewDayHero">
+        <div class="reviewDayLabel">${fmtDate(d)} · ${weekday(d)}</div>
+        <div class="reviewDayTitle">那一天</div>
+        <div class="reviewDaySub">这一天，你做了什么</div>
+      </div>
+      ${notes.length?`<section class="reviewFocusCard"><div class="reviewFocusHead"><span>值得留下</span><span>${notes.length} 条</span></div>${notes.map((n,i)=>`<div class="reviewFocusEntry"><div class="reviewEntryMeta">${n.time?esc(n.time):`记录 ${i+1}`}</div><div class="reviewText">${esc(n.text)}</div></div>`).join('')}</section>`:''}
+      <section class="reviewTasksCard">
+        <div class="reviewTasksHead">那一天的事项</div>
+        ${tasks.length?tasks.map(t=>`<div class="reviewTaskRow"><span class="reviewCheck ${taskDone(t,k)?'done':''}">${taskDone(t,k)?'✓':''}</span><span>${esc(t.title)}</span></div>`).join(''):'<div class="reviewQuiet">这一天没有安排事项。</div>'}
+      </section>
+      <button class="reviewTimelineBtn" onclick="clearReviewDate()">查看时间线 <span>→</span></button>`;
+    return;
+  }
+  if(!list.length){reviewList.innerHTML='<div class="card empty">开始记录、完成一件事后，这里会慢慢长出属于你的时间线。</div>';return}
+  let lastMonth='';
+  reviewList.innerHTML=list.map(k=>{
+    const d=parseDate(k),notes=S.notes[k]||[],mk=monthKey(k),month=mk!==lastMonth?`<div class="reviewMonthDivider">${mk}</div>`:'';lastMonth=mk;
+    return `${month}<button class="timelineCard" data-review-date="${k}"><div class="timelineMain"><div class="timelineDate"><strong>${d.getMonth()+1}月${d.getDate()}日</strong><span>${weekday(d)}</span></div><div class="timelineExcerpt">${reviewExcerpt(notes,k)}</div></div><div class="timelineSide"><div class="reviewMarkers">${reviewMarkers(k)}</div><span class="timelineArrow">›</span></div></button>`;
+  }).join('');
+  reviewList.querySelectorAll('[data-review-date]').forEach(b=>b.onclick=()=>{selectedReviewDate=b.dataset.reviewDate;renderReview();window.scrollTo?.({top:0,behavior:'smooth'})});
 }
 function clearReviewDate(){selectedReviewDate=null;renderReview()}
 function openReviewCalendar(){reviewMonth=selectedReviewDate?new Date(parseDate(selectedReviewDate).getFullYear(),parseDate(selectedReviewDate).getMonth(),1):new Date(D().getFullYear(),D().getMonth(),1);renderReviewCalendar();openModal('reviewCalModal')}
@@ -45,7 +80,7 @@ function renderReviewCalendar(){
   let h='';const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
   for(let i=0;i<first;i++)h+='<div></div>';
   for(let day=1;day<=days;day++){
-    const k=keyOf(new Date(y,m,day)),has=!!S.notes[k]?.length;
+    const k=keyOf(new Date(y,m,day)),has=activityDates().includes(k);
     h+=`<button class="day ${k===selectedReviewDate?'selected':''}" data-rdate="${k}">${day}${has?'<i class="dot"></i>':''}</button>`;
   }
   reviewCalendarDays.innerHTML=h;
@@ -55,5 +90,5 @@ function renderMe(){const fallback='data:image/svg+xml;charset=UTF-8,'+encodeURI
 function openTheme(){pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;renderThemeChoices();openModal('themeModal')}function renderThemeChoices(){document.querySelectorAll('[data-theme-choice]').forEach(b=>b.classList.toggle('active',b.dataset.themeChoice===pendingTheme));colorChoices.innerHTML=colors.map(c=>`<button class="colorDot ${c===pendingAccent?'active':''}" data-color="${c}" style="background:${c}"></button>`).join('');document.querySelectorAll('[data-theme-choice]').forEach(b=>b.onclick=()=>{pendingTheme=b.dataset.themeChoice;renderThemeChoices()});colorChoices.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{pendingAccent=b.dataset.color;renderThemeChoices()})}function saveTheme(){S.settings.theme=pendingTheme;S.settings.accent=pendingAccent;save();applyTheme();renderMe();closeModal('themeModal');toast('主题已保存')}
 function exportData(){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.href=u;a.download='oneday-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),800);toast('数据已导出')}
 importInput.onchange=e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024)return toast('备份文件不能超过 10MB');const r=new FileReader();r.onload=()=>{try{const raw=JSON.parse(String(r.result||''));if(!raw||typeof raw!=='object')throw new Error('invalid');const incoming=normalize(raw);if(!confirm('导入会替换当前设备中的 OneDay 数据，建议先导出备份。确定继续吗？'))return;S=incoming;save();applyTheme();renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('数据已导入')}catch{toast('无法识别这个备份文件')}};r.onerror=()=>toast('读取备份失败');r.readAsText(f,'utf-8')}
-function openRestore(){openModal('restoreModal')}function restoreAllData(){if(!confirm('确定恢复初始设置吗？这会清除头像、主题、事项、计划、回顾记录、完成历史和统计数据，且无法撤销。'))return;if(!confirm('请再次确认：所有 OneDay 数据都会被清空。确定恢复到初始状态吗？'))return;S=blankState();selected=keyOf(D());viewMonth=new Date(D().getFullYear(),D().getMonth(),1);reviewMonth=new Date(viewMonth);selectedReviewDate=null;taskFilter='all';taskTab='today';pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;save();applyTheme();closeModal('restoreModal');renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('已恢复初始状态')}function openHelp(){infoTitle.textContent='使用说明';infoText.textContent='今天：记录当天的想法并完成事项。\n事项：查看今日、日历和完成统计。\n计划：管理长期方向，可完成或归档。\n回顾：只回看真实记录，不把人生变成任务成绩单。';openModal('infoModal')}function openAbout(){infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v4.8.2';openModal('infoModal')}
+function openRestore(){openModal('restoreModal')}function restoreAllData(){if(!confirm('确定恢复初始设置吗？这会清除头像、主题、事项、计划、回顾记录、完成历史和统计数据，且无法撤销。'))return;if(!confirm('请再次确认：所有 OneDay 数据都会被清空。确定恢复到初始状态吗？'))return;S=blankState();selected=keyOf(D());viewMonth=new Date(D().getFullYear(),D().getMonth(),1);reviewMonth=new Date(viewMonth);selectedReviewDate=null;taskFilter='all';taskTab='today';pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;save();applyTheme();closeModal('restoreModal');renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('已恢复初始状态')}function openHelp(){infoTitle.textContent='使用说明';infoText.textContent='今天：记录当天的想法并完成事项。\n事项：查看今日、日历和完成统计。\n计划：管理长期方向，可完成或归档。\n回顾：只回看真实记录，不把人生变成任务成绩单。';openModal('infoModal')}function openAbout(){infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v4.8.3';openModal('infoModal')}
 applyTheme();save();renderToday();renderTasks();renderPlans();renderReview();renderMe();
