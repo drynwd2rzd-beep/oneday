@@ -20,18 +20,18 @@ function renderTaskStats(){
   const habitDays=S.tasks.map(t=>({task:t,days:days.filter(k=>taskForDate(t,k)&&taskDone(t,k)).length}));
   habitStats.innerHTML=habitDays.length?habitDays.map(x=>`<div class="habitMetric"><div class="habitMetricName">${esc(x.task.title)}</div><div class="habitMetricDays"><b>${x.days}</b><span>天</span></div></div>`).join(''):'<div class="habitEmpty">先添加一件想长期坚持的事情，这里会记录它完成过多少天。</div>';
 
-  // 30 天必须完整显示在卡片内，不使用横向溢出；没有事项的日期不画灰柱，避免制造“未完成”的假数据。
-  const max=Math.max(1,...vals.map(v=>v.total));
+  // 使用连续方格显示每天的完成状态，避免 30 天模式下日期文字被压缩截断。
+  const stateOf=v=>!v.total?'empty':v.done===v.total?'done':v.done>0?'partial':'miss';
+  const tickCount=statsPeriod===30?6:statsPeriod;
+  const ticks=[];
+  for(let i=0;i<tickCount;i++){
+    const idx=tickCount===1?0:Math.round(i*(days.length-1)/(tickCount-1));
+    const d=parseDate(days[idx]);
+    ticks.push(`<span>${d.getMonth()+1}/${d.getDate()}</span>`);
+  }
   taskChart.classList.toggle('period30',statsPeriod===30);
-  taskChart.innerHTML=vals.map((v,i)=>{
-    const dh=v.total?Math.round(v.done/max*100):0;
-    const mh=v.total?Math.round(Math.max(0,v.total-v.done)/max*100):0;
-    const d=parseDate(v.k);
-    const label=statsPeriod===30
-      ?((i===0||i===vals.length-1||i%5===0)?`${d.getMonth()+1}/${d.getDate()}`:'')
-      :`${d.getMonth()+1}/${d.getDate()}`;
-    return `<div class="barCol"><div class="barStack">${v.total?`<i class="barDone" style="height:${dh}%"></i><i class="barMiss" style="height:${mh}%"></i>`:''}</div><span class="barLabel">${label}</span></div>`;
-  }).join('');
+  taskChart.classList.toggle('period7',statsPeriod===7);
+  taskChart.innerHTML=`<div class="daySquares">${vals.map(v=>`<div class="daySquare ${stateOf(v)}" title="${v.k} · ${v.done}/${v.total}"></div>`).join('')}</div><div class="dateTicks period${statsPeriod}">${ticks.join('')}</div>`;
   document.querySelectorAll('[data-period]').forEach(b=>b.classList.toggle('active',Number(b.dataset.period)===statsPeriod));
   const completed=t=>completionCount(t)>0;
   let items=statFilter==='all'?S.tasks:statFilter==='active'?S.tasks.filter(t=>!completed(t)):S.tasks.filter(completed);
@@ -66,5 +66,5 @@ function renderMe(){const fallback='data:image/svg+xml;charset=UTF-8,'+encodeURI
 function openTheme(){pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;renderThemeChoices();openModal('themeModal')}function renderThemeChoices(){document.querySelectorAll('[data-theme-choice]').forEach(b=>b.classList.toggle('active',b.dataset.themeChoice===pendingTheme));colorChoices.innerHTML=colors.map(c=>`<button class="colorDot ${c===pendingAccent?'active':''}" data-color="${c}" style="background:${c}"></button>`).join('');document.querySelectorAll('[data-theme-choice]').forEach(b=>b.onclick=()=>{pendingTheme=b.dataset.themeChoice;renderThemeChoices()});colorChoices.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{pendingAccent=b.dataset.color;renderThemeChoices()})}function saveTheme(){S.settings.theme=pendingTheme;S.settings.accent=pendingAccent;save();applyTheme();renderMe();closeModal('themeModal');toast('主题已保存')}
 function exportData(){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.href=u;a.download='oneday-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),800);toast('数据已导出')}
 importInput.onchange=e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024)return toast('备份文件不能超过 10MB');const r=new FileReader();r.onload=()=>{try{const raw=JSON.parse(String(r.result||''));if(!raw||typeof raw!=='object')throw new Error('invalid');const incoming=normalize(raw);if(!confirm('导入会替换当前设备中的 OneDay 数据，建议先导出备份。确定继续吗？'))return;S=incoming;save();applyTheme();renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('数据已导入')}catch{toast('无法识别这个备份文件')}};r.onerror=()=>toast('读取备份失败');r.readAsText(f,'utf-8')}
-function openRestore(){openModal('restoreModal')}function restoreAllData(){if(!confirm('确定恢复初始设置吗？这会清除头像、主题、事项、计划、回顾记录、完成历史和统计数据，且无法撤销。'))return;if(!confirm('请再次确认：所有 OneDay 数据都会被清空。确定恢复到初始状态吗？'))return;S=blankState();selected=keyOf(D());viewMonth=new Date(D().getFullYear(),D().getMonth(),1);reviewMonth=new Date(viewMonth);selectedReviewDate=null;taskFilter='all';statFilter='all';statsPeriod=7;taskTab='today';pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;save();applyTheme();closeModal('restoreModal');renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('已恢复初始状态')}function openHelp(){infoTitle.textContent='使用说明';infoText.textContent='今天：记录当天的想法并完成事项。\n事项：查看今日、日历和统计，循环事项会保留完成次数。\n计划：管理长期方向，可完成或归档。\n回顾：只回看真实记录，不把人生变成任务成绩单。';openModal('infoModal')}function openAbout(){infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v4.5';openModal('infoModal')}
+function openRestore(){openModal('restoreModal')}function restoreAllData(){if(!confirm('确定恢复初始设置吗？这会清除头像、主题、事项、计划、回顾记录、完成历史和统计数据，且无法撤销。'))return;if(!confirm('请再次确认：所有 OneDay 数据都会被清空。确定恢复到初始状态吗？'))return;S=blankState();selected=keyOf(D());viewMonth=new Date(D().getFullYear(),D().getMonth(),1);reviewMonth=new Date(viewMonth);selectedReviewDate=null;taskFilter='all';statFilter='all';statsPeriod=7;taskTab='today';pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;save();applyTheme();closeModal('restoreModal');renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('已恢复初始状态')}function openHelp(){infoTitle.textContent='使用说明';infoText.textContent='今天：记录当天的想法并完成事项。\n事项：查看今日、日历和统计，循环事项会保留完成次数。\n计划：管理长期方向，可完成或归档。\n回顾：只回看真实记录，不把人生变成任务成绩单。';openModal('infoModal')}function openAbout(){infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v4.6';openModal('infoModal')}
 applyTheme();save();renderToday();renderTasks();renderPlans();renderReview();renderMe();
