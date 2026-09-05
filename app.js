@@ -2,7 +2,7 @@ const KEY='oneday_app_v3';const colors=['#287052','#386b98','#8057b8','#c75c88',
 const HOME_MODULE_DEFAULT=['hero','tasks','note','progress','plans'];const HOME_MODULE_META={hero:{title:'问候与日期',desc:'日期、问候和每日一句'},tasks:{title:'今日事项',desc:'查看并完成今天的事项'},note:{title:'值得留下',desc:'快速记录今天真实的想法'},progress:{title:'今日完成情况',desc:'查看当天事项完成进度'},plans:{title:'我的计划',desc:'查看正在进行的长期计划'}};const blankSettings=()=>({theme:'system',accent:'#287052',avatar:'',name:'OneDay',signature:'记录生活，成为更好的自己。',quoteMode:'daily',homeModules:[...HOME_MODULE_DEFAULT]});const blankState=()=>({tasks:[],notes:{},plans:[],settings:blankSettings()});
 function normalize(raw){const x=(raw&&typeof raw==='object')?raw:blankState();x.tasks=Array.isArray(x.tasks)?x.tasks.filter(Boolean).map(t=>({id:String(t.id||uuid()),title:String(t.title??t.name??'').trim(),date:typeof t.date==='string'?t.date:keyOf(D()),created:typeof t.created==='string'?t.created:(typeof t.date==='string'?t.date:keyOf(D())),repeat:t.repeat==='daily'?'daily':'once',done:(t.done&&typeof t.done==='object')?t.done:{}})).filter(t=>t.title):[];x.notes=(x.notes&&typeof x.notes==='object'&&!Array.isArray(x.notes))?x.notes:{};Object.keys(x.notes).forEach(k=>{const v=Array.isArray(x.notes[k])?x.notes[k]:[x.notes[k]];x.notes[k]=v.map(n=>typeof n==='string'?{text:n,time:'',photos:[]}:{text:String(n?.text??n?.content??n?.value??'').trim(),time:String(n?.time??''),photos:Array.isArray(n?.photos)?n.photos.filter(x=>typeof x==='string'&&x.startsWith('data:image/')).slice(0,6):[]}).filter(n=>n.text||n.photos?.length);if(!x.notes[k].length)delete x.notes[k]});x.plans=Array.isArray(x.plans)?x.plans.filter(Boolean).map(p=>({id:String(p.id||uuid()),title:String(p.title??p.name??'').trim(),desc:String(p.desc??p.description??''),status:['active','done','archived'].includes(p.status)?p.status:'active',created:typeof p.created==='string'?p.created:keyOf(D())})).filter(p=>p.title):[];x.settings=(x.settings&&typeof x.settings==='object')?x.settings:{};x.settings.theme=['light','dark','system'].includes(x.settings.theme)?x.settings.theme:'system';x.settings.accent=colors.includes(x.settings.accent)?x.settings.accent:colors[0];x.settings.avatar=typeof x.settings.avatar==='string'?x.settings.avatar:'';x.settings.name=String(x.settings.name??'OneDay').trim().slice(0,20)||'OneDay';x.settings.signature=String(x.settings.signature??'记录生活，成为更好的自己。').trim().slice(0,80)||'记录生活，成为更好的自己。';x.settings.quoteMode=x.settings.quoteMode==='static'?'static':'daily';const rawModules=Array.isArray(x.settings.homeModules)?x.settings.homeModules:[...HOME_MODULE_DEFAULT];x.settings.homeModules=rawModules.filter((id,i,a)=>HOME_MODULE_META[id]&&a.indexOf(id)===i);return x}
 function load(){try{return normalize(JSON.parse(localStorage.getItem(KEY)||'null'))}catch{return blankState()}}let S=load(),selected=keyOf(D()),viewMonth=new Date(D().getFullYear(),D().getMonth(),1),reviewMonth=new Date(viewMonth),selectedReviewDate=null,reviewTab='timeline',reviewOverviewMonth=new Date(viewMonth),taskFilter='all',taskTab='today',pendingTheme=S.settings.theme,pendingAccent=S.settings.accent;function save(){S=normalize(S);localStorage.setItem(KEY,JSON.stringify(S))}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function fmtDate(d){return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`}function weekday(d){return ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()]}function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>x.classList.remove('show'),1700)}function syncModalState(){document.body.classList.toggle('modal-open',!!document.querySelector('.modal.open'))}function openModal(id){const modal=document.getElementById(id);if(!modal)return;modal.classList.add('open');syncModalState()}function closeModal(id){const modal=document.getElementById(id);if(!modal)return;modal.classList.remove('open');syncModalState()}function applyTheme(){const mode=S.settings.theme;const dark=mode==='dark'||(mode==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=dark?'dark':'';document.documentElement.style.setProperty('--green',S.settings.accent);document.documentElement.style.setProperty('--blue',S.settings.accent);const themeMeta=document.querySelector('meta[name="theme-color"]');if(themeMeta)themeMeta.setAttribute('content',dark?'#151a20':'#f5f4ef');document.documentElement.style.colorScheme=dark?'dark':'light'}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function fmtDate(d){return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`}function weekday(d){return ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'][d.getDay()]}function toast(t){const x=document.getElementById('toast');x.textContent=t;x.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>x.classList.remove('show'),1700)}function openModal(id){document.getElementById(id).classList.add('open')}function closeModal(id){document.getElementById(id).classList.remove('open')}function applyTheme(){const mode=S.settings.theme;const dark=mode==='dark'||(mode==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=dark?'dark':'';document.documentElement.style.setProperty('--green',S.settings.accent);document.documentElement.style.setProperty('--blue',S.settings.accent);const themeMeta=document.querySelector('meta[name="theme-color"]');if(themeMeta)themeMeta.setAttribute('content',dark?'#151a20':'#f5f4ef');document.documentElement.style.colorScheme=dark?'dark':'light'}
 function go(id){document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.go===id));({today:renderToday,tasks:renderTasks,plans:renderPlans,review:renderReview,me:renderMe}[id]||(()=>{}))()}
 function greeting(){const h=D().getHours();return h<11?'早上好。':h<18?'下午好。':'晚上好。'}function taskForDate(t,k){if(t.repeat==='daily')return k>=String(t.created||t.date);return t.date===k}function taskDone(t,k){return !!t.done?.[k]}function setDone(t,k,v){t.done=t.done||{};t.done[k]=v}function completionCount(t){return Object.values(t.done||{}).filter(Boolean).length}
 function taskHTML(t,k){const done=taskDone(t,k);return `<div class="task ${done?'done':''}"><button class="check ${done?'done':''}" data-id="${esc(t.id)}">${done?'✓':''}</button><div style="flex:1"><div class="taskTitle">${esc(t.title)}</div><div class="taskMeta">${t.repeat==='daily'?'每天':'单次'} · 已完成 ${completionCount(t)} 次</div></div><button class="dots" data-del="${esc(t.id)}">⋯</button></div>`}function bindTaskActions(root,k){root.querySelectorAll('.check').forEach(b=>b.onclick=()=>toggleTask(b.dataset.id,k));root.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>deleteTask(b.dataset.del))}function toggleTask(id,k){const t=S.tasks.find(x=>x.id===id);if(!t)return;setDone(t,k,!taskDone(t,k));save();renderToday();renderTasks();renderReview()}function deleteTask(id){if(confirm('删除这个事项？')){S.tasks=S.tasks.filter(t=>t.id!==id);save();renderTasks();renderToday();renderReview();toast('已删除')}}
@@ -111,12 +111,12 @@ function saveProfile(){
 }
 function openDataManage(){openModal('dataManageModal')}
 function openAboutPage(){openModal('aboutModal')}
-function showVersionInfo(){closeModal('aboutModal');infoTitle.textContent='版本信息';infoText.textContent='OneDay v0.481\n\n本版本重点：\n• 删除全局 Pointer/Touch 坐标兜底代码\n• 底部导航恢复原生按钮点击路径\n• 弹窗打开时底部导航彻底退出触摸命中\n• 清理重复的导航事件监听，避免一次触摸触发多个路由\n• 保留 iOS 安全区与动态导航高度适配，但不再监听 visualViewport.scroll';openModal('infoModal')}
+function showVersionInfo(){closeModal('aboutModal');infoTitle.textContent='版本信息';infoText.textContent='OneDay v0.480\n\n本版本重点：\n• 删除 PWA 独立模式下的固定顶部偏移\n• 移除底部导航的 backdrop-filter 合成层，避免 iOS 命中坐标错位\n• 底部导航取消 transform，直接固定在真实安全区\n• 每个导航按钮保留独立原生点击路径，并增加 Pointer/Touch 坐标兜底\n• 页面滚动、恢复和旋转时仅重新测量导航高度，不再改写视口或滚动容器';openModal('infoModal')}
 avatarInput.onchange=e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>4*1024*1024)return toast('图片请小于 4MB');const r=new FileReader();r.onload=()=>{S.settings.avatar=String(r.result);save();renderMe();document.getElementById('profileAvatarPreview')&&(document.getElementById('profileAvatarPreview').src=S.settings.avatar);toast('头像已更换')};r.readAsDataURL(f)}
 function openTheme(){pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;renderThemeChoices();openModal('themeModal')}function renderThemeChoices(){document.querySelectorAll('[data-theme-choice]').forEach(b=>b.classList.toggle('active',b.dataset.themeChoice===pendingTheme));colorChoices.innerHTML=colors.map(c=>`<button class="colorDot ${c===pendingAccent?'active':''}" data-color="${c}" style="background:${c}"></button>`).join('');document.querySelectorAll('[data-theme-choice]').forEach(b=>b.onclick=()=>{pendingTheme=b.dataset.themeChoice;renderThemeChoices()});colorChoices.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{pendingAccent=b.dataset.color;renderThemeChoices()})}function saveTheme(){S.settings.theme=pendingTheme;S.settings.accent=pendingAccent;save();applyTheme();renderMe();closeModal('themeModal');toast('主题已保存')}
 function exportData(){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.href=u;a.download='oneday-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),800);toast('数据已导出')}
 importInput.onchange=e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024)return toast('备份文件不能超过 10MB');const r=new FileReader();r.onload=()=>{try{const raw=JSON.parse(String(r.result||''));if(!raw||typeof raw!=='object')throw new Error('invalid');const incoming=normalize(raw);if(!confirm('导入会替换当前设备中的 OneDay 数据，建议先导出备份。确定继续吗？'))return;S=incoming;save();applyTheme();renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('数据已导入')}catch{toast('无法识别这个备份文件')}};r.onerror=()=>toast('读取备份失败');r.readAsText(f,'utf-8')}
-let restoreReturnToDataManage=false;function openRestore(){restoreReturnToDataManage=false;openModal('restoreModal')}function openRestoreFromDataManage(){restoreReturnToDataManage=true;closeModal('dataManageModal');openModal('restoreModal')}function cancelRestore(){closeModal('restoreModal');if(restoreReturnToDataManage){restoreReturnToDataManage=false;openModal('dataManageModal')}}function restoreAllData(){if(!confirm('确定恢复初始设置吗？这会清除头像、主题、事项、计划、回顾记录、完成历史和统计数据，且无法撤销。'))return;if(!confirm('请再次确认：所有 OneDay 数据都会被清空。确定恢复到初始状态吗？'))return;S=blankState();selected=keyOf(D());viewMonth=new Date(D().getFullYear(),D().getMonth(),1);reviewMonth=new Date(viewMonth);selectedReviewDate=null;reviewTab='timeline';reviewOverviewMonth=new Date(viewMonth);taskFilter='all';taskTab='today';pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;save();applyTheme();restoreReturnToDataManage=false;closeModal('restoreModal');renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('已恢复初始状态')}function openHelp(){infoTitle.textContent='使用说明';infoText.textContent='今天：记录当天的想法并完成事项。\n事项：查看今日、日历和完成统计。\n计划：管理长期方向，可完成或归档。\n回顾：只回看真实记录，不把人生变成任务成绩单。';openModal('infoModal')}function openAbout(){infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v0.481';openModal('infoModal')}
+let restoreReturnToDataManage=false;function openRestore(){restoreReturnToDataManage=false;openModal('restoreModal')}function openRestoreFromDataManage(){restoreReturnToDataManage=true;closeModal('dataManageModal');openModal('restoreModal')}function cancelRestore(){closeModal('restoreModal');if(restoreReturnToDataManage){restoreReturnToDataManage=false;openModal('dataManageModal')}}function restoreAllData(){if(!confirm('确定恢复初始设置吗？这会清除头像、主题、事项、计划、回顾记录、完成历史和统计数据，且无法撤销。'))return;if(!confirm('请再次确认：所有 OneDay 数据都会被清空。确定恢复到初始状态吗？'))return;S=blankState();selected=keyOf(D());viewMonth=new Date(D().getFullYear(),D().getMonth(),1);reviewMonth=new Date(viewMonth);selectedReviewDate=null;reviewTab='timeline';reviewOverviewMonth=new Date(viewMonth);taskFilter='all';taskTab='today';pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;save();applyTheme();restoreReturnToDataManage=false;closeModal('restoreModal');renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('已恢复初始状态')}function openHelp(){infoTitle.textContent='使用说明';infoText.textContent='今天：记录当天的想法并完成事项。\n事项：查看今日、日历和完成统计。\n计划：管理长期方向，可完成或归档。\n回顾：只回看真实记录，不把人生变成任务成绩单。';openModal('infoModal')}function openAbout(){infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v0.480';openModal('infoModal')}
 
 function openPhotoPreview(src){
   const box=document.getElementById('photoLightbox');
@@ -137,28 +137,59 @@ function closePhotoPreview(){
   setTimeout(()=>{if(!box.classList.contains('open')&&img)img.removeAttribute('src')},180);
 }
 
-/* v0.481: native navigation only. Do not globally route touches by screen coordinates.
-   The previous document/window capture fallbacks could activate the fixed nav through an open modal. */
+/* v0.480: keep navigation hit testing independent of target element quirks in iOS standalone mode. */
 function syncNavHeight(){
   const nav=document.querySelector('.nav');
   if(!nav)return;
   document.documentElement.style.setProperty('--nav-h',Math.ceil(nav.getBoundingClientRect().height||86)+'px');
 }
 function scheduleNavSync(){requestAnimationFrame(()=>requestAnimationFrame(syncNavHeight));}
+function navButtonFromPoint(x,y){
+  const nav=document.querySelector('.nav');
+  if(!nav)return null;
+  const r=nav.getBoundingClientRect();
+  if(x<r.left||x>r.right||y<r.top||y>r.bottom)return null;
+  const el=document.elementFromPoint(x,y);
+  const direct=el&&el.closest&&el.closest('.nav [data-go]');
+  if(direct)return direct;
+  const buttons=[...nav.querySelectorAll('[data-go]')];
+  return buttons.find(b=>{const q=b.getBoundingClientRect();return x>=q.left&&x<=q.right&&y>=q.top&&y<=q.bottom})||null;
+}
+let lastNavAction={id:'',at:0};
+function activateNavButton(button){
+  const id=button&&button.dataset&&button.dataset.go;
+  if(!id)return false;
+  const now=Date.now();
+  if(lastNavAction.id===id&&now-lastNavAction.at<350)return true;
+  lastNavAction={id,at:now};
+  go(id);
+  return true;
+}
 function installNavInput(){
   const nav=document.querySelector('.nav');
   if(!nav)return;
   nav.addEventListener('click',e=>{
-    const button=e.target.closest('button[data-go]');
-    if(!button||!nav.contains(button)||document.body.classList.contains('modal-open'))return;
-    go(button.dataset.go);
+    const button=e.target.closest('[data-go]');
+    if(button){e.preventDefault();activateNavButton(button);}
   });
+  // Capture phase: still works if an accidental transparent layer receives the touch.
+  document.addEventListener('touchend',e=>{
+    const t=e.changedTouches&&e.changedTouches[0];
+    if(!t)return;
+    const button=navButtonFromPoint(t.clientX,t.clientY);
+    if(button)activateNavButton(button);
+  },true);
+  document.addEventListener('pointerup',e=>{
+    if(e.pointerType==='mouse')return;
+    const button=navButtonFromPoint(e.clientX,e.clientY);
+    if(button)activateNavButton(button);
+  },true);
 }
 window.addEventListener('pageshow',scheduleNavSync,{passive:true});
 window.addEventListener('resize',scheduleNavSync,{passive:true});
 window.addEventListener('orientationchange',scheduleNavSync,{passive:true});
 if(window.visualViewport){
   window.visualViewport.addEventListener('resize',scheduleNavSync,{passive:true});
+  window.visualViewport.addEventListener('scroll',scheduleNavSync,{passive:true});
 }
-applyTheme();save();renderToday();renderTasks();renderPlans();renderReview();renderMe();installNavInput();scheduleNavSync();syncModalState();
-
+applyTheme();save();renderToday();renderTasks();renderPlans();renderReview();renderMe();installNavInput();scheduleNavSync();
