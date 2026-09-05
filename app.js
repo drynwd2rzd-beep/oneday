@@ -88,7 +88,7 @@ function bindReviewEntrySwipe(root){
   root.querySelectorAll('[data-review-swipe]').forEach(row=>{
     const card=row.querySelector('.reviewFocusEntry'),action=row.querySelector('.reviewSwipeDelete');
     let startX=0,current=0,dragging=false,open=false;
-    const max=96;
+    const max=88;
     const setX=(x,animate=false)=>{card.style.transition=animate?'transform .2s ease':'';card.style.transform=`translateX(${x}px)`;current=x;};
     const close=()=>{open=false;setX(0,true)};
     card.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;dragging=true;card.style.transition='none'},{passive:true});
@@ -98,7 +98,7 @@ function bindReviewEntrySwipe(root){
       const x=Math.max(-max,Math.min(0,(open?-max:0)+dx));
       setX(x,false);
     },{passive:true});
-    card.addEventListener('touchend',()=>{if(!dragging)return;dragging=false;open=current<-42;setX(open?-max:0,true)});
+    card.addEventListener('touchend',()=>{if(!dragging)return;dragging=false;open=current<-38;setX(open?-max:0,true)});
     card.addEventListener('touchcancel',()=>{dragging=false;close()});
     action.onclick=()=>deleteReviewEntry(row.dataset.reviewDate,Number(row.dataset.reviewIndex));
     row.addEventListener('click',e=>{if(open&&!action.contains(e.target)){e.preventDefault();close()}});
