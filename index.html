@@ -100,6 +100,11 @@ body.modal-open .nav,body.modal-open .nav button{pointer-events:none!important}
 .uiSizeChoice small{color:var(--muted);font-size:12px}
 .uiSizeChoice.active{outline:2px solid var(--green);outline-offset:-2px;background:var(--greenSoft)}
 .uiSizeHint{margin:0;line-height:1.55}
+.reviewSwipeRow{box-shadow:0 6px 18px rgba(30,35,42,.06)}
+.reviewSwipeDelete{width:72px;border-radius:0;background:linear-gradient(135deg,#b95656,#9e4141);box-shadow:none;font-size:13px;gap:4px}
+.reviewSwipeDelete::before{content:'⌫';font-size:18px;line-height:1}
+.reviewSwipeRow{border-radius:0}
+.reviewFocusEntry{border-radius:18px 0 0 18px!important}
 html[data-ui-size="compact"]{--ui-scale:.92}html[data-ui-size="large"]{--ui-scale:1.08}
 html[data-ui-size="compact"] .app,html[data-ui-size="compact"] .nav,html[data-ui-size="compact"] .modal .sheet{zoom:.92}
 html[data-ui-size="large"] .app,html[data-ui-size="large"] .nav,html[data-ui-size="large"] .modal .sheet{zoom:1.08}

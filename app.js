@@ -33,8 +33,8 @@ document.querySelectorAll('[data-ui-size-choice]').forEach(button=>button.onclic
   document.documentElement.dataset.uiSize=size;
   document.querySelectorAll('[data-ui-size-choice]').forEach(option=>option.classList.toggle('active',option===button));
 });
-document.querySelector('.aboutVersion')?.replaceChildren('v0.495');
-document.querySelectorAll('.settingValue').forEach(value=>{if(value.textContent?.trim()==='v0.489')value.textContent='v0.495'});
+document.querySelector('.aboutVersion')?.replaceChildren('v0.499');
+document.querySelectorAll('.settingValue').forEach(value=>{if(value.textContent?.trim()==='v0.489')value.textContent='v0.499'});
 window.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal.open').forEach(modal=>closeModal(modal.id))});
 function greeting(){const h=D().getHours();return h<11?'早上好。':h<18?'下午好。':'晚上好。'}function taskForDate(t,k){if(t.repeat==='daily')return k>=String(t.created||t.date);return t.date===k}function taskDone(t,k){return !!t.done?.[k]}function setDone(t,k,v){t.done=t.done||{};t.done[k]=v}function completionCount(t){return Object.values(t.done||{}).filter(Boolean).length}
 function dayTaskStatus(k){const list=S.tasks.filter(t=>taskForDate(t,k));if(!list.length)return 'none';const done=list.filter(t=>taskDone(t,k)).length;if(!done)return 'none';return done===list.length?'all':'partial'}
@@ -98,20 +98,26 @@ function renderReview(){document.getElementById('reviewTabTimeline')?.classList.
 function bindReviewEntrySwipe(root){
   root.querySelectorAll('[data-review-swipe]').forEach(row=>{
     const card=row.querySelector('.reviewFocusEntry'),action=row.querySelector('.reviewSwipeDelete');
-    let startX=0,current=0,dragging=false,open=false;
-    const max=88;
-    const setX=(x,animate=false)=>{card.style.transition=animate?'transform .2s ease':'';card.style.transform=`translateX(${x}px)`;current=x;};
+    if(!card||!action)return;
+    let startX=0,startY=0,current=0,dragging=false,horizontal=false,open=false;
+    const max=72;
+    const setX=(x,animate=false)=>{row.classList.toggle('swiped',x<0);card.style.transition=animate?'transform .2s ease':'';card.style.transform=`translateX(${x}px)`;current=x;};
     const close=()=>{open=false;setX(0,true)};
-    card.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;dragging=true;card.style.transition='none'},{passive:true});
+    action.setAttribute('role','button');action.setAttribute('tabindex','0');action.setAttribute('aria-label','删除这条记录');
+    card.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;dragging=true;horizontal=false;card.style.transition='none'},{passive:true});
     card.addEventListener('touchmove',e=>{
       if(!dragging)return;
       const dx=e.touches[0].clientX-startX;
+      const dy=e.touches[0].clientY-startY;
+      if(!horizontal){if(Math.abs(dy)>Math.abs(dx)+6){dragging=false;return}if(Math.abs(dx)<8)return;horizontal=true}
+      e.preventDefault();
       const x=Math.max(-max,Math.min(0,(open?-max:0)+dx));
       setX(x,false);
-    },{passive:true});
-    card.addEventListener('touchend',()=>{if(!dragging)return;dragging=false;open=current<-38;setX(open?-max:0,true)});
+    },{passive:false});
+    card.addEventListener('touchend',()=>{if(!dragging)return;dragging=false;if(!horizontal)return;open=current<-34;setX(open?-max:0,true)});
     card.addEventListener('touchcancel',()=>{dragging=false;close()});
     action.onclick=()=>deleteReviewEntry(row.dataset.reviewDate,Number(row.dataset.reviewIndex));
+    action.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();action.click()}};
     row.addEventListener('click',e=>{if(open&&!action.contains(e.target)){e.preventDefault();close()}});
   });
 }
@@ -198,7 +204,7 @@ window.addEventListener('resize',scheduleNavSync,{passive:true});
 window.addEventListener('orientationchange',scheduleNavSync,{passive:true});
 window.visualViewport?.addEventListener('resize',scheduleNavSync,{passive:true});
 window.visualViewport?.addEventListener('scroll',scheduleNavSync,{passive:true});
-showVersionInfo=()=>{closeModal('aboutModal');infoTitle.textContent='版本信息';infoText.textContent='OneDay v0.495\n\n本版本重点：\n• 全面检查交互与数据流程\n• 清理无效统计代码并加强导入数据安全\n• 修复手机端界面大小入口不明显的问题';openModal('infoModal')};
-openAbout=()=>{infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v0.495';openModal('infoModal')};
-document.querySelector('.meFooter')?.replaceChildren('不是为了记录而记录，',document.createElement('br'),'而是为了更好地生活。',document.createElement('br'),document.createElement('br'),'OneDay v0.495');
+showVersionInfo=()=>{closeModal('aboutModal');infoTitle.textContent='版本信息';infoText.textContent='OneDay v0.499\n\n本版本重点：\n• 删除区及记录卡片右侧统一改为直角\n• 避免圆角裁切造成视觉遮挡\n• 保留 iOS 左滑与上下滚动判定';openModal('infoModal')};
+openAbout=()=>{infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v0.499';openModal('infoModal')};
+document.querySelector('.meFooter')?.replaceChildren('不是为了记录而记录，',document.createElement('br'),'而是为了更好地生活。',document.createElement('br'),document.createElement('br'),'OneDay v0.499');
 document.documentElement.classList.add('oneday-v0488');applyTheme();applyUiSize();save();renderToday();renderTasks();renderPlans();renderReview();renderMe();
