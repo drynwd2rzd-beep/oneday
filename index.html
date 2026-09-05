@@ -158,3 +158,39 @@ html[data-ui-size="compact"] .app,html[data-ui-size="large"] .app{max-width:calc
 <div class="photoLightbox" id="photoLightbox" aria-hidden="true" onclick="if(event.target===this)closePhotoPreview()"><button class="photoLightboxClose" type="button" aria-label="关闭图片预览" onclick="closePhotoPreview()">×</button><img id="photoLightboxImage" alt="记录照片预览"><div class="photoLightboxHint">点击空白处关闭</div></div><div class="toast" id="toast"></div>
 <div class="modal" id="uiSizeModal"><div class="sheet"><h3>界面大小</h3><p class="small uiSizeHint">选择后会立即预览，设置会保存在当前设备。</p><div class="uiSizeChoices"><button class="uiSizeChoice" data-ui-size-choice="compact"><strong>A</strong><span>紧凑</span><small>更省空间</small></button><button class="uiSizeChoice" data-ui-size-choice="standard"><strong>A</strong><span>标准</span><small>推荐</small></button><button class="uiSizeChoice" data-ui-size-choice="large"><strong>A</strong><span>大</span><small>更易阅读</small></button></div><div class="sheetActions"><button class="secondary" onclick="closeModal('uiSizeModal')">关闭</button><button class="primary" onclick="saveUiSize()">保存设置</button></div></div></div>
 <script src="app.js"></script></body></html>
+
+<style>
+/* v0.512 极简 iOS 网页适配：稳定安全区、统一触控反馈、减少视觉噪音 */
+html{background:var(--bg);-webkit-text-size-adjust:100%;text-rendering:optimizeLegibility}
+body{padding-bottom:calc(var(--nav-h) + var(--nav-gap) + max(18px,env(safe-area-inset-bottom)));overscroll-behavior-y:none}
+.app{padding-top:max(12px,env(safe-area-inset-top));padding-bottom:36px}
+.top{min-height:64px;padding:10px 0 12px}
+.iconBtn,.linkBtn,.monthBtn,.dots,.check,.nav button,.primary,.secondary,.capturePhotoBtn,.reviewTabs button,.tabs button,.filter button{min-height:44px}
+.iconBtn{width:50px;height:50px;border-radius:17px;box-shadow:0 8px 24px rgba(30,35,42,.045)}
+.card,.reviewFocusCard,.reviewTasksCard,.overviewMonth,.overviewHero,.overviewList,.overviewStats{box-shadow:0 8px 26px rgba(30,35,42,.035)}
+.task{min-height:56px}
+.taskTitle,.reviewText,.noteText,.field input,.field textarea,.field select{overflow-wrap:anywhere}
+.field input,.field textarea,.field select,.profileFormRow input,.profileFormRow textarea{-webkit-appearance:none;appearance:none;caret-color:var(--accent);scroll-margin-block:24px}
+.field input:focus,.field textarea:focus,.field select:focus,.profileFormRow input:focus,.profileFormRow textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent)}
+button{cursor:pointer;transition:transform .14s ease,opacity .14s ease,background-color .14s ease,border-color .14s ease}
+button:active{transform:scale(.97)}
+button:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 38%,transparent);outline-offset:2px}
+.nav{bottom:max(10px,env(safe-area-inset-bottom));border-radius:28px;box-shadow:0 10px 30px rgba(30,35,42,.08)}
+.nav button{border-radius:20px;padding:8px 3px}
+.sheet{padding-top:max(20px,env(safe-area-inset-top));padding-bottom:calc(20px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+.sheetActions{padding-bottom:2px}
+.toast{top:max(18px,calc(env(safe-area-inset-top) + 8px))}
+@media(max-width:430px){
+  .app{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+  .card{border-radius:20px;padding:16px}
+  .section{padding:18px 0}
+  .nav{left:max(10px,env(safe-area-inset-left))!important;right:max(10px,env(safe-area-inset-right))!important}
+}
+@media(orientation:landscape) and (max-height:500px){
+  .nav{bottom:8px}
+  .app{padding-top:8px;padding-bottom:24px}
+  .sheet{max-height:calc(var(--viewport-height,100dvh) - 8px)!important}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+.field input,.field textarea,.field select,.profileFormRow input,.profileFormRow textarea{font-size:16px!important}
+</style>

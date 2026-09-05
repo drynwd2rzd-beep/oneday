@@ -33,8 +33,10 @@ document.querySelectorAll('[data-ui-size-choice]').forEach(button=>button.onclic
   document.documentElement.dataset.uiSize=size;
   document.querySelectorAll('[data-ui-size-choice]').forEach(option=>option.classList.toggle('active',option===button));
 });
-document.querySelector('.aboutVersion')?.replaceChildren('v0.511');
-document.querySelectorAll('.settingValue').forEach(value=>{if(value.textContent?.trim()==='v0.489')value.textContent='v0.511'});
+document.querySelector('.aboutVersion')?.replaceChildren('v0.513');
+document.querySelectorAll('.settingValue').forEach(value=>{if(value.textContent?.trim()==='v0.489')value.textContent='v0.513'});
+document.querySelectorAll('.meFooter').forEach(footer=>{footer.innerHTML=footer.innerHTML.replace(/OneDay v0\.489/g,'OneDay v0.513')});
+const _showVersionInfo=showVersionInfo;showVersionInfo=function(){_showVersionInfo();const info=document.getElementById('infoText');if(info)info.textContent=info.textContent.replace(/v0\.511|v0\.512/g,'v0.513')};
 window.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal.open').forEach(modal=>closeModal(modal.id))});
 function greeting(){const h=D().getHours();return h<11?'早上好。':h<18?'下午好。':'晚上好。'}function taskForDate(t,k){if(t.repeat==='daily')return k>=String(t.created||t.date);return t.date===k}function taskDone(t,k){return !!t.done?.[k]}function setDone(t,k,v){t.done=t.done||{};t.done[k]=v}function completionCount(t){return Object.values(t.done||{}).filter(Boolean).length}
 function dayTaskStatus(k){const list=S.tasks.filter(t=>taskForDate(t,k));if(!list.length)return 'none';const done=list.filter(t=>taskDone(t,k)).length;if(!done)return 'none';return done===list.length?'all':'partial'}
