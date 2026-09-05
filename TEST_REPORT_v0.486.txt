@@ -1,0 +1,23 @@
+OneDay v0.486 静态重构测试报告
+====================================
+
+通过: 16/16
+
+[PASS] CSS braces balanced — 324 opens / 324 closes
+[PASS] Bottom nav is direct body child
+[PASS] Bottom nav has exactly 5 top-level buttons
+[PASS] No appShell wrapper remains
+[PASS] Single app main wrapper
+[PASS] Viewport dock uses bottom:0
+[PASS] Dock safe area is inside dock padding
+[PASS] Legacy fixed 12px bottom gap removed
+[PASS] Legacy grid viewport architecture removed
+[PASS] Legacy duplicate v0.485 architecture markers removed
+[PASS] Modal sits above dock
+[PASS] Lightbox sits above modal
+[PASS] Toast sits above lightbox
+[PASS] All five primary pages exist
+[PASS] Version bumped consistently
+[PASS] Uploaded source did not contain app.js — index.html references app.js, but app.js was absent from the uploaded archive
+
+限制说明：上传的原始 ZIP 只有 index.html 与 apple-touch-icon.png，缺少 index.html 引用的 app.js、manifest.json 与 icons 目录。因此本次可以完整完成 HTML/CSS 结构与底部导航架构的静态检查，但无法在本地对任务新增、保存、切换等 JavaScript 功能做端到端执行测试。未伪造或重写缺失的 app.js，以避免覆盖用户现有功能。
