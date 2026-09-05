@@ -193,4 +193,10 @@ button:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 38%,trans
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 .field input,.field textarea,.field select,.profileFormRow input,.profileFormRow textarea{font-size:16px!important}
+.check,.reviewCheck{width:28px!important;min-width:28px!important;height:28px!important;min-height:28px!important;aspect-ratio:1/1;flex:0 0 28px!important;border-radius:50%!important}
+.appearanceChoices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}.appearanceChoice{min-height:58px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);font:inherit;font-weight:750;padding:10px}.appearanceChoice.active{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--surface2)}.appearanceGroup{margin:18px 0}.appearanceGroup:first-child{margin-top:0}.appearanceGroup label{display:block;font-size:13px;color:var(--muted);font-weight:750;margin-bottom:8px}.appearanceToggle{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}.appearanceToggle input{width:22px;height:22px;accent-color:var(--accent)}
+html[data-card-style="flat"] .card,html[data-card-style="flat"] .reviewFocusCard,html[data-card-style="flat"] .reviewTasksCard,html[data-card-style="flat"] .overviewMonth,html[data-card-style="flat"] .overviewHero,html[data-card-style="flat"] .overviewList,html[data-card-style="flat"] .overviewStats{box-shadow:none;border-radius:16px}
+html[data-bg-tone="cool"]{--bg:#f2f5f7;--surface:#ffffff;--surface2:#f8fafb;--line:#dfe5e8}
+html[data-bg-tone="gray"]{--bg:#f0f1f1;--surface:#fbfbfa;--surface2:#f5f5f3;--line:#dedfdd}
+html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html[data-reduce-motion="true"] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 </style>
