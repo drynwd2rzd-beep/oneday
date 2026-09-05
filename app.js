@@ -111,12 +111,12 @@ function saveProfile(){
 }
 function openDataManage(){openModal('dataManageModal')}
 function openAboutPage(){openModal('aboutModal')}
-function showVersionInfo(){closeModal('aboutModal');infoTitle.textContent='版本信息';infoText.textContent='OneDay v0.473\n\n本版本重点：\n• 重构 PWA 首次启动的视口与安全区计算\n• 修复首次打开需触碰一次才恢复布局的问题\n• 底部导航统一根据真实可视高度与安全区定位\n• 页面从后台恢复、旋转屏幕和视口变化时自动重新同步布局\n• 保留 v0.468 的个人中心与数据管理界面';openModal('infoModal')}
+function showVersionInfo(){closeModal('aboutModal');infoTitle.textContent='版本信息';infoText.textContent='OneDay v0.474\n\n本版本重点：\n• 重构 PWA 首次启动的视口与安全区计算\n• 修复首次打开需触碰一次才恢复布局的问题\n• 底部导航统一根据真实可视高度与安全区定位\n• 页面从后台恢复、旋转屏幕和视口变化时自动重新同步布局\n• 保留 v0.468 的个人中心与数据管理界面';openModal('infoModal')}
 avatarInput.onchange=e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>4*1024*1024)return toast('图片请小于 4MB');const r=new FileReader();r.onload=()=>{S.settings.avatar=String(r.result);save();renderMe();document.getElementById('profileAvatarPreview')&&(document.getElementById('profileAvatarPreview').src=S.settings.avatar);toast('头像已更换')};r.readAsDataURL(f)}
 function openTheme(){pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;renderThemeChoices();openModal('themeModal')}function renderThemeChoices(){document.querySelectorAll('[data-theme-choice]').forEach(b=>b.classList.toggle('active',b.dataset.themeChoice===pendingTheme));colorChoices.innerHTML=colors.map(c=>`<button class="colorDot ${c===pendingAccent?'active':''}" data-color="${c}" style="background:${c}"></button>`).join('');document.querySelectorAll('[data-theme-choice]').forEach(b=>b.onclick=()=>{pendingTheme=b.dataset.themeChoice;renderThemeChoices()});colorChoices.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{pendingAccent=b.dataset.color;renderThemeChoices()})}function saveTheme(){S.settings.theme=pendingTheme;S.settings.accent=pendingAccent;save();applyTheme();renderMe();closeModal('themeModal');toast('主题已保存')}
 function exportData(){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.href=u;a.download='oneday-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),800);toast('数据已导出')}
 importInput.onchange=e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;if(f.size>10*1024*1024)return toast('备份文件不能超过 10MB');const r=new FileReader();r.onload=()=>{try{const raw=JSON.parse(String(r.result||''));if(!raw||typeof raw!=='object')throw new Error('invalid');const incoming=normalize(raw);if(!confirm('导入会替换当前设备中的 OneDay 数据，建议先导出备份。确定继续吗？'))return;S=incoming;save();applyTheme();renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('数据已导入')}catch{toast('无法识别这个备份文件')}};r.onerror=()=>toast('读取备份失败');r.readAsText(f,'utf-8')}
-let restoreReturnToDataManage=false;function openRestore(){restoreReturnToDataManage=false;openModal('restoreModal')}function openRestoreFromDataManage(){restoreReturnToDataManage=true;closeModal('dataManageModal');openModal('restoreModal')}function cancelRestore(){closeModal('restoreModal');if(restoreReturnToDataManage){restoreReturnToDataManage=false;openModal('dataManageModal')}}function restoreAllData(){if(!confirm('确定恢复初始设置吗？这会清除头像、主题、事项、计划、回顾记录、完成历史和统计数据，且无法撤销。'))return;if(!confirm('请再次确认：所有 OneDay 数据都会被清空。确定恢复到初始状态吗？'))return;S=blankState();selected=keyOf(D());viewMonth=new Date(D().getFullYear(),D().getMonth(),1);reviewMonth=new Date(viewMonth);selectedReviewDate=null;reviewTab='timeline';reviewOverviewMonth=new Date(viewMonth);taskFilter='all';taskTab='today';pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;save();applyTheme();restoreReturnToDataManage=false;closeModal('restoreModal');renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('已恢复初始状态')}function openHelp(){infoTitle.textContent='使用说明';infoText.textContent='今天：记录当天的想法并完成事项。\n事项：查看今日、日历和完成统计。\n计划：管理长期方向，可完成或归档。\n回顾：只回看真实记录，不把人生变成任务成绩单。';openModal('infoModal')}function openAbout(){infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v0.473';openModal('infoModal')}
+let restoreReturnToDataManage=false;function openRestore(){restoreReturnToDataManage=false;openModal('restoreModal')}function openRestoreFromDataManage(){restoreReturnToDataManage=true;closeModal('dataManageModal');openModal('restoreModal')}function cancelRestore(){closeModal('restoreModal');if(restoreReturnToDataManage){restoreReturnToDataManage=false;openModal('dataManageModal')}}function restoreAllData(){if(!confirm('确定恢复初始设置吗？这会清除头像、主题、事项、计划、回顾记录、完成历史和统计数据，且无法撤销。'))return;if(!confirm('请再次确认：所有 OneDay 数据都会被清空。确定恢复到初始状态吗？'))return;S=blankState();selected=keyOf(D());viewMonth=new Date(D().getFullYear(),D().getMonth(),1);reviewMonth=new Date(viewMonth);selectedReviewDate=null;reviewTab='timeline';reviewOverviewMonth=new Date(viewMonth);taskFilter='all';taskTab='today';pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;save();applyTheme();restoreReturnToDataManage=false;closeModal('restoreModal');renderToday();renderTasks();renderPlans();renderReview();renderMe();toast('已恢复初始状态')}function openHelp(){infoTitle.textContent='使用说明';infoText.textContent='今天：记录当天的想法并完成事项。\n事项：查看今日、日历和完成统计。\n计划：管理长期方向，可完成或归档。\n回顾：只回看真实记录，不把人生变成任务成绩单。';openModal('infoModal')}function openAbout(){infoTitle.textContent='OneDay';infoText.textContent='记录生活，成为更好的自己。\n\nOneDay v0.474';openModal('infoModal')}
 
 function openPhotoPreview(src){
   const box=document.getElementById('photoLightbox');
@@ -137,33 +137,27 @@ function closePhotoPreview(){
   setTimeout(()=>{if(!box.classList.contains('open')&&img)img.removeAttribute('src')},180);
 }
 
-/* v0.473：iOS PWA 首次启动布局稳定化。
+/* v0.474：iOS PWA 首次启动布局稳定化。
    首帧、页面显示后及视觉视口变化时连续同步导航真实高度，
    不依赖“先触碰一次”才能触发浏览器重新计算布局。 */
+/* v0.474：首次启动视口尺寸已在 HTML 首帧锁定。
+   此处只同步导航真实高度，不再反复修改顶部/视口布局。 */
 (function installInitialLayout(){
-  let timers=[];
-  function sync(){
+  function syncNav(){
     const nav=document.querySelector('.nav');
     if(nav){
       const h=Math.ceil(nav.getBoundingClientRect().height||86);
       document.documentElement.style.setProperty('--nav-h',h+'px');
     }
-    // 强制浏览器在首次独立窗口启动后提交一次当前布局。
-    document.documentElement.style.setProperty('--layout-tick',String(Date.now()));
   }
-  function settle(){
-    timers.forEach(clearTimeout); timers=[];
-    sync();
-    [0,60,180,420,900].forEach(ms=>timers.push(setTimeout(sync,ms)));
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>requestAnimationFrame(settle),{once:true});
-  else requestAnimationFrame(settle);
+  const settle=()=>requestAnimationFrame(()=>requestAnimationFrame(syncNav));
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',settle,{once:true});
+  }else settle();
   window.addEventListener('load',settle,{once:true});
   window.addEventListener('pageshow',settle,{passive:true});
   window.addEventListener('resize',settle,{passive:true});
   window.visualViewport?.addEventListener('resize',settle,{passive:true});
-  window.visualViewport?.addEventListener('scroll',sync,{passive:true});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)settle()},{passive:true});
-})();
+})();;
 
 applyTheme();save();renderToday();renderTasks();renderPlans();renderReview();renderMe();
