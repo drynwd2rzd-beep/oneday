@@ -98,13 +98,20 @@ body.modal-open .nav,body.modal-open .nav button{pointer-events:none!important}
 .uiSizeChoice strong{font-size:30px;line-height:1}
 .uiSizeChoice span{font-weight:850}
 .uiSizeChoice small{color:var(--muted);font-size:12px}
-.uiSizeChoice.active{outline:2px solid var(--green);outline-offset:-2px;background:var(--greenSoft)}
+.uiSizeChoice.active{outline:0;background:var(--surface2);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .uiSizeHint{margin:0;line-height:1.55}
 .reviewSwipeRow{box-shadow:0 6px 18px rgba(30,35,42,.06)}
-.reviewSwipeDelete{width:72px;border-radius:0;background:linear-gradient(135deg,#b95656,#9e4141);box-shadow:none;font-size:13px;gap:4px}
+.reviewSwipeDelete{width:72px;border-radius:0 18px 18px 0;background:linear-gradient(135deg,#b95656,#9e4141);box-shadow:none;font-size:13px;gap:4px}
 .reviewSwipeDelete::before{content:'⌫';font-size:18px;line-height:1}
-.reviewSwipeRow{border-radius:0}
+.reviewSwipeRow{border-radius:18px}
 .reviewFocusEntry{border-radius:18px 0 0 18px!important}
+/* iOS 27 / Safari dynamic viewport hardening */
+html,body{min-height:100svh}
+body{-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + var(--nav-gap) + max(16px,env(safe-area-inset-bottom)))}
+.app{padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));min-height:100svh}
+.sheet,.filter,.quickPhotoPreview{-webkit-overflow-scrolling:touch}
+.modal,.photoLightbox{height:var(--viewport-height,100dvh)}
+@media(max-width:430px){.app{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}.nav{left:max(12px,env(safe-area-inset-left))!important;right:max(12px,env(safe-area-inset-right))!important}}
 html[data-ui-size="compact"]{--ui-scale:.92}html[data-ui-size="large"]{--ui-scale:1.08}
 html[data-ui-size="compact"] .app,html[data-ui-size="compact"] .nav,html[data-ui-size="compact"] .modal .sheet{zoom:.92}
 html[data-ui-size="large"] .app,html[data-ui-size="large"] .nav,html[data-ui-size="large"] .modal .sheet{zoom:1.08}
