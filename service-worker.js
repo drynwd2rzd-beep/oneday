@@ -1,4 +1,4 @@
-const CACHE_NAME = 'oneday-shell-v0.508';
+const CACHE_NAME = 'oneday-shell-v0.511';
 const APP_SHELL = [
   './',
   './index.html',
