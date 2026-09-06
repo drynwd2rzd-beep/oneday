@@ -201,6 +201,18 @@ html[data-bg-tone="gray"]{--bg:#f0f1f1;--surface:#fbfbfa;--surface2:#f5f5f3;--li
 html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html[data-reduce-motion="true"] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 </style>
 <style>
+/* v0.521 iOS 26：日历日期固定正圆，输入控件避免 Safari 聚焦缩放 */
+.day{width:100%!important;max-width:46px!important;height:auto!important;min-height:0!important;aspect-ratio:1/1!important;justify-self:center!important;padding:0!important;display:grid;place-items:center;line-height:1}
+.day .dot{bottom:5px!important}
+input,textarea,select,[contenteditable="true"]{font-size:16px!important;line-height:1.45;-webkit-appearance:none;appearance:none}
+html[data-ui-size="compact"] input,html[data-ui-size="compact"] textarea,html[data-ui-size="compact"] select,html[data-ui-size="compact"] [contenteditable="true"]{font-size:18px!important}
+html[data-ui-size="large"] input,html[data-ui-size="large"] textarea,html[data-ui-size="large"] select,html[data-ui-size="large"] [contenteditable="true"]{font-size:16px!important}
+button,a,input,textarea,select{touch-action:manipulation}
+body{min-height:100svh;min-height:100dvh;overscroll-behavior-x:none;-webkit-overflow-scrolling:touch}
+.app{min-height:100svh;min-height:100dvh}
+@media(max-width:430px){.week,.days{gap:4px}.day{max-width:42px!important}}
+</style>
+<style>
 /* v0.520 iOS Safari 输入防自动缩放：兼容紧凑界面 zoom */
 input,textarea,select,[contenteditable="true"]{-webkit-text-size-adjust:100%;font-size:16px!important}
 html[data-ui-size="compact"] input,html[data-ui-size="compact"] textarea,html[data-ui-size="compact"] select,html[data-ui-size="compact"] [contenteditable="true"]{font-size:18px!important}
