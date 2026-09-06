@@ -33,10 +33,10 @@ document.querySelectorAll('[data-ui-size-choice]').forEach(button=>button.onclic
   document.documentElement.dataset.uiSize=size;
   document.querySelectorAll('[data-ui-size-choice]').forEach(option=>option.classList.toggle('active',option===button));
 });
-document.querySelector('.aboutVersion')?.replaceChildren('v0.521');
-document.querySelectorAll('.settingValue').forEach(value=>{if(value.textContent?.trim()==='v0.489')value.textContent='v0.521'});
-document.querySelectorAll('.meFooter').forEach(footer=>{footer.innerHTML=footer.innerHTML.replace(/OneDay v0\.489/g,'OneDay v0.521')});
-const _showVersionInfo=showVersionInfo;showVersionInfo=function(){_showVersionInfo();const info=document.getElementById('infoText');if(info)info.textContent=info.textContent.replace(/v0\.511|v0\.512|v0\.513|v0\.514|v0\.515|v0\.516|v0\.517|v0\.518|v0\.519|v0\.520/g,'v0.521')};
+document.querySelector('.aboutVersion')?.replaceChildren('v0.522');
+document.querySelectorAll('.settingValue').forEach(value=>{if(value.textContent?.trim()==='v0.489')value.textContent='v0.522'});
+document.querySelectorAll('.meFooter').forEach(footer=>{footer.innerHTML=footer.innerHTML.replace(/OneDay v0\.489/g,'OneDay v0.522')});
+const _showVersionInfo=showVersionInfo;showVersionInfo=function(){_showVersionInfo();const info=document.getElementById('infoText');if(info)info.textContent=info.textContent.replace(/v0\.511|v0\.512|v0\.513|v0\.514|v0\.515|v0\.516|v0\.517|v0\.518|v0\.519|v0\.520|v0\.521/g,'v0.522')};
 window.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal.open').forEach(modal=>closeModal(modal.id))});
 function greeting(){const h=D().getHours();return h<11?'早上好。':h<18?'下午好。':'晚上好。'}function taskForDate(t,k){if(t.repeat==='daily')return k>=String(t.created||t.date);return t.date===k}function taskDone(t,k){return !!t.done?.[k]}function setDone(t,k,v){t.done=t.done||{};t.done[k]=v}function completionCount(t){return Object.values(t.done||{}).filter(Boolean).length}
 function dayTaskStatus(k){const list=S.tasks.filter(t=>taskForDate(t,k));if(!list.length)return 'none';const done=list.filter(t=>taskDone(t,k)).length;if(!done)return 'none';return done===list.length?'all':'partial'}
@@ -220,6 +220,10 @@ systemThemeQuery?.addEventListener?.('change',()=>{if(S.settings.theme==='system
 
 /* iOS 26 聚焦兜底：对动态创建的输入控件再次确认安全字号 */
 document.addEventListener('focusin',event=>{const field=event.target.closest?.('input,textarea,select,[contenteditable="true"]');if(!field)return;const size=parseFloat(getComputedStyle(field).fontSize);if(!Number.isFinite(size)||size<16)field.style.fontSize='16px';field.style.webkitTextSizeAdjust='100%'},{passive:true});
+
+function keepFocusedFieldVisible(){const field=document.activeElement?.closest?.('input,textarea,select,[contenteditable="true"]');if(!field||!document.body.classList.contains('keyboard-active'))return;const vv=window.visualViewport,visibleTop=vv?.offsetTop||0,visibleBottom=visibleTop+(vv?.height||window.innerHeight||0),margin=18,rect=field.getBoundingClientRect();let delta=0;if(rect.bottom>visibleBottom-margin)delta=rect.bottom-(visibleBottom-margin);else if(rect.top<visibleTop+margin)delta=rect.top-(visibleTop+margin);if(!delta)return;const sheet=field.closest('.sheet');(sheet||window).scrollBy({top:delta,behavior:'smooth'})}
+function scheduleFocusedField(){[80,220,420].forEach(delay=>setTimeout(keepFocusedFieldVisible,delay))}
+document.addEventListener('focusin',scheduleFocusedField,{passive:true});window.visualViewport?.addEventListener('resize',scheduleFocusedField,{passive:true});
 
 /* v0.515: 极简显示偏好（卡片、背景、动效、启动页） */
 function ensureAppearanceSettings(){const s=S.settings||{};s.cardStyle=['soft','flat'].includes(s.cardStyle)?s.cardStyle:'soft';s.bgTone=['warm','cool','gray'].includes(s.bgTone)?s.bgTone:'warm';s.reduceMotion=Boolean(s.reduceMotion);s.startPage=['today','tasks','plans','review','me'].includes(s.startPage)?s.startPage:'today';S.settings=s;return s}

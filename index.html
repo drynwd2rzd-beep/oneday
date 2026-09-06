@@ -201,6 +201,11 @@ html[data-bg-tone="gray"]{--bg:#f0f1f1;--surface:#fbfbfa;--surface2:#f5f5f3;--li
 html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html[data-reduce-motion="true"] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 </style>
 <style>
+/* v0.522 iOS 键盘：给输入区域预留滚动空间，避免输入框被推到键盘下方 */
+.sheet{scroll-padding-top:20px;scroll-padding-bottom:calc(120px + env(safe-area-inset-bottom))}
+body.keyboard-active .sheet{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
+</style>
+<style>
 /* v0.521 iOS 26：日历日期固定正圆，输入控件避免 Safari 聚焦缩放 */
 .day{width:100%!important;max-width:46px!important;height:auto!important;min-height:0!important;aspect-ratio:1/1!important;justify-self:center!important;padding:0!important;display:grid;place-items:center;line-height:1}
 .day .dot{bottom:5px!important}
