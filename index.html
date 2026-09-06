@@ -200,3 +200,20 @@ html[data-bg-tone="cool"]{--bg:#f2f5f7;--surface:#ffffff;--surface2:#f8fafb;--li
 html[data-bg-tone="gray"]{--bg:#f0f1f1;--surface:#fbfbfa;--surface2:#f5f5f3;--line:#dedfdd}
 html[data-reduce-motion="true"] *,html[data-reduce-motion="true"] *::before,html[data-reduce-motion="true"] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 </style>
+<style>
+/* v0.518 统一圆角规范 */
+:root{--radius-card:20px;--radius-control:14px;--radius-small:10px;--radius-nav:26px}
+.card,.planCard,.timelineCard,.reviewFocusCard,.reviewTasksCard,.overviewMonth,.overviewHero,.overviewList,.overviewStats,.meHeroCard,.meQuote,.meSettings{border-radius:var(--radius-card)!important}
+.primary,.secondary,.iconBtn,.capturePhotoBtn,.reviewTimelineBtn,.sheetBack,.themeChoice,.uiSizeChoice,.appearanceChoice,.tabs button,.filter button,.reviewTabs button,.collapseHead,.field input,.field textarea,.field select,.profileFormCard{border-radius:var(--radius-control)!important}
+.quickPhotoItem,.reviewEntryActions button,.reviewEntryMore,.moduleMove button,.settingRow{border-radius:var(--radius-small)!important}
+.nav{border-radius:var(--radius-nav)!important}.day,.check,.reviewCheck,.avatar,.meProfileAvatar,.profileSheetAvatar,.colorDot,.quickPhotoRemove{border-radius:50%!important}
+.bar,.overviewBar,.countBadge,.toast{border-radius:999px!important}
+</style>
+<style>
+/* v0.517 清除回顾记录外层残留方框 */
+.reviewSwipeRow{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+</style>
+<style>
+/* v0.516 回顾普通按键样式；左滑操作已停用 */
+#taskPanelToday .sectionHead .linkBtn{display:none!important}.reviewEntryActions{display:flex;gap:6px;margin-left:auto}.reviewEntryActions button{min-height:36px;border:1px solid var(--line);border-radius:11px;background:var(--surface2);font:inherit;font-size:12px;font-weight:800;padding:0 10px}.reviewEditBtn{color:var(--blue)}.reviewDeleteBtn{color:var(--danger)}.reviewSwipeRow{overflow:visible!important}.reviewFocusEntry{transform:none!important;touch-action:auto!important}.reviewSwipeDelete{display:none!important}
+</style>
