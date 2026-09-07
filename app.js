@@ -228,9 +228,9 @@ const _renderTasks516=renderTasks;renderTasks=function(){_renderTasks516();docum
 document.querySelector('#taskPanelToday .sectionHead .linkBtn')?.remove();
 if(document.querySelector('#review.active'))renderReview();
 
-/* v0.524: focused UI, accessible deletion, night theme and iOS keyboard stability. */
+/* v0.525: focused UI, accessible deletion, night theme and iOS keyboard stability. */
 (function(){
-  const VERSION='v0.524';
+  const VERSION='v0.525';
   const style=document.createElement('style');
   style.textContent=`
     html[data-card-style="soft"] .card,html[data-card-style="soft"] .reviewFocusCard,html[data-card-style="soft"] .reviewTasksCard{box-shadow:0 10px 28px rgba(31,40,48,.07)}
@@ -259,11 +259,45 @@ function continuousCompletionDays(month){const b=monthBounds(month),days=new Set
   window.deleteReviewPhoto=function(k,i,j){const photos=S.notes[k]?.[i]?.photos;if(!photos?.[j]||!confirm('只删除这张照片？文字和其他照片会保留。'))return;photos.splice(j,1);save();renderReview();renderToday();toast('照片已删除')};
   const baseTimeline=renderReviewTimeline;
   renderReviewTimeline=function(){baseTimeline();if(!selectedReviewDate)return;reviewList.querySelectorAll('.reviewPhotos').forEach((box)=>{const row=box.closest('[data-review-index]'),k=row?.dataset.reviewDate,i=Number(row?.dataset.reviewIndex);[...box.querySelectorAll('img.reviewPhoto')].forEach((img,j)=>{const wrap=document.createElement('span');wrap.className='reviewPhotoWrap';img.before(wrap);wrap.append(img);const del=document.createElement('button');del.className='reviewPhotoDelete';del.type='button';del.setAttribute('aria-label','删除这张照片');del.textContent='×';del.onclick=e=>{e.stopPropagation();window.deleteReviewPhoto(k,i,j)};wrap.append(del)})})};
-  showVersionInfo=function(){closeModal('aboutModal');infoTitle.textContent='版本信息';infoText.textContent='OneDay v0.524\n\n本版本更新：\n• 回顾记录新增单独删除照片，文字与其他照片不受影响\n• 精简“我的”页面，移除统计区域并统一设置图标\n• 删除显示偏好中的启动页面；强化柔和卡片与纯净平面的视觉差异\n• 新增简洁流星夜主题与自定义主题色\n• 完成概览改为连续完成，并新增文字记录条数\n• 每日导航增加短暂停留反馈\n• 优化 iOS 26/27 键盘聚焦，避免输入框被强制顶到页面顶部\n• 修复显示偏好入口、彩虹调色盘、流星夜背景与照片全屏预览\n• 今日事项点击增加短暂停留反馈；连续完成按当月最长连续完成天数计算';openModal('infoModal')};
+  showVersionInfo=function(){closeModal('aboutModal');infoTitle.textContent='版本信息';infoText.textContent='OneDay v0.525\n\n本版本更新：\n• 回顾记录新增单独删除照片，文字与其他照片不受影响\n• 精简“我的”页面，移除统计区域并统一设置图标\n• 删除显示偏好中的启动页面；强化柔和卡片与纯净平面的视觉差异\n• 新增简洁流星夜主题与自定义主题色\n• 完成概览改为连续完成，并新增文字记录条数\n• 每日导航增加短暂停留反馈\n• 优化 iOS 26/27 键盘聚焦，避免输入框被强制顶到页面顶部\n• 修复显示偏好入口、彩虹调色盘、流星夜背景与照片全屏预览\n• 今日事项点击增加短暂停留反馈；连续完成按当月最长连续完成天数计算';openModal('infoModal')};
   const oldRenderTheme=renderThemeChoices;
   renderThemeChoices=function(){oldRenderTheme();const input=document.getElementById('customAccentInput');if(!input)return;input.value=pendingAccent||S.settings.accent||'#287052';input.oninput=e=>{pendingAccent=e.target.value;if(!colors.includes(pendingAccent))colors.push(pendingAccent);renderThemeChoices()}};
   const oldSaveTheme=saveTheme;
   saveTheme=function(){if(pendingAccent&&!colors.includes(pendingAccent))colors.push(pendingAccent);oldSaveTheme()};
   window.visualViewport?.addEventListener('resize',()=>{if(document.activeElement?.matches('input,textarea,select'))document.documentElement.style.setProperty('--viewport-height',`${Math.round(window.visualViewport.height)}px`)},{passive:true});
   const baseOpenPhotoPreview=openPhotoPreview,baseClosePhotoPreview=closePhotoPreview;let photoScrollY=0;openPhotoPreview=function(src){photoScrollY=window.scrollY||0;document.body.classList.add('photo-preview-open');document.body.style.top='-'+photoScrollY+'px';baseOpenPhotoPreview(src)};closePhotoPreview=function(){baseClosePhotoPreview();document.body.classList.remove('photo-preview-open');document.body.style.top='';window.scrollTo(0,photoScrollY)};document.querySelector('[data-home-module="tasks"]')?.addEventListener('click',()=>{const card=document.getElementById('todayTasks');if(!card)return;card.classList.remove('todayTasksFeedback');void card.offsetWidth;card.classList.add('todayTasksFeedback');setTimeout(()=>card.classList.remove('todayTasksFeedback'),1350)});  applyAppearanceSettings();
+})();
+
+/* v0.525: explicit display preferences, single custom color and task-completion feedback. */
+(function(){
+  const BASE_COLORS=['#287052','#386b98','#8057b8','#c75c88','#d77b48','#68717a'];
+  let pendingCustomAccent=null;
+  const style=document.createElement('style');
+  style.textContent=`
+    html[data-bg-tone="meteor"]{--bg:#0b1018;--surface:#151c26;--surface2:#1a2330;--line:#2c3949;--ink:#edf2f7;--muted:#aab7c5;color-scheme:dark}
+    html[data-bg-tone="meteor"] body{background:radial-gradient(ellipse at 22% 12%,rgba(59,95,142,.24),transparent 28%),linear-gradient(118deg,transparent 0 42%,rgba(225,239,255,.75) 46%,rgba(134,178,227,.3) 47%,transparent 50%) 42% 16%/46rem 2px no-repeat,linear-gradient(128deg,transparent 0 48%,rgba(225,239,255,.55) 50%,transparent 52%) 74% 34%/32rem 1px no-repeat,#0b1018}
+    html[data-bg-tone="meteor"] body:before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 12% 20%,#fff 0 1px,transparent 1.5px),radial-gradient(circle at 81% 14%,#dceaff 0 1px,transparent 1.5px),radial-gradient(circle at 63% 42%,#fff 0 1px,transparent 1.5px),radial-gradient(circle at 31% 66%,#cad9e9 0 1px,transparent 1.5px)}
+    .taskCompleteFeedback .check,.taskCompleteFeedback .taskTitle,.taskCompleteFeedback .taskMeta{animation:task-complete-feedback 1.35s ease both}@keyframes task-complete-feedback{0%,100%{transform:translateX(0);filter:none}28%{transform:translateX(3px) scale(1.04);filter:drop-shadow(0 3px 7px color-mix(in srgb,var(--accent) 35%,transparent))}58%{transform:translateX(0) scale(1.01)}}
+    .customColorChoice{display:inline-block!important;vertical-align:top;margin-left:12px!important}
+  `;
+  document.head.append(style);
+  colors.splice(0,colors.length,...BASE_COLORS);
+  if(/^#[0-9a-f]{6}$/i.test(S.settings.customAccent||'')){colors.push(S.settings.customAccent);S.settings.accent=S.settings.customAccent;applyTheme()}
+  applyAppearanceSettings=function(){const s=S.settings||{};s.cardStyle=s.cardStyle==='flat'?'flat':'soft';s.bgTone=['warm','cool','gray','meteor'].includes(s.bgTone)?s.bgTone:'warm';delete s.reduceMotion;delete s.startPage;S.settings=s;document.documentElement.dataset.cardStyle=s.cardStyle;document.documentElement.dataset.bgTone=s.bgTone;const labels={soft:'柔和卡片',flat:'纯净平面',warm:'暖白',cool:'冷白',gray:'浅灰',meteor:'流星夜'};const row=document.getElementById('appearanceLabel');if(row)row.textContent=labels[s.cardStyle]+' · '+labels[s.bgTone];document.querySelectorAll('[data-appearance-choice]').forEach(b=>b.classList.toggle('active',b.dataset.appearanceChoice===String(s[b.dataset.appearanceKey])))};
+  saveAppearanceSetting=function(key,value){S.settings[key]=value;applyAppearanceSettings();save();toast('显示偏好已保存')};
+  openAppearanceSettings=function(){let modal=document.getElementById('appearanceModal');if(!modal){document.body.insertAdjacentHTML('beforeend','<div class="modal" id="appearanceModal"><div class="sheet"><h3>显示偏好</h3><div class="appearanceGroup"><label>卡片样式</label><div class="appearanceChoices"><button class="appearanceChoice" data-appearance-key="cardStyle" data-appearance-choice="soft">柔和卡片</button><button class="appearanceChoice" data-appearance-key="cardStyle" data-appearance-choice="flat">纯净平面</button></div></div><div class="appearanceGroup"><label>背景色调</label><div class="appearanceChoices"><button class="appearanceChoice" data-appearance-key="bgTone" data-appearance-choice="warm">暖白</button><button class="appearanceChoice" data-appearance-key="bgTone" data-appearance-choice="cool">冷白</button><button class="appearanceChoice" data-appearance-key="bgTone" data-appearance-choice="gray">浅灰</button><button class="appearanceChoice" data-appearance-key="bgTone" data-appearance-choice="meteor">流星夜</button></div></div><div class="sheetActions"><button class="primary" type="button" onclick="closeModal(\'appearanceModal\')">完成</button></div></div></div>');modal=document.getElementById('appearanceModal');modal.addEventListener('click',e=>{if(e.target===modal)closeModal('appearanceModal')});modal.querySelectorAll('[data-appearance-choice]').forEach(b=>b.onclick=()=>saveAppearanceSetting(b.dataset.appearanceKey,b.dataset.appearanceChoice))}applyAppearanceSettings();openModal('appearanceModal')};
+  openTheme=function(){pendingTheme=S.settings.theme;pendingAccent=S.settings.accent;pendingCustomAccent=S.settings.customAccent||null;renderThemeChoices();openModal('themeModal')};
+  renderThemeChoices=function(){colors.splice(0,colors.length,...BASE_COLORS);if(pendingCustomAccent)colors.push(pendingCustomAccent);colorChoices.innerHTML=colors.map(c=>`<button class="colorDot ${c===pendingAccent?'active':''}" data-color="${c}" style="background:${c}"></button>`).join('');document.querySelectorAll('[data-theme-choice]').forEach(b=>{b.classList.toggle('active',b.dataset.themeChoice===pendingTheme);b.onclick=()=>{pendingTheme=b.dataset.themeChoice;renderThemeChoices()}});colorChoices.querySelectorAll('[data-color]').forEach(b=>b.onclick=()=>{pendingAccent=b.dataset.color;pendingCustomAccent=BASE_COLORS.includes(pendingAccent)?null:pendingAccent;renderThemeChoices()});const input=document.getElementById('customAccentInput');if(input){input.value=pendingCustomAccent||pendingAccent||'#287052';input.oninput=e=>{pendingAccent=e.target.value;pendingCustomAccent=e.target.value;renderThemeChoices()}}};
+  saveTheme=function(){colors.splice(0,colors.length,...BASE_COLORS);if(pendingCustomAccent){S.settings.customAccent=pendingCustomAccent;colors.push(pendingCustomAccent)}else delete S.settings.customAccent;S.settings.theme=pendingTheme;S.settings.accent=pendingAccent;save();applyTheme();renderMe();closeModal('themeModal');toast('主题已保存')};
+  const baseToggleTask=toggleTask;
+  toggleTask=function(id,k){baseToggleTask(id,k);if(k!==keyOf(D()))return;const task=document.querySelector('#todayTasks .check[data-id="'+CSS.escape(id)+'"]')?.closest('.task');if(!task)return;task.classList.remove('taskCompleteFeedback');void task.offsetWidth;task.classList.add('taskCompleteFeedback');setTimeout(()=>task.classList.remove('taskCompleteFeedback'),1350)};
+  showVersionInfo=function(){closeModal('aboutModal');infoTitle.textContent='版本信息';infoText.textContent='OneDay v0.525\n\n本版本更新：\n• 修复显示偏好选项无法保存的问题，移除“减少动效”\n• 保留深色模式；流星夜改为背景色调中的独立夜间样式\n• 自定义主题色只保留一个圆点，后一次调色会覆盖前一次\n• 主页事项完成圆圈及同一行文字新增短暂停留反馈\n• 调整流星夜轨迹与照片预览稳定性';openModal('infoModal')};
+  applyAppearanceSettings();
+})();
+/* v0.525 final interaction precedence. */
+(function(){
+  const style=document.createElement('style');
+  style.textContent='html[data-theme="dark"]:not([data-bg-tone="meteor"]) body{background:#151a20!important}html[data-theme="dark"]:not([data-bg-tone="meteor"]) body:before{content:none!important}';
+  document.head.append(style);
+  go=function(id){document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id===id));document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.go===id));({today:renderToday,tasks:renderTasks,plans:renderPlans,review:renderReview,me:renderMe}[id]||(()=>{}))()};
 })();
