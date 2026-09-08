@@ -1,7 +1,8 @@
-const CACHE_NAME = 'oneday-shell-v0.525';
+const CACHE_NAME = 'oneday-shell-v0.6';
 const APP_SHELL = [
   './',
   './index.html',
+  './styles.css',
   './app.js',
   './manifest.json',
   './apple-touch-icon.png'
@@ -31,3 +32,4 @@ self.addEventListener('fetch', event => {
       .catch(() => caches.match(event.request).then(cached => cached || caches.match('./index.html')))
   );
 });
+
