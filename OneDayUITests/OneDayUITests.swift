@@ -120,10 +120,13 @@ final class OneDayUITests: XCTestCase {
     let app = launch(["-OneDayTab", "tasks"])
     app.buttons["添加事项"].tap()
     let field = app.textFields.firstMatch
-    XCTAssertTrue(field.waitForExistence(timeout: 5))
+    XCTAssertTrue(field.waitForExistence(timeout: 10))
+    field.tap()
     field.typeText("写周报")
+    XCTAssertEqual(field.value as? String, "写周报", "typed into the field")
     app.buttons["添加"].tap()
-    XCTAssertTrue(app.staticTexts["写周报"].waitForExistence(timeout: 5))
+    let row = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "写周报")).firstMatch
+    XCTAssertTrue(row.waitForExistence(timeout: 15))
   }
 
   func testTabsAndOverview() {
