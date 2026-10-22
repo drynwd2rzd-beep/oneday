@@ -55,7 +55,7 @@ private struct HeroModule: View {
         .padding(.top, 2)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
-    .padding(.top, 12)
+    .padding(.top, 20)
     .accessibilityElement(children: .combine)
   }
 }

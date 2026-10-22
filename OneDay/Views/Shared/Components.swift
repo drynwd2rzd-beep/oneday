@@ -168,17 +168,15 @@ struct TaskRow: View {
           .font(.body.weight(.semibold))
           .strikethrough(done, color: .secondary)
           .foregroundStyle(done ? .secondary : .primary)
-        HStack(spacing: 8) {
-          Text("\(task.repeatMode.label) · 已完成 \(task.completionCount) 次")
-          if let reminder = task.reminder {
-            Label(DayKey.clock(minutes: reminder), systemImage: "bell.fill")
-              .labelStyle(CompactLabelStyle())
+        // One line when it fits; otherwise the plan moves to its own line instead of squeezing words apart.
+        ViewThatFits(in: .horizontal) {
+          HStack(spacing: 8) {
+            metaText
+            planLabel
           }
-          if let plan = store.state.plan(task.planId) {
-            Label(plan.title, systemImage: plan.symbol)
-              .labelStyle(CompactLabelStyle())
-              .foregroundStyle(plan.color.map { Color(hex: $0) } ?? accent)
-              .lineLimit(1)
+          VStack(alignment: .leading, spacing: 2) {
+            metaText
+            planLabel
           }
         }
         .font(.caption)
@@ -237,6 +235,30 @@ struct TaskRow: View {
       })
     .sheet(isPresented: $editingReminder) {
       ReminderSheet(task: task).oneDaySheet()
+    }
+  }
+}
+
+extension TaskRow {
+  fileprivate var metaText: some View {
+    HStack(spacing: 8) {
+      Text("\(task.repeatMode.label) · 已完成 \(task.completionCount) 次")
+      if let reminder = task.reminder {
+        Label(DayKey.clock(minutes: reminder), systemImage: "bell.fill")
+          .labelStyle(CompactLabelStyle())
+      }
+    }
+    .lineLimit(1)
+    .fixedSize()
+  }
+
+  @ViewBuilder
+  fileprivate var planLabel: some View {
+    if let plan = store.state.plan(task.planId) {
+      Label(plan.title, systemImage: plan.symbol)
+        .labelStyle(CompactLabelStyle())
+        .foregroundStyle(plan.color.map { Color(hex: $0) } ?? accent)
+        .lineLimit(1)
     }
   }
 }
