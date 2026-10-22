@@ -12,6 +12,39 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     _ = AppLock.shared
     return true
   }
+
+  // Home screen quick actions arrive through the scene delegate.
+  func application(
+    _ application: UIApplication,
+    configurationForConnecting connectingSceneSession: UISceneSession,
+    options: UIScene.ConnectionOptions
+  ) -> UISceneConfiguration {
+    let configuration = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+    configuration.delegateClass = SceneDelegate.self
+    return configuration
+  }
+}
+
+@MainActor
+final class SceneDelegate: NSObject, UIWindowSceneDelegate {
+  func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+    // Launched from a quick action while the app was not running.
+    if let item = connectionOptions.shortcutItem { handle(item) }
+  }
+
+  func windowScene(
+    _ windowScene: UIWindowScene, performActionFor shortcutItem: UIApplicationShortcutItem,
+    completionHandler: @escaping (Bool) -> Void
+  ) {
+    completionHandler(handle(shortcutItem))
+  }
+
+  @discardableResult
+  private func handle(_ item: UIApplicationShortcutItem) -> Bool {
+    guard let route = AppRoute(shortcutType: item.type) else { return false }
+    Store.shared.open(route)
+    return true
+  }
 }
 
 @main
@@ -95,6 +128,9 @@ struct RootView: View {
     }
     .onChange(of: store.selectedTab) { _, _ in Haptics.tap() }
     .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in store.promptUndo() }
+    .onOpenURL { url in
+      if let route = AppRoute(url: url) { store.open(route) }
+    }
     .overlay {
       // Keeps content hidden under the lock window, including during launch.
       if AppLock.shared.isLocked {

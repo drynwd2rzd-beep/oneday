@@ -26,6 +26,25 @@ enum ReflectionTarget: Identifiable, Hashable {
   }
 }
 
+/// Places the app can be opened at from outside: home screen quick actions and widget links.
+enum AppRoute: String, CaseIterable {
+  case today, capture, addTask, reflect
+
+  /// `oneday://capture` etc. (hosts are case-insensitive).
+  init?(url: URL) {
+    guard url.scheme?.lowercased() == "oneday", let host = url.host()?.lowercased(),
+      let route = Self.allCases.first(where: { $0.rawValue.lowercased() == host })
+    else { return nil }
+    self = route
+  }
+
+  /// Home screen quick action types, e.g. `com.oneday.app.capture`.
+  init?(shortcutType: String) {
+    guard let last = shortcutType.split(separator: ".").last else { return nil }
+    self.init(rawValue: String(last))
+  }
+}
+
 /// A month to show the recap card for.
 struct MonthRef: Identifiable, Hashable {
   let month: Date
@@ -70,6 +89,9 @@ final class Store {
   var reviewTab: ReviewTab = .timeline
   var recap: MonthRef?
   var reflection: ReflectionTarget?
+  /// Set by a quick action or widget link; the screen that handles it clears it.
+  var pendingCapture = false
+  var pendingAddTask = false
   var undoPrompt: UndoEntry?
 
   @ObservationIgnored private var undoStack: [UndoEntry] = []
@@ -106,6 +128,7 @@ final class Store {
     state.normalize()
     Storage.shared.save(state)
     NotificationManager.shared.scheduleRefresh(for: state)
+    WidgetSync.publish(state, today: today)
   }
 
   func flush() {
@@ -115,6 +138,8 @@ final class Store {
 
   func sceneDidBecomeActive() {
     refreshDay()
+    applyWidgetToggles()
+    WidgetSync.publish(state, today: today)
     Task {
       await NotificationManager.shared.refreshStatus()
       NotificationManager.shared.scheduleRefresh(for: state)
@@ -123,7 +148,30 @@ final class Store {
 
   func refreshDay() {
     let now = DayKey.today
-    if now != today { today = now }
+    if now != today {
+      today = now
+      WidgetSync.publish(state, today: today)
+    }
+  }
+
+  // MARK: Routes (home screen quick actions, widget links)
+
+  func open(_ route: AppRoute) {
+    switch route {
+    case .today:
+      selectedTab = .today
+    case .capture:
+      selectedTab = .today
+      pendingCapture = true
+    case .addTask:
+      selectedTab = .tasks
+      pendingAddTask = true
+    case .reflect:
+      selectedTab = .review
+      reviewTab = .reflect
+      reviewDate = nil
+      reflection = .day(today)
+    }
   }
 
   // MARK: Feedback

@@ -41,6 +41,16 @@ jobs:
             build > build-device.log 2>&1 || { grep -E "error:" build-device.log; exit 1; }
           grep -E "warning: .*OneDay/" build-device.log | sort -u || true
           test -f build/device/Build/Products/Release-iphoneos/OneDay.app/OneDay
+          test -f build/device/Build/Products/Release-iphoneos/OneDay.app/PlugIns/OneDayWidget.appex/OneDayWidget
+
+      - name: Embed entitlements (ad-hoc)
+        run: |
+          # Sideloading tools read the App Group from these to share data with the widget.
+          APP=build/device/Build/Products/Release-iphoneos/OneDay.app
+          codesign -f -s - --entitlements OneDayWidget/OneDayWidget.entitlements "$APP/PlugIns/OneDayWidget.appex"
+          codesign -f -s - --entitlements OneDay/OneDay.entitlements "$APP"
+          codesign -d --entitlements - "$APP" 2>/dev/null | grep -q "group.com.oneday.app"
+          codesign -d --entitlements - "$APP/PlugIns/OneDayWidget.appex" 2>/dev/null | grep -q "group.com.oneday.app"
 
       - name: Package IPA
         run: |
@@ -105,6 +115,7 @@ jobs:
           shoot glass-review-recap -OneDayDemo YES -OneDayTab review -OneDayReview recap
           shoot glass-review-reflect -OneDayDemo YES -OneDayTab review -OneDayReview reflect
           shoot glass-review-week -OneDayDemo YES -OneDayTab review -OneDayReview week
+          shoot widgets -OneDayDemo YES -OneDayTab me -OneDayWidgets YES
           shoot classic-today -OneDayDemo YES -OneDayTab today -OneDayStyle soft
           shoot flat-tasks -OneDayDemo YES -OneDayTab tasks -OneDayStyle flat -OneDayTone cool
           shoot onboarding -OneDayDemo YES -OneDayOnboarding YES
@@ -114,6 +125,7 @@ jobs:
           xcrun simctl ui "$DEVICE" content_size large
           xcrun simctl ui "$DEVICE" appearance dark
           shoot dark-today -OneDayDemo YES -OneDayTab today -OneDayStyle glass -OneDayTone warm
+          shoot dark-widgets -OneDayDemo YES -OneDayTab me -OneDayWidgets YES
           shoot dark-stats -OneDayDemo YES -OneDayTab review -OneDayReview overview
           shoot meteor-today -OneDayDemo YES -OneDayTab today -OneDayTone meteor
 

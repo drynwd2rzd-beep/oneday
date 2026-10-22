@@ -1,7 +1,7 @@
 import SwiftUI
 
 private enum MeSheet: String, Identifiable {
-  case profile, theme, uiSize, appearance, home, notifications, security, backup, diagnostics, about
+  case profile, theme, uiSize, appearance, home, widgets, notifications, security, backup, diagnostics, about
   var id: String { rawValue }
 }
 
@@ -41,6 +41,7 @@ struct MeView: View {
           SettingRow(icon: "square.on.square", title: "显示偏好", value: s.cardStyle.label, tint: .teal) { sheet = .appearance }
           SettingRow(icon: "textformat.size", title: "界面大小", value: s.uiSize.label, tint: .blue) { sheet = .uiSize }
           SettingRow(icon: "square.grid.2x2", title: "首页自定义", tint: .orange) { sheet = .home }
+          SettingRow(icon: "rectangle.3.group", title: "桌面小组件", tint: .yellow) { sheet = .widgets }
         }
 
         Section {
@@ -72,6 +73,11 @@ struct MeView: View {
       .scrollContentBackground(.hidden)
       .background { AppBackground() }
       .navigationTitle("我的")
+      #if DEBUG
+      .onAppear {
+        if UserDefaults.standard.bool(forKey: "OneDayWidgets") { sheet = .widgets }
+      }
+      #endif
       .sheet(item: $sheet) { which in
         Group {
           switch which {
@@ -80,6 +86,7 @@ struct MeView: View {
           case .uiSize: UISizeSheet()
           case .appearance: AppearanceSheet()
           case .home: HomeCustomizeSheet()
+          case .widgets: WidgetGallerySheet()
           case .notifications: NotificationSettingsSheet()
           case .security: SecuritySheet()
           case .backup: BackupSheet()

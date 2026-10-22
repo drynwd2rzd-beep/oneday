@@ -44,6 +44,11 @@ struct TasksView: View {
         }
       }
       .sheet(isPresented: $showAdd) { AddTaskSheet(day: selected).oneDaySheet() }
+      .onChange(of: store.pendingAddTask, initial: true) { _, pending in
+        guard pending else { return }
+        store.pendingAddTask = false
+        showAdd = true
+      }
       .onChange(of: store.today) { old, new in
         if selected == old { selected = new }
       }

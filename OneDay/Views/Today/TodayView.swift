@@ -4,9 +4,13 @@ import UniformTypeIdentifiers
 
 struct TodayView: View {
   @Environment(Store.self) private var store
+  /// Bumped to open (and focus) the capture card from a quick action or widget link.
+  @State private var captureSignal = 0
+  @State private var captureSheet = false
 
   var body: some View {
     NavigationStack {
+      ScrollViewReader { proxy in
       ScrollView {
         VStack(alignment: .leading, spacing: Spacing.section) {
           if store.settings.homeModules.isEmpty {
@@ -19,7 +23,7 @@ struct TodayView: View {
               HeroModule()
               RecapBanner()
             case .tasks: TodayTasksModule()
-            case .note: QuickCaptureModule()
+            case .note: QuickCaptureModule(openSignal: captureSignal).id("capture")
             case .onThisDay: OnThisDayModule()
             case .progress: EmptyView()
             case .plans: HomePlansModule()
@@ -37,7 +41,42 @@ struct TodayView: View {
       .navigationTitle("一天")
       // The greeting is the page header; a second large title would compete with it.
       .toolbar(.hidden, for: .navigationBar)
+      .onChange(of: store.pendingCapture, initial: true) { _, pending in
+        guard pending else { return }
+        store.pendingCapture = false
+        if store.settings.homeModules.contains(.note) {
+          captureSignal += 1
+          withAnimation(.snappy) { proxy.scrollTo("capture", anchor: .top) }
+        } else {
+          captureSheet = true
+        }
+      }
+      .sheet(isPresented: $captureSheet) { CaptureSheet().oneDaySheet() }
+      }
     }
+  }
+}
+
+/// The capture card on its own, for when the home page has it turned off.
+private struct CaptureSheet: View {
+  @Environment(\.dismiss) private var dismiss
+
+  var body: some View {
+    NavigationStack {
+      ScrollView {
+        QuickCaptureModule(openSignal: 1)
+          .padding(.horizontal, Spacing.page)
+          .padding(.vertical, Spacing.stack)
+      }
+      .scrollDismissesKeyboard(.interactively)
+      .background { AppBackground() }
+      .navigationTitle("写一条记录")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } }
+      }
+    }
+    .presentationDetents([.medium, .large])
   }
 }
 
@@ -246,6 +285,7 @@ private struct OnThisDayModule: View {
 
 private struct QuickCaptureModule: View {
   @Environment(Store.self) private var store
+  var openSignal = 0
   @Environment(\.accent) private var accent
   @State private var draft = NoteDraft()
   @State private var pickerItems: [PhotosPickerItem] = []
@@ -255,6 +295,7 @@ private struct QuickCaptureModule: View {
   @State private var pending: NoteDraft?
   @State private var expanded = false
   @State private var focusOnOpen = false
+  @State private var handledSignal = 0
 
   var body: some View {
     Group {
@@ -265,6 +306,8 @@ private struct QuickCaptureModule: View {
       }
     }
     .animation(.snappy, value: expanded)
+    .onChange(of: openSignal) { _, _ in openIfAsked() }
+    .onAppear { openIfAsked() }
     .onChange(of: pickerItems) { _, items in
       guard !items.isEmpty else { return }
       focusOnOpen = false
@@ -494,6 +537,14 @@ private struct QuickCaptureModule: View {
     } catch {
       store.toast(error.localizedDescription)
     }
+  }
+
+  /// Opens the editor once per request from a quick action or widget link.
+  private func openIfAsked() {
+    guard openSignal > handledSignal else { return }
+    handledSignal = openSignal
+    focusOnOpen = true
+    expanded = true
   }
 
   private func submit() {

@@ -172,4 +172,12 @@ final class OneDayUITests: XCTestCase {
     XCTAssertTrue(app.staticTexts["打卡"].exists || app.staticTexts["每一天"].exists)
     app.buttons["取消"].tap()
   }
+
+  func testCaptureLinkOpensEditor() {
+    let app = launch(["-OneDayTab", "plans"])
+    XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
+    app.open(URL(string: "oneday://capture")!)
+    XCTAssertTrue(app.staticTexts["值得留下"].waitForExistence(timeout: 10), "the link opens the capture card on 今天")
+    XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), "ready to type")
+  }
 }

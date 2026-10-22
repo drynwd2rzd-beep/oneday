@@ -20,6 +20,44 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.oneday.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>oneday</string>
+			</array>
+		</dict>
+	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.oneday.app.capture</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>写一条记录</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>square.and.pencil</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.oneday.app.addTask</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>添加事项</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>plus.circle</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.oneday.app.reflect</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>今日复盘</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>moon.stars</string>
+		</dict>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>

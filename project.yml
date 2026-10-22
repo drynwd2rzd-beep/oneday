@@ -4,12 +4,21 @@ options:
   deploymentTarget:
     iOS: "18.0"
   createIntermediateGroups: true
+settings:
+  base:
+    # Shared by the app and the widget, which must carry the same version.
+    MARKETING_VERSION: "1.3.0"
+    CURRENT_PROJECT_VERSION: "10"
 targets:
   OneDay:
     type: application
     platform: iOS
     sources:
       - path: OneDay
+      - path: Shared
+    dependencies:
+      - target: OneDayWidget
+        embed: true
     scheme:
       testTargets:
         - OneDayTests
@@ -24,8 +33,26 @@ targets:
         SWIFT_VERSION: "5.0"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        MARKETING_VERSION: "1.2.0"
-        CURRENT_PROJECT_VERSION: "9"
+        CODE_SIGN_ENTITLEMENTS: OneDay/OneDay.entitlements
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+  OneDayWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: OneDayWidget
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.oneday.app.widget
+        PRODUCT_NAME: OneDayWidget
+        INFOPLIST_FILE: OneDayWidget/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: OneDayWidget/OneDayWidget.entitlements
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+        SKIP_INSTALL: YES
+        APPLICATION_EXTENSION_API_ONLY: YES
         SUPPORTS_MACCATALYST: NO
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
   OneDayTests:

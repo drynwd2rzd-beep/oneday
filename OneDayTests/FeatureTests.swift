@@ -256,4 +256,50 @@ final class FeatureTests: XCTestCase {
     XCTAssertNil(loaded.dayReflections["2026-10-22"])
     XCTAssertEqual(loaded.weekReflections["2026-10-19"]?.gains, "新的收获")
   }
+
+  func testWidgetSnapshotRollsOverAtMidnight() {
+    var snap = WidgetSnapshot.sample
+    snap.day = "2026-10-22"
+    snap.tomorrow = [
+      WidgetTask(id: "r", title: "阅读", done: false, daily: true, color: nil),
+      WidgetTask(id: "x", title: "体检", done: false, daily: false, color: nil),
+    ]
+    snap.week = [1, 2, 3, 4, 5, 6, 7]
+    XCTAssertEqual(snap.resolved(for: "2026-10-22").today, snap.today, "same day is unchanged")
+    let next = snap.resolved(for: "2026-10-23")
+    XCTAssertEqual(next.day, "2026-10-23")
+    XCTAssertEqual(next.today.map(\.title), ["阅读", "体检"])
+    XCTAssertFalse(next.wroteToday)
+    XCTAssertEqual(next.week, [2, 3, 4, 5, 6, 7, 0])
+    let later = snap.resolved(for: "2026-10-25")
+    XCTAssertEqual(later.today.map(\.title), ["阅读"], "only daily tasks carry over further")
+    XCTAssertEqual(later.week, [4, 5, 6, 7, 0, 0, 0])
+  }
+
+  @MainActor
+  func testWidgetSnapshotFromState() {
+    var s = AppState()
+    var read = TaskItem(title: "阅读", day: "2026-10-01", repeatMode: .daily, reminder: nil)
+    for k in 0..<5 { read.done[DayKey.add(days: -k, to: today)] = true }
+    let once = TaskItem(title: "体检", day: today, repeatMode: .once, reminder: nil)
+    s.tasks = [read, once]
+    s.notes[today] = [NoteEntry(text: "好", time: "", photos: [], tags: [])]
+    let snap = WidgetSync.snapshot(of: s, today: today)
+    XCTAssertEqual(snap.today.map(\.title), ["体检", "阅读"], "open tasks first")
+    XCTAssertEqual(snap.doneCount, 1)
+    XCTAssertEqual(snap.tomorrow.map(\.title), ["阅读"])
+    XCTAssertEqual(snap.streakTitle, "阅读")
+    XCTAssertEqual(snap.streakDays, 5)
+    XCTAssertTrue(snap.wroteToday)
+    XCTAssertEqual(snap.week, [0, 0, 1, 1, 1, 1, 1])
+    XCTAssertEqual(MascotMood.of(snap, at: DayKey.date(today).addingTimeInterval(10 * 3600)), .happy)
+  }
+
+  func testRoutes() {
+    XCTAssertEqual(AppRoute(url: URL(string: "oneday://capture")!), .capture)
+    XCTAssertEqual(AppRoute(url: URL(string: "oneday://addtask")!), .addTask)
+    XCTAssertNil(AppRoute(url: URL(string: "https://capture")!))
+    XCTAssertEqual(AppRoute(shortcutType: "com.oneday.app.reflect"), .reflect)
+    XCTAssertNil(AppRoute(shortcutType: "com.oneday.app.unknown"))
+  }
 }
