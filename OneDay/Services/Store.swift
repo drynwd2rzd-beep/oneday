@@ -10,6 +10,27 @@ enum ReviewTab: String, CaseIterable, Hashable {
   case overview = "完成概览"
 }
 
+/// Everything a new note can carry; built by the quick-capture card.
+struct NoteDraft: Identifiable {
+  let id = UUID()
+  var text = ""
+  var photos: [String] = []
+  var media: [MediaItem] = []
+  var place: String?
+  var latitude: Double?
+  var longitude: Double?
+  var weather: String?
+
+  var isEmpty: Bool { text.trimmed.isEmpty && photos.isEmpty && media.isEmpty }
+}
+
+/// A state to return to with 撤销 (toast button or shaking the phone).
+struct UndoEntry: Identifiable {
+  let id = UUID()
+  let label: String
+  let state: AppState
+}
+
 @MainActor
 @Observable
 final class Store {
@@ -19,15 +40,19 @@ final class Store {
   var today = DayKey.today
   var selectedTab: AppTab = .today
   var toastMessage: String?
+  /// Label of the action the visible toast can undo.
+  var toastUndoLabel: String?
   var motivation: Motivation?
   var reviewDate: String?
   var reviewTab: ReviewTab = .timeline
+  var undoPrompt: UndoEntry?
 
+  @ObservationIgnored private var undoStack: [UndoEntry] = []
   @ObservationIgnored private var toastTask: Task<Void, Never>?
 
   private init() {
-    state = Persistence.load()
-    PhotoStore.collectGarbage(keeping: state.referencedPhotos)
+    state = Storage.shared.load()
+    MediaStore.collectGarbage(keeping: state.referencedPhotos)
     #if DEBUG
     applyLaunchArguments()
     #endif
@@ -48,15 +73,20 @@ final class Store {
     }
   }
 
+  var hasAnyData: Bool { !state.tasks.isEmpty || !state.notes.isEmpty || !state.plans.isEmpty }
+
   // MARK: Persistence
 
   func save() {
     state.normalize()
-    Persistence.save(state)
+    Storage.shared.save(state)
     NotificationManager.shared.scheduleRefresh(for: state)
   }
 
-  func flush() { Persistence.save(state) }
+  func flush() {
+    Storage.shared.save(state)
+    Storage.shared.flush()
+  }
 
   func sceneDidBecomeActive() {
     refreshDay()
@@ -73,14 +103,43 @@ final class Store {
 
   // MARK: Feedback
 
-  func toast(_ message: String) {
+  func toast(_ message: String, undoable: String? = nil) {
     toastTask?.cancel()
     toastMessage = message
+    toastUndoLabel = undoable
+    let seconds: Double = undoable == nil ? 1.8 : 4
     toastTask = Task { [weak self] in
-      try? await Task.sleep(for: .seconds(1.8))
+      try? await Task.sleep(for: .seconds(seconds))
       guard !Task.isCancelled else { return }
       self?.toastMessage = nil
+      self?.toastUndoLabel = nil
     }
+  }
+
+  // MARK: Undo
+
+  var canUndo: Bool { !undoStack.isEmpty }
+
+  /// Remembers the current state before a change the user may want to take back.
+  private func checkpoint(_ label: String) {
+    undoStack.append(UndoEntry(label: label, state: state))
+    if undoStack.count > 20 { undoStack.removeFirst() }
+  }
+
+  func undo() {
+    guard let entry = undoStack.popLast() else { return }
+    state = entry.state
+    if let day = reviewDate, !state.hasNotes(on: day), state.tasks(on: day).isEmpty { reviewDate = nil }
+    save()
+    Haptics.success()
+    toast("已撤销「\(entry.label)」")
+  }
+
+  /// Shake gesture: ask before undoing, like system apps.
+  func promptUndo() {
+    guard let last = undoStack.last else { return }
+    Haptics.warning()
+    undoPrompt = last
   }
 
   // MARK: Tasks
@@ -88,6 +147,7 @@ final class Store {
   func addTask(title: String, repeatMode: RepeatMode, day: String, reminder: Int?) {
     let t = title.trimmed
     guard !t.isEmpty else { return toast("先写下要做什么") }
+    checkpoint("添加事项")
     state.tasks.append(TaskItem(title: t, day: day, repeatMode: repeatMode, reminder: reminder))
     save()
     Haptics.tap()
@@ -105,17 +165,21 @@ final class Store {
     guard let i = state.tasks.firstIndex(where: { $0.id == id }) else { return }
     let wasAllDone = state.allDone(on: day)
     let completed = !state.tasks[i].isDone(on: day)
+    checkpoint(completed ? "完成事项" : "取消完成")
     state.tasks[i].done[day] = completed ? true : nil
     save()
     if completed { Haptics.success() } else { Haptics.tap() }
-    toast(completed ? "已完成，进度已更新" : "已取消完成")
+    toast(completed ? "已完成，进度已更新" : "已取消完成", undoable: completed ? "完成事项" : "取消完成")
     if completed && !wasAllDone && state.allDone(on: day) { celebrate(day) }
   }
 
   func deleteTask(_ id: String) {
+    guard let task = state.tasks.first(where: { $0.id == id }) else { return }
+    checkpoint("删除事项")
     state.tasks.removeAll { $0.id == id }
     save()
-    toast("已删除")
+    Haptics.tap()
+    toast("已删除「\(task.title)」", undoable: "删除事项")
   }
 
   /// All of a day's tasks were just completed: show the motivation sheet once per day.
@@ -127,13 +191,18 @@ final class Store {
   }
 
   // MARK: Notes
+  // Removed photos and recordings stay on disk until the next launch so undo can bring them back.
 
-  func addNote(text: String, photos: [String], tags: [String]) {
-    let body = text.trimmed
-    guard !body.isEmpty || !photos.isEmpty else { return toast("写一点内容，或者留下一张照片") }
-    state.notes[today, default: []].append(
-      NoteEntry(text: body, time: DayKey.clock(), photos: Array(photos.prefix(6)), tags: tags)
-    )
+  func addNote(_ draft: NoteDraft, tags: [String]) {
+    guard !draft.isEmpty else { return toast("写一点内容，或者留下一张照片") }
+    var note = NoteEntry(text: draft.text.trimmed, time: DayKey.clock(), photos: Array(draft.photos.prefix(6)), tags: tags)
+    note.media = draft.media
+    note.place = draft.place
+    note.latitude = draft.latitude
+    note.longitude = draft.longitude
+    note.weather = draft.weather
+    checkpoint("留下记录")
+    state.notes[today, default: []].append(note)
     save()
     Haptics.success()
     toast("已经留下来了")
@@ -141,52 +210,67 @@ final class Store {
 
   @discardableResult
   func updateNote(day: String, id: String, text: String, tags: [String]) -> Bool {
-    guard let i = state.notes[day]?.firstIndex(where: { $0.id == id }) else { return false }
+    guard let i = state.notes[day]?.firstIndex(where: { $0.id == id }), let note = state.notes[day]?[i] else { return false }
     let body = text.trimmed
-    if body.isEmpty && (state.notes[day]?[i].photos.isEmpty ?? true) {
+    if body.isEmpty && note.photos.isEmpty && note.media.isEmpty {
       toast("记录不能是空的")
       return false
     }
+    checkpoint("编辑记录")
     state.notes[day]?[i].text = body
     state.notes[day]?[i].tags = tags.uniqued()
     save()
-    toast("记录和标签已更新")
+    toast("记录和标签已更新", undoable: "编辑记录")
     return true
   }
 
   func deleteNote(day: String, id: String) {
-    guard let entry = state.notes[day]?.first(where: { $0.id == id }) else { return }
+    guard state.notes[day]?.contains(where: { $0.id == id }) == true else { return }
+    checkpoint("删除记录")
     state.notes[day]?.removeAll { $0.id == id }
-    entry.photos.forEach(PhotoStore.delete)
+    dropDayIfEmpty(day)
+    save()
+    Haptics.tap()
+    toast("已删除这条记录", undoable: "删除记录")
+  }
+
+  func deleteNotes(on day: String) {
+    checkpoint("删除当天记录")
+    state.notes[day] = nil
+    if reviewDate == day { reviewDate = nil }
+    save()
+    toast("已删除全部记录", undoable: "删除当天记录")
+  }
+
+  func deletePhoto(day: String, noteId: String, photo: String) {
+    removeAttachment(day: day, noteId: noteId, label: "删除照片") { $0.photos.removeAll { $0 == photo } }
+  }
+
+  func deleteMedia(day: String, noteId: String, file: String) {
+    removeAttachment(day: day, noteId: noteId, label: "删除附件") { $0.media.removeAll { $0.file == file } }
+  }
+
+  private func removeAttachment(day: String, noteId: String, label: String, _ change: (inout NoteEntry) -> Void) {
+    guard let i = state.notes[day]?.firstIndex(where: { $0.id == noteId }) else { return }
+    checkpoint(label)
+    if var note = state.notes[day]?[i] {
+      change(&note)
+      if note.isEmpty {
+        state.notes[day]?.remove(at: i)
+      } else {
+        state.notes[day]?[i] = note
+      }
+    }
+    dropDayIfEmpty(day)
+    save()
+    toast("已\(label)", undoable: label)
+  }
+
+  private func dropDayIfEmpty(_ day: String) {
     if state.notes[day]?.isEmpty ?? true {
       state.notes[day] = nil
       if reviewDate == day { reviewDate = nil }
     }
-    save()
-    toast("已删除这条记录")
-  }
-
-  func deleteNotes(on day: String) {
-    state.notes[day]?.flatMap(\.photos).forEach(PhotoStore.delete)
-    state.notes[day] = nil
-    if reviewDate == day { reviewDate = nil }
-    save()
-    toast("已删除全部记录")
-  }
-
-  func deletePhoto(day: String, noteId: String, photo: String) {
-    guard let i = state.notes[day]?.firstIndex(where: { $0.id == noteId }) else { return }
-    state.notes[day]?[i].photos.removeAll { $0 == photo }
-    PhotoStore.delete(photo)
-    if let n = state.notes[day]?[i], n.text.isEmpty && n.photos.isEmpty {
-      state.notes[day]?.remove(at: i)
-      if state.notes[day]?.isEmpty ?? true {
-        state.notes[day] = nil
-        if reviewDate == day { reviewDate = nil }
-      }
-    }
-    save()
-    toast("照片已删除")
   }
 
   // MARK: Tags
@@ -203,6 +287,7 @@ final class Store {
 
   func deleteCustomTag(_ tag: String) {
     guard state.isCustomTag(tag) else { return }
+    checkpoint("删除标签")
     state.settings.customTags.removeAll { $0 == tag }
     for (day, list) in state.notes {
       state.notes[day] = list.map { entry in
@@ -212,7 +297,7 @@ final class Store {
       }
     }
     save()
-    toast("标签已删除")
+    toast("标签已删除", undoable: "删除标签")
   }
 
   // MARK: Plans
@@ -221,11 +306,13 @@ final class Store {
     let t = title.trimmed
     guard !t.isEmpty else { return toast("计划需要一个名字") }
     if let id, let i = state.plans.firstIndex(where: { $0.id == id }) {
+      checkpoint("编辑计划")
       state.plans[i].title = t
       state.plans[i].desc = desc.trimmed
       save()
-      toast("计划已更新")
+      toast("计划已更新", undoable: "编辑计划")
     } else {
+      checkpoint("添加计划")
       state.plans.append(Plan(title: t, desc: desc.trimmed))
       save()
       toast("已添加计划")
@@ -234,16 +321,20 @@ final class Store {
 
   func setPlanStatus(_ id: String, _ status: PlanStatus) {
     guard let i = state.plans.firstIndex(where: { $0.id == id }) else { return }
+    checkpoint("更新计划状态")
     state.plans[i].status = status
     save()
     Haptics.tap()
-    toast("已更新计划状态")
+    toast("计划已标记为「\(status.label)」", undoable: "更新计划状态")
   }
 
   func deletePlan(_ id: String) {
+    guard let plan = state.plans.first(where: { $0.id == id }) else { return }
+    checkpoint("删除计划")
     state.plans.removeAll { $0.id == id }
     save()
-    toast("已删除")
+    Haptics.tap()
+    toast("已删除「\(plan.title)」", undoable: "删除计划")
   }
 
   // MARK: Profile & appearance
@@ -254,7 +345,7 @@ final class Store {
     if let avatar, avatar != state.settings.avatar {
       let old = state.settings.avatar
       state.settings.avatar = avatar
-      PhotoStore.delete(old)
+      MediaStore.delete(old)
     }
     save()
     toast("个人资料已保存")
@@ -337,23 +428,24 @@ final class Store {
 
   // MARK: Data
 
-  func backupDocument() -> BackupDocument {
+  func webBackupDocument() -> BackupDocument {
     BackupDocument(data: Persistence.backupData(for: state))
   }
 
   func applyImport(_ incoming: AppState) {
+    checkpoint("导入数据")
     state = incoming
     resetNavigation()
     save()
-    PhotoStore.collectGarbage(keeping: state.referencedPhotos)
-    toast("数据已导入")
+    toast("数据已导入", undoable: "导入数据")
   }
 
   func restoreAll() {
+    undoStack.removeAll()
     state = AppState()
     resetNavigation()
     save()
-    PhotoStore.collectGarbage(keeping: [])
+    MediaStore.collectGarbage(keeping: [])
     toast("已恢复初始状态")
   }
 
@@ -364,28 +456,54 @@ final class Store {
   }
 
   #if DEBUG
-  /// `-OneDayDemo YES` seeds sample data and `-OneDayTab tasks` picks a tab (used for CI screenshots).
+  /// Launch arguments used for CI screenshots, e.g. `-OneDayDemo YES -OneDayTab tasks`.
   private func applyLaunchArguments() {
     let defaults = UserDefaults.standard
     if defaults.bool(forKey: "OneDayDemo") {
-      var s = AppState()
-      let t = DayKey.today
-      let y = DayKey.add(days: -1, to: t)
-      var read = TaskItem(title: "阅读 20 分钟", day: y, repeatMode: .daily, reminder: 21 * 60)
-      read.done = [y: true, t: true]
-      var walk = TaskItem(title: "散步 30 分钟", day: y, repeatMode: .daily, reminder: nil)
-      walk.done = [y: true]
-      s.tasks = [read, walk, TaskItem(title: "整理房间", day: t, repeatMode: .once, reminder: nil)]
-      s.plans = [Plan(title: "成为更强大的人", desc: "每周运动三次，持续读书。"), Plan(title: "学会游泳", desc: "")]
-      s.notes[y] = [NoteEntry(text: "傍晚的风很舒服，绕着湖走了一圈。", time: "19:20", photos: [], tags: ["日常", "心情"])]
-      s.notes[t] = [NoteEntry(text: "今天把拖了很久的事情做完了。", time: "10:05", photos: [], tags: ["灵感"])]
-      if let style = defaults.string(forKey: "OneDayStyle"), let v = VisualStyle(rawValue: style) { s.settings.cardStyle = v }
-      if let tone = defaults.string(forKey: "OneDayTone"), let v = BgTone(rawValue: tone) { s.settings.bgTone = v }
-      state = s
+      state = DemoData.make()
+      if let style = defaults.string(forKey: "OneDayStyle"), let v = VisualStyle(rawValue: style) { state.settings.cardStyle = v }
+      if let tone = defaults.string(forKey: "OneDayTone"), let v = BgTone(rawValue: tone) { state.settings.bgTone = v }
     }
     if let tab = defaults.string(forKey: "OneDayTab"), let target = AppTab(rawValue: tab) {
       selectedTab = target
     }
+    if defaults.string(forKey: "OneDayReview") == "overview" { reviewTab = .overview }
+    if defaults.string(forKey: "OneDayReview") == "day" { reviewDate = DayKey.add(days: -1, to: today) }
   }
   #endif
 }
+
+#if DEBUG
+enum DemoData {
+  static func make() -> AppState {
+    var s = AppState()
+    let t = DayKey.today
+    let y = DayKey.add(days: -1, to: t)
+    var read = TaskItem(title: "阅读 20 分钟", day: DayKey.add(days: -120, to: t), repeatMode: .daily, reminder: 21 * 60)
+    var walk = TaskItem(title: "散步 30 分钟", day: DayKey.add(days: -120, to: t), repeatMode: .daily, reminder: nil)
+    var water = TaskItem(title: "喝 8 杯水", day: DayKey.add(days: -60, to: t), repeatMode: .daily, reminder: nil)
+    for k in 1...120 {
+      let day = DayKey.add(days: -k, to: t)
+      if k % 7 != 3 { read.done[day] = true }
+      if k % 3 != 0 { walk.done[day] = true }
+      if k <= 60 && k % 5 != 0 { water.done[day] = true }
+    }
+    read.done[t] = true
+    s.tasks = [read, walk, water, TaskItem(title: "整理房间", day: t, repeatMode: .once, reminder: nil)]
+    s.plans = [Plan(title: "成为更强大的人", desc: "每周运动三次，持续读书。"), Plan(title: "学会游泳", desc: "")]
+    var lake = NoteEntry(text: "傍晚的风很舒服，绕着湖走了**一圈**。", time: "19:20", photos: [], tags: ["日常", "心情"])
+    lake.place = "杭州市 · 西湖区"
+    lake.weather = "晴 23°"
+    lake.media = [MediaItem(kind: .audio, file: "demo.m4a", duration: 42)]
+    s.notes[y] = [lake]
+    s.notes[t] = [NoteEntry(text: "今天把拖了很久的事情做完了。", time: "10:05", photos: [], tags: ["灵感"])]
+    let lastYear = DayKey.of(DayKey.calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date())
+    s.notes[lastYear] = [NoteEntry(text: "第一次用 OneDay 记录。希望一年后的自己，过得更从容。", time: "22:10", photos: [], tags: ["心情"])]
+    for k in stride(from: 3, through: 100, by: 4) {
+      s.notes[DayKey.add(days: -k, to: t)] = [NoteEntry(text: "普通但认真的一天。", time: "21:00", photos: [], tags: ["日常"])]
+    }
+    s.normalize()
+    return s
+  }
+}
+#endif

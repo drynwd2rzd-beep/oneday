@@ -9,7 +9,9 @@ struct SectionHeader: View {
 
   var body: some View {
     HStack(alignment: .firstTextBaseline) {
-      Text(title).font(.title3.bold())
+      Text(title)
+        .font(.title3.weight(.semibold))
+        .accessibilityAddTraits(.isHeader)
       Spacer()
       if let actionTitle, let action {
         Button(action: action) {
@@ -17,7 +19,8 @@ struct SectionHeader: View {
             Text(actionTitle)
             Image(systemName: "chevron.right").font(.caption.weight(.semibold))
           }
-          .font(.subheadline.weight(.medium))
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
         }
       }
     }
@@ -42,11 +45,12 @@ struct PageIntro: View {
   let subtitle: String
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      Text(title).font(.title.bold())
+    VStack(alignment: .leading, spacing: 6) {
+      Text(title).font(.system(.title2, design: .serif, weight: .semibold))
       Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .combine)
   }
 }
 
@@ -140,7 +144,6 @@ struct TaskRow: View {
   @Environment(\.accent) private var accent
   let task: TaskItem
   let day: String
-  @State private var confirmDelete = false
   @State private var editingReminder = false
 
   var body: some View {
@@ -191,7 +194,7 @@ struct TaskRow: View {
         }
         Divider()
         Button(role: .destructive) {
-          confirmDelete = true
+          store.deleteTask(task.id)
         } label: {
           Label("删除事项", systemImage: "trash")
         }
@@ -205,12 +208,15 @@ struct TaskRow: View {
       .accessibilityLabel("更多操作：\(task.title)")
     }
     .padding(.vertical, 6)
-    .alert("删除这个事项？", isPresented: $confirmDelete) {
-      Button("删除", role: .destructive) { store.deleteTask(task.id) }
-      Button("取消", role: .cancel) {}
-    } message: {
-      Text("「\(task.title)」及它的完成记录都会被删除。")
-    }
+    .contentShape(Rectangle())
+    .swipeActions(
+      leading: SwipeAction(
+        title: done ? "取消完成" : "完成", icon: done ? "arrow.uturn.backward" : "checkmark",
+        tint: done ? .gray : accent
+      ) { withAnimation(.snappy) { store.toggleTask(task.id, on: day) } },
+      trailing: SwipeAction(title: "删除", icon: "trash", tint: .red) {
+        withAnimation(.snappy) { store.deleteTask(task.id) }
+      })
     .sheet(isPresented: $editingReminder) {
       ReminderSheet(task: task)
     }
@@ -380,7 +386,7 @@ struct PhotoThumb: View {
     Color.secondary.opacity(0.12)
       .aspectRatio(1, contentMode: .fit)
       .overlay {
-        if let image = PhotoStore.image(name) {
+        if let image = MediaStore.image(name) {
           Image(uiImage: image).resizable().scaledToFill()
         } else {
           Image(systemName: "photo").foregroundStyle(.secondary)
@@ -403,7 +409,7 @@ struct PhotoLightbox: View {
     ZStack(alignment: .topTrailing) {
       Color.black.ignoresSafeArea()
         .onTapGesture { dismiss() }
-      if let image = PhotoStore.image(name) {
+      if let image = MediaStore.image(name) {
         Image(uiImage: image)
           .resizable()
           .scaledToFit()
@@ -500,7 +506,7 @@ struct AvatarView: View {
 
   var body: some View {
     Group {
-      if let image = PhotoStore.image(name) {
+      if let image = MediaStore.image(name) {
         Image(uiImage: image).resizable().scaledToFill()
       } else {
         ZStack {

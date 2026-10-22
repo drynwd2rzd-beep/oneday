@@ -1,50 +1,15 @@
 import Foundation
 import UIKit
 
-enum AppFiles {
-  static let root: URL = {
-    let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-      .appendingPathComponent("OneDay", isDirectory: true)
-    try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-    return base
-  }()
-}
-
 enum Persistence {
-  static let url = AppFiles.root.appendingPathComponent("state.json")
-
-  static func load() -> AppState {
-    guard let data = try? Data(contentsOf: url) else { return AppState() }
-    do {
-      var state = try JSONDecoder().decode(AppState.self, from: data)
-      state.normalize()
-      return state
-    } catch {
-      // Keep the unreadable file instead of overwriting it on the next save.
-      let stamp = Int(Date().timeIntervalSince1970)
-      let backup = AppFiles.root.appendingPathComponent("state-unreadable-\(stamp).json")
-      try? FileManager.default.moveItem(at: url, to: backup)
-      return AppState()
-    }
-  }
-
-  static func save(_ state: AppState) {
-    do {
-      let data = try JSONEncoder().encode(state)
-      try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-    } catch {
-      print("OneDay save failed: \(error)")
-    }
-  }
-
   /// Encodes a backup in the web version's format: photos and avatar become `data:` URLs.
   static func backupData(for state: AppState) -> Data {
     var copy = state
-    copy.settings.avatar = copy.settings.avatar.isEmpty ? "" : (PhotoStore.dataURL(copy.settings.avatar) ?? "")
+    copy.settings.avatar = copy.settings.avatar.isEmpty ? "" : (MediaStore.dataURL(copy.settings.avatar) ?? "")
     for (day, list) in copy.notes {
       copy.notes[day] = list.map { entry in
         var n = entry
-        n.photos = n.photos.compactMap(PhotoStore.dataURL)
+        n.photos = n.photos.compactMap(MediaStore.dataURL)
         return n
       }
     }
@@ -55,18 +20,27 @@ enum Persistence {
 
   enum ImportError: Error { case unreadable }
 
-  /// Decodes a backup and moves embedded photos into `PhotoStore`. Safe to run off the main thread.
-  static func parseBackup(_ data: Data) throws -> AppState {
+  /// Decodes a backup. Embedded `data:` photos are stored as files, and file names are
+  /// taken from `mediaDirectory` (a backup's `media/` folder) when they are not on this device.
+  /// Safe to run off the main thread.
+  static func parseBackup(_ data: Data, mediaDirectory: URL? = nil) throws -> AppState {
     guard
       let object = try? JSONSerialization.jsonObject(with: data),
       object is [String: Any],
       var state = try? JSONDecoder().decode(AppState.self, from: data)
     else { throw ImportError.unreadable }
-    state.settings.avatar = PhotoStore.ingest(state.settings.avatar) ?? ""
+    let ingest = { (value: String) in MediaStore.ingest(value, from: mediaDirectory) }
+    state.settings.avatar = ingest(state.settings.avatar) ?? ""
     for (day, list) in state.notes {
       state.notes[day] = list.map { entry in
         var n = entry
-        n.photos = n.photos.compactMap(PhotoStore.ingest)
+        n.photos = n.photos.compactMap(ingest)
+        n.media = n.media.compactMap { item in
+          guard let file = ingest(item.file) else { return nil }
+          var m = item
+          m.file = file
+          return m
+        }
         return n
       }
     }
@@ -75,7 +49,7 @@ enum Persistence {
   }
 }
 
-enum PhotoStore {
+enum MediaStore {
   static let directory: URL = {
     let dir = AppFiles.root.appendingPathComponent("Photos", isDirectory: true)
     try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -134,13 +108,30 @@ enum PhotoStore {
     return "data:image/jpeg;base64," + data.base64EncodedString()
   }
 
-  /// Accepts a `data:image/...` URL or an existing file name and returns a stored file name.
-  static func ingest(_ value: String) -> String? {
+  /// Accepts a `data:image/...` URL, a file already stored here, or a file in `folder`,
+  /// and returns the stored file name.
+  static func ingest(_ value: String, from folder: URL? = nil) -> String? {
     if value.hasPrefix("data:image/") {
       guard let data = decodeDataURL(value) else { return nil }
       return save(data: data)
     }
-    return exists(value) ? value : nil
+    if exists(value) { return value }
+    guard let folder, !value.isEmpty, !value.contains("/") else { return nil }
+    let source = folder.appendingPathComponent(value)
+    guard FileManager.default.fileExists(atPath: source.path) else { return nil }
+    return (try? FileManager.default.copyItem(at: source, to: url(value))) != nil ? value : nil
+  }
+
+  /// Copies a picked video or a finished recording into storage.
+  static func importFile(from source: URL, fileExtension: String) throws -> String {
+    let name = UUID().uuidString + "." + fileExtension
+    try FileManager.default.copyItem(at: source, to: url(name))
+    return name
+  }
+
+  static func newFileURL(fileExtension: String) -> (name: String, url: URL) {
+    let name = UUID().uuidString + "." + fileExtension
+    return (name, url(name))
   }
 
   static func delete(_ name: String) {

@@ -28,8 +28,8 @@ struct TasksView: View {
             calendarPanel
           }
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 28)
+        .padding(.horizontal, Spacing.page)
+        .padding(.bottom, Spacing.section)
       }
       .background { AppBackground() }
       .navigationTitle("事项")
@@ -82,7 +82,7 @@ struct TasksView: View {
       .pickerStyle(.segmented)
 
       if shown.isEmpty {
-        EmptyText("这里还没有事项。")
+        EmptyState(title: "这里还没有事项", icon: "checklist", message: "点右上角的 ＋ 添加一件事。")
       } else {
         TaskList(tasks: shown, day: selected)
       }
@@ -119,7 +119,7 @@ struct TasksView: View {
 
       VStack(alignment: .leading, spacing: 0) {
         if list.isEmpty {
-          EmptyText("这一天没有事项。")
+          EmptyState(title: "这一天没有事项", icon: "calendar")
         } else {
           TaskList(tasks: list, day: selected)
         }

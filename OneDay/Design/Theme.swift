@@ -1,6 +1,25 @@
 import SwiftUI
 import UIKit
 
+// MARK: - Design tokens
+
+/// One spacing scale for every screen, so pages share the same rhythm.
+enum Spacing {
+  /// Side margins of a page.
+  static let page: CGFloat = 16
+  /// Between page sections.
+  static let section: CGFloat = 28
+  /// Between a section title and its content.
+  static let title: CGFloat = 10
+  /// Inside cards.
+  static let card: CGFloat = 18
+}
+
+enum Radius {
+  static let card: CGFloat = 20
+  static let flatCard: CGFloat = 12
+}
+
 // MARK: - Colors
 
 extension Color {
@@ -146,7 +165,7 @@ extension View {
   }
 
   /// Standard card: padding, full width, surface.
-  func card(padding: CGFloat = 18, tint: Color? = nil) -> some View {
+  func card(padding: CGFloat = Spacing.card, tint: Color? = nil) -> some View {
     modifier(CardModifier(padding: padding, tint: tint))
   }
 
@@ -178,7 +197,7 @@ private struct CardModifier: ViewModifier {
     content
       .padding(padding)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .surface(cornerRadius: style == .flat ? 12 : 22, tint: tint)
+      .surface(cornerRadius: style == .flat ? Radius.flatCard : Radius.card, tint: tint)
   }
 }
 
@@ -274,27 +293,11 @@ struct AppBackground: View {
       if palette.isMeteor {
         MeteorSky()
       } else if style.usesGlass {
-        // Soft color fields give Liquid Glass something to refract.
-        GeometryReader { geo in
-          ZStack {
-            Circle()
-              .fill(accent.opacity(palette.isDark ? 0.22 : 0.16))
-              .frame(width: geo.size.width * 0.95)
-              .blur(radius: 80)
-              .position(x: geo.size.width * 0.9, y: geo.size.height * 0.06)
-            Circle()
-              .fill(Color(hex: palette.isDark ? "#3b5f8e" : "#e9c79c").opacity(palette.isDark ? 0.2 : 0.28))
-              .frame(width: geo.size.width * 0.85)
-              .blur(radius: 90)
-              .position(x: geo.size.width * 0.05, y: geo.size.height * 0.55)
-            Circle()
-              .fill(accent.opacity(palette.isDark ? 0.12 : 0.08))
-              .frame(width: geo.size.width * 0.7)
-              .blur(radius: 80)
-              .position(x: geo.size.width * 0.8, y: geo.size.height * 0.95)
-          }
-        }
-        .drawingGroup()
+        // One quiet wash of the accent color gives Liquid Glass something to refract.
+        LinearGradient(
+          colors: [accent.opacity(palette.isDark ? 0.16 : 0.10), .clear, Color(hex: palette.isDark ? "#3b5f8e" : "#e9c79c").opacity(palette.isDark ? 0.10 : 0.14)],
+          startPoint: .topTrailing,
+          endPoint: .bottomLeading)
       }
     }
     .ignoresSafeArea()

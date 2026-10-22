@@ -29,7 +29,7 @@ struct PlansView: View {
             .padding(.bottom, 4)
 
           if active.isEmpty {
-            EmptyText("还没有进行中的计划。先写下真正重要的方向。").card()
+            EmptyState(title: "还没有进行中的计划", icon: "scope", message: "先写下真正重要的方向。").card()
           } else {
             ForEach(active) { plan in
               PlanCard(plan: plan, onEdit: { editing = .edit(plan) })
@@ -47,8 +47,8 @@ struct PlansView: View {
             }
           }
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 28)
+        .padding(.horizontal, Spacing.page)
+        .padding(.bottom, Spacing.section)
         .animation(.snappy, value: store.state.plans)
       }
       .background { AppBackground() }
@@ -104,7 +104,6 @@ private struct PlanCard: View {
   @Environment(\.accent) private var accent
   let plan: Plan
   let onEdit: () -> Void
-  @State private var confirmDelete = false
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -129,7 +128,7 @@ private struct PlanCard: View {
           } else {
             Button("重新进行") { store.setPlanStatus(plan.id, .active) }
           }
-          Button("删除", role: .destructive) { confirmDelete = true }
+          Button("删除", role: .destructive) { withAnimation(.snappy) { store.deletePlan(plan.id) } }
             .tint(.red)
         }
         .oneDayButton()
@@ -139,12 +138,13 @@ private struct PlanCard: View {
       .padding(.top, 2)
     }
     .card()
-    .alert("删除这个计划？", isPresented: $confirmDelete) {
-      Button("删除", role: .destructive) { store.deletePlan(plan.id) }
-      Button("取消", role: .cancel) {}
-    } message: {
-      Text("「\(plan.title)」会被永久删除。")
-    }
+    .swipeActions(
+      leading: plan.status == .active
+        ? SwipeAction(title: "完成", icon: "checkmark", tint: accent) { store.setPlanStatus(plan.id, .done) }
+        : SwipeAction(title: "重新进行", icon: "arrow.uturn.backward", tint: accent) { store.setPlanStatus(plan.id, .active) },
+      trailing: SwipeAction(title: "删除", icon: "trash", tint: .red) {
+        withAnimation(.snappy) { store.deletePlan(plan.id) }
+      })
   }
 }
 

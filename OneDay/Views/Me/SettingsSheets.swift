@@ -75,14 +75,14 @@ struct ProfileSheet: View {
             store.toast("照片读取失败")
             return
           }
-          let stored = await Task.detached { PhotoStore.save(data: data, maxDimension: 512) }.value
-          if let previous = newAvatar { PhotoStore.delete(previous) }
+          let stored = await Task.detached { MediaStore.save(data: data, maxDimension: 512) }.value
+          if let previous = newAvatar { MediaStore.delete(previous) }
           newAvatar = stored
         }
       }
       .onDisappear {
         // A picked avatar that was never saved should not linger on disk.
-        if !saved, let unsaved = newAvatar { PhotoStore.delete(unsaved) }
+        if !saved, let unsaved = newAvatar { MediaStore.delete(unsaved) }
       }
     }
   }

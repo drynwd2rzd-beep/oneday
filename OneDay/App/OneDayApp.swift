@@ -69,29 +69,16 @@ struct RootView: View {
       store.refreshDay()
     }
     .onChange(of: store.selectedTab) { _, _ in Haptics.tap() }
-  }
-}
-
-struct ToastView: View {
-  @Environment(Store.self) private var store
-
-  var body: some View {
-    ZStack {
-      if let message = store.toastMessage {
-        Text(message)
-          .font(.subheadline.weight(.semibold))
-          .padding(.horizontal, 18)
-          .padding(.vertical, 11)
-          .capsuleSurface()
-          .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
-          .transition(.move(edge: .top).combined(with: .opacity))
-          .id(message)
-      }
+    .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in store.promptUndo() }
+    .alert(
+      "撤销「\(store.undoPrompt?.label ?? "")」？",
+      isPresented: Binding(get: { store.undoPrompt != nil }, set: { if !$0 { store.undoPrompt = nil } })
+    ) {
+      Button("撤销") { store.undo() }
+      Button("取消", role: .cancel) {}
+    } message: {
+      Text("摇一摇可以撤销最近的操作。")
     }
-    .animation(.spring(duration: 0.35), value: store.toastMessage)
-    .padding(.top, 6)
-    .allowsHitTesting(false)
-    .accessibilityAddTraits(.updatesFrequently)
   }
 }
 

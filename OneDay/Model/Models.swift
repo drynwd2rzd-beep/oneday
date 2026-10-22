@@ -109,16 +109,17 @@ enum BgTone: String, Codable, CaseIterable, Identifiable, Hashable {
 }
 
 enum HomeModule: String, Codable, CaseIterable, Identifiable, Hashable {
-  case hero, tasks, note, progress, plans
+  case hero, tasks, note, onThisDay, progress, plans
   var id: String { rawValue }
 
-  static let defaultOrder: [HomeModule] = [.hero, .tasks, .note, .progress, .plans]
+  static let defaultOrder: [HomeModule] = [.hero, .tasks, .note, .onThisDay, .progress, .plans]
 
   var title: String {
     switch self {
     case .hero: "问候与日期"
     case .tasks: "今日事项"
     case .note: "值得留下"
+    case .onThisDay: "那年今日"
     case .progress: "今日完成情况"
     case .plans: "我的计划"
     }
@@ -129,6 +130,7 @@ enum HomeModule: String, Codable, CaseIterable, Identifiable, Hashable {
     case .hero: "日期、问候和每日一句"
     case .tasks: "查看并完成今天的事项"
     case .note: "快速记录今天真实的想法"
+    case .onThisDay: "往年的今天留下了什么"
     case .progress: "查看当天事项完成进度"
     case .plans: "查看正在进行的长期计划"
     }
@@ -183,15 +185,34 @@ struct TaskItem: Codable, Identifiable, Hashable {
   var completionCount: Int { done.values.filter { $0 }.count }
 }
 
+/// A video or voice recording attached to a note; `file` lives in `MediaStore`.
+struct MediaItem: Codable, Identifiable, Hashable {
+  enum Kind: String, Codable { case video, audio }
+
+  var kind: Kind
+  var file: String
+  var duration: Double
+
+  var id: String { file }
+}
+
 struct NoteEntry: Codable, Identifiable, Hashable {
   var id: String
+  /// Markdown text (plain text from the web version renders unchanged).
   var text: String
   var time: String
-  /// Photo file names inside `PhotoStore` (or `data:` URLs while importing).
+  /// Photo file names inside `MediaStore` (or `data:` URLs while importing).
   var photos: [String]
   var tags: [String]
+  var media: [MediaItem] = []
+  var place: String?
+  var latitude: Double?
+  var longitude: Double?
+  var weather: String?
 
-  enum CodingKeys: String, CodingKey { case id, text, time, photos, tags }
+  enum CodingKeys: String, CodingKey {
+    case id, text, time, photos, tags, media, place, latitude, longitude, weather
+  }
 
   init(text: String, time: String, photos: [String], tags: [String]) {
     id = UUID().uuidString
@@ -200,6 +221,8 @@ struct NoteEntry: Codable, Identifiable, Hashable {
     self.photos = photos
     self.tags = tags
   }
+
+  var isEmpty: Bool { text.isEmpty && photos.isEmpty && media.isEmpty }
 
   init(from decoder: Decoder) throws {
     if let single = try? decoder.singleValueContainer(), let text = try? single.decode(String.self) {
@@ -216,6 +239,11 @@ struct NoteEntry: Codable, Identifiable, Hashable {
     time = c.string("time") ?? ""
     photos = c.get("photos", as: LenientArray<String>.self)?.items ?? []
     tags = c.get("tags", as: LenientArray<String>.self)?.items ?? []
+    media = c.get("media", as: LenientArray<MediaItem>.self)?.items ?? []
+    place = c.string("place")
+    latitude = c.get("latitude", as: Double.self)
+    longitude = c.get("longitude", as: Double.self)
+    weather = c.string("weather")
   }
 }
 
@@ -355,8 +383,10 @@ struct AppState: Codable {
         var n = entry
         n.text = n.text.trimmed
         n.photos = Array(n.photos.filter { !$0.isEmpty }.prefix(6))
+        n.media = Array(n.media.filter { !$0.file.isEmpty }.prefix(6))
         n.tags = Array(n.tags.map { String($0.trimmed.prefix(12)) }.filter { !$0.isEmpty }.uniqued().prefix(8))
-        return n.text.isEmpty && n.photos.isEmpty ? nil : n
+        if let place = n.place?.trimmed, !place.isEmpty { n.place = place } else { n.place = nil }
+        return n.isEmpty ? nil : n
       }
       notes[day] = cleaned.isEmpty ? nil : cleaned
     }
@@ -442,7 +472,13 @@ extension AppState {
   var activePlans: [Plan] { plans.filter { $0.status == .active } }
 
   var referencedPhotos: Set<String> {
-    var names = Set(notes.values.flatMap { $0.flatMap(\.photos) })
+    var names = Set<String>()
+    for list in notes.values {
+      for note in list {
+        names.formUnion(note.photos)
+        names.formUnion(note.media.map(\.file))
+      }
+    }
     if !settings.avatar.isEmpty { names.insert(settings.avatar) }
     return names
   }
