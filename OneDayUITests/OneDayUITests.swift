@@ -95,8 +95,25 @@ final class OneDayUITests: XCTestCase {
     XCTAssertTrue(entry.waitForExistence(timeout: 8), "capture starts as one line")
     entry.tap()
     XCTAssertTrue(app.staticTexts["值得留下"].waitForExistence(timeout: 3), "tapping opens the editor")
+    XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), "the text field is focused")
     app.typeText("今天的风很舒服")
     XCTAssertTrue(app.buttons["留下"].isEnabled)
+  }
+
+  func testHomeCaptureStaysOpenWhenKeyboardCloses() {
+    let app = launch(["-OneDayTab", "today"])
+    let entry = app.buttons["写一条记录"]
+    XCTAssertTrue(entry.waitForExistence(timeout: 8))
+    entry.tap()
+    XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+    // Closing the keyboard (完成, scrolling, opening the photo picker) must not close the empty
+    // editor, or photos picked afterwards have nowhere to go.
+    app.buttons["完成"].firstMatch.tap()
+    XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["值得留下"].exists, "editor stays open after the keyboard closes")
+    XCTAssertTrue(app.buttons["添加照片或视频"].firstMatch.exists)
+    app.buttons["收起"].tap()
+    XCTAssertTrue(entry.waitForExistence(timeout: 5), "收起 closes it back to one line")
   }
 
   func testAddTask() {

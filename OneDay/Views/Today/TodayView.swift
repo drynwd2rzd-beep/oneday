@@ -320,14 +320,26 @@ private struct QuickCaptureModule: View {
 
   private var editor: some View {
     VStack(alignment: .leading, spacing: Spacing.title) {
-      SectionHeader(title: "值得留下")
+      // Stays open until 留下 or 收起: losing focus (scrolling, opening the photo picker)
+      // must not close it, or picked photos have nowhere to go.
+      HStack(alignment: .firstTextBaseline) {
+        Text("值得留下")
+          .font(.title3.weight(.semibold))
+          .accessibilityAddTraits(.isHeader)
+        Spacer()
+        if draft.isEmpty && !loading {
+          Button("收起") {
+            focusOnOpen = false
+            expanded = false
+          }
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+        }
+      }
       VStack(alignment: .leading, spacing: Spacing.inner) {
         NoteTextEditor(
           placeholder: "不需要写得很好，只留下真实的你。", text: $draft.text, minHeight: 64,
-          autoFocus: focusOnOpen && draft.isEmpty,
-          onFocusChange: { focused in
-            if !focused && draft.isEmpty { expanded = false }
-          })
+          autoFocus: focusOnOpen && draft.isEmpty)
 
         if !draft.photos.isEmpty || !draft.media.isEmpty || loading {
           attachmentStrip
