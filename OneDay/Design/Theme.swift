@@ -28,10 +28,11 @@ enum Radius {
 // MARK: - Journal type
 
 extension Font {
-  /// Song typeface for journal content (greetings, notes, memories). Scales with Dynamic Type;
-  /// tools and settings stay in the system font.
+  /// Journal typeface (a common-character subset of LXGW WenKai, bundled as "OneDay Journal")
+  /// for greetings, notes and memories. Scales with Dynamic Type; tools and settings stay in the
+  /// system font. Characters outside the subset fall back to the system font.
   static func journal(_ style: Font.TextStyle, size: CGFloat, bold: Bool = false) -> Font {
-    .custom(bold ? "STSongti-SC-Bold" : "STSongti-SC-Regular", size: size, relativeTo: style)
+    .custom(bold ? "OneDayJournal-Medium" : "OneDayJournal-Regular", size: size, relativeTo: style)
   }
 }
 

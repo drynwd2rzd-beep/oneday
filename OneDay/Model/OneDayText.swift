@@ -67,7 +67,7 @@ enum OneDayText {
   • 「⋯」按钮换成长按菜单，配合左右滑动操作
   • 事项只显示需要的信息：每日重复、提醒时间和所属计划
   • 回顾时间线以照片为主，点开某一天会进入独立页面
-  • 记录与回顾使用宋体，像翻看自己的手帐
+  • 问候、记录与回顾使用霞鹜文楷，像翻看自己的手帐
   • 计划卡片更简洁，并显示近 7 天的完成点
   • 「我的」改为系统设置风格的列表
   • 纸张质感的暖白背景，新的标签栏图标
@@ -109,4 +109,18 @@ enum OneDayText {
   • 通知系统：早晨计划、晚间未完成、记录提醒与事项定时提醒
   • 完全兼容网页版 v0.6 的 JSON 备份
   """
+
+  static var credits: String {
+    let license = Bundle.main.url(forResource: "LXGWWenKai-OFL", withExtension: "txt")
+      .flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
+    return """
+    记录与回顾中的字体基于「霞鹜文楷」（LXGW WenKai），只保留了常用汉字，并以「OneDay Journal」为名随 App 分发。感谢作者 LXGW 与 Klee 项目。
+
+    天气数据来自 Open-Meteo。
+
+    —— 字体许可证 ——
+
+    \(license)
+    """
+  }
 }

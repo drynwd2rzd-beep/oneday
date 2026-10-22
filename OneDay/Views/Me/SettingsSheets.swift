@@ -561,6 +561,11 @@ struct AboutSheet: View {
           } label: {
             Label("版本信息", systemImage: "clock")
           }
+          NavigationLink {
+            InfoPage(title: "致谢", text: OneDayText.credits)
+          } label: {
+            Label("致谢与开源许可", systemImage: "heart")
+          }
         }
       }
       .navigationTitle("关于")

@@ -71,6 +71,12 @@ final class FeatureTests: XCTestCase {
     XCTAssertEqual(s.plans[1].doneAt, "2026-09-22")
   }
 
+  func testJournalFontIsBundled() {
+    XCTAssertNotNil(UIFont(name: "OneDayJournal-Regular", size: 17), "journal font registered via UIAppFonts")
+    XCTAssertNotNil(UIFont(name: "OneDayJournal-Medium", size: 17))
+    XCTAssertNotNil(Bundle.main.url(forResource: "LXGWWenKai-OFL", withExtension: "txt"), "font license ships with the app")
+  }
+
   func testOnThisDay() {
     var s = AppState()
     s.notes["2025-10-22"] = [NoteEntry(text: "去年", time: "", photos: [], tags: [])]

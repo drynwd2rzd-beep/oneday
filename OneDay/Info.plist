@@ -44,6 +44,11 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>OneDayJournal-Regular.ttf</string>
+		<string>OneDayJournal-Medium.ttf</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

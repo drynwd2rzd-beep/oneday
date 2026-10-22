@@ -553,6 +553,7 @@ enum DemoData {
     lake.place = "杭州市 · 西湖区"
     lake.weather = "晴 23°"
     lake.media = [MediaItem(kind: .audio, file: "demo.m4a", duration: 42)]
+    lake.photos = [demoPhoto()].compactMap { $0 }
     s.notes[y] = [lake]
     s.notes[t] = [NoteEntry(text: "今天把拖了很久的事情做完了。", time: "10:05", photos: [], tags: ["灵感"])]
     let lastYear = DayKey.of(DayKey.calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date())
@@ -562,6 +563,25 @@ enum DemoData {
     }
     s.normalize()
     return s
+  }
+
+  /// A soft dusk-over-water picture so screenshots show photo-first cards.
+  private static func demoPhoto() -> String? {
+    let size = CGSize(width: 1200, height: 800)
+    let image = UIGraphicsImageRenderer(size: size).image { ctx in
+      let colors = [UIColor(red: 0.98, green: 0.80, blue: 0.62, alpha: 1), UIColor(red: 0.62, green: 0.70, blue: 0.86, alpha: 1)]
+      let gradient = CGGradient(colorsSpace: nil, colors: colors.map(\.cgColor) as CFArray, locations: [0, 1])!
+      ctx.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: size.height * 0.62), options: [])
+      UIColor(red: 0.98, green: 0.88, blue: 0.70, alpha: 1).setFill()
+      ctx.cgContext.fillEllipse(in: CGRect(x: 760, y: 300, width: 170, height: 170))
+      UIColor(red: 0.36, green: 0.47, blue: 0.62, alpha: 1).setFill()
+      ctx.fill(CGRect(x: 0, y: size.height * 0.6, width: size.width, height: size.height * 0.4))
+      UIColor(white: 1, alpha: 0.35).setFill()
+      for i in 0..<6 {
+        ctx.fill(CGRect(x: 640 + i * 18, y: 520 + i * 22, width: 240 - i * 30, height: 4))
+      }
+    }
+    return MediaStore.save(image: image)
   }
 }
 #endif
