@@ -1,0 +1,87 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode 26
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          xcodebuild -version
+
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build unsigned device app
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project OneDay.xcodeproj \
+            -scheme OneDay \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/device \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build-device.log | grep -E "error:|warning: .*OneDay/|BUILD (SUCCEEDED|FAILED)" || true
+          test -d build/device/Build/Products/Release-iphoneos/OneDay.app
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/device/Build/Products/Release-iphoneos/OneDay.app Payload/
+          zip -qry OneDay-unsigned.ipa Payload
+          ls -lh OneDay-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OneDay-unsigned-ipa
+          path: OneDay-unsigned.ipa
+
+      - name: Screenshots in the simulator
+        continue-on-error: true
+        run: |
+          set -x
+          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone (17|16)( Pro)? \(" | head -1 | sed -E 's/^ *([^(]+) \(.*/\1/' | xargs)
+          echo "Using $DEVICE"
+          xcodebuild -project OneDay.xcodeproj -scheme OneDay -configuration Debug \
+            -sdk iphonesimulator -destination "platform=iOS Simulator,name=$DEVICE" \
+            -derivedDataPath build/sim build -quiet
+          APP=build/sim/Build/Products/Debug-iphonesimulator/OneDay.app
+          xcrun simctl boot "$DEVICE" || true
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl install "$DEVICE" "$APP"
+          mkdir -p shots
+          shoot() {
+            xcrun simctl terminate "$DEVICE" com.oneday.app || true
+            xcrun simctl launch "$DEVICE" com.oneday.app -OneDayDemo YES -OneDayTab "$1" -OneDayStyle "$2" -OneDayTone "$3"
+            sleep 4
+            xcrun simctl io "$DEVICE" screenshot "shots/$4.png"
+          }
+          xcrun simctl ui "$DEVICE" appearance light
+          for tab in today tasks plans review me; do shoot $tab glass warm "glass-$tab"; done
+          shoot today soft warm classic-today
+          shoot tasks flat cool flat-tasks
+          xcrun simctl ui "$DEVICE" appearance dark
+          shoot today glass warm dark-today
+          shoot today glass meteor meteor-today
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-and-logs
+          path: |
+            shots/
+            build-device.log
+          if-no-files-found: ignore

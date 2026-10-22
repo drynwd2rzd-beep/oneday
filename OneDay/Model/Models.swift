@@ -1,0 +1,567 @@
+import Foundation
+
+// MARK: - Enums
+
+enum RepeatMode: String, Codable, CaseIterable, Hashable {
+  case once, daily
+
+  var label: String { self == .daily ? "每天" : "单次" }
+}
+
+enum PlanStatus: String, Codable, CaseIterable, Hashable {
+  case active, done, archived
+
+  var label: String {
+    switch self {
+    case .active: "进行中"
+    case .done: "已完成"
+    case .archived: "已归档"
+    }
+  }
+
+  var line: String {
+    switch self {
+    case .active: "正在前进"
+    case .done: "已经完成"
+    case .archived: "暂时归档"
+    }
+  }
+}
+
+enum ThemeMode: String, Codable, CaseIterable, Identifiable, Hashable {
+  case light, dark, system
+  var id: String { rawValue }
+
+  var label: String {
+    switch self {
+    case .light: "浅色"
+    case .dark: "深色"
+    case .system: "跟随系统"
+    }
+  }
+
+  var icon: String {
+    switch self {
+    case .light: "sun.max"
+    case .dark: "moon"
+    case .system: "circle.lefthalf.filled"
+    }
+  }
+}
+
+enum UISize: String, Codable, CaseIterable, Identifiable, Hashable {
+  case compact, standard, large
+  var id: String { rawValue }
+
+  var label: String {
+    switch self {
+    case .compact: "紧凑"
+    case .standard: "标准"
+    case .large: "大"
+    }
+  }
+
+  var hint: String {
+    switch self {
+    case .compact: "更省空间"
+    case .standard: "推荐，跟随系统字号"
+    case .large: "更易阅读"
+    }
+  }
+}
+
+/// Interface style. Stored under the web version's `cardStyle` key so backups stay compatible.
+enum VisualStyle: String, Codable, CaseIterable, Identifiable, Hashable {
+  case glass, soft, flat
+  var id: String { rawValue }
+
+  var label: String {
+    switch self {
+    case .glass: "液态玻璃"
+    case .soft: "经典柔和"
+    case .flat: "经典平面"
+    }
+  }
+
+  var hint: String {
+    switch self {
+    case .glass: "iOS 26 原生液态玻璃材质"
+    case .soft: "原版 OneDay 的柔和卡片"
+    case .flat: "原版 OneDay 的纯净平面"
+    }
+  }
+
+  var usesGlass: Bool { self == .glass }
+}
+
+enum BgTone: String, Codable, CaseIterable, Identifiable, Hashable {
+  case warm, cool, gray, meteor
+  var id: String { rawValue }
+
+  var label: String {
+    switch self {
+    case .warm: "暖白"
+    case .cool: "冷白"
+    case .gray: "浅灰"
+    case .meteor: "流星夜"
+    }
+  }
+}
+
+enum HomeModule: String, Codable, CaseIterable, Identifiable, Hashable {
+  case hero, tasks, note, progress, plans
+  var id: String { rawValue }
+
+  static let defaultOrder: [HomeModule] = [.hero, .tasks, .note, .progress, .plans]
+
+  var title: String {
+    switch self {
+    case .hero: "问候与日期"
+    case .tasks: "今日事项"
+    case .note: "值得留下"
+    case .progress: "今日完成情况"
+    case .plans: "我的计划"
+    }
+  }
+
+  var desc: String {
+    switch self {
+    case .hero: "日期、问候和每日一句"
+    case .tasks: "查看并完成今天的事项"
+    case .note: "快速记录今天真实的想法"
+    case .progress: "查看当天事项完成进度"
+    case .plans: "查看正在进行的长期计划"
+    }
+  }
+}
+
+// MARK: - Records
+
+struct TaskItem: Codable, Identifiable, Hashable {
+  var id: String
+  var title: String
+  var date: String
+  var created: String
+  var repeatMode: RepeatMode
+  var done: [String: Bool]
+  /// Reminder time in minutes after midnight.
+  var reminder: Int?
+
+  enum CodingKeys: String, CodingKey {
+    case id, title, date, created, done, reminder
+    case repeatMode = "repeat"
+  }
+
+  init(title: String, day: String, repeatMode: RepeatMode, reminder: Int?) {
+    id = UUID().uuidString
+    self.title = title
+    date = day
+    created = day
+    self.repeatMode = repeatMode
+    done = [:]
+    self.reminder = reminder
+  }
+
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: AnyKey.self)
+    let today = DayKey.today
+    id = c.string("id") ?? UUID().uuidString
+    title = (c.string("title", "name") ?? "").trimmed
+    date = c.string("date") ?? today
+    created = c.string("created") ?? c.string("date") ?? today
+    repeatMode = c.get("repeat", as: RepeatMode.self) ?? .once
+    done = c.get("done", as: [String: Bool].self) ?? [:]
+    reminder = c.get("reminder", as: Int.self)
+  }
+
+  func occurs(on day: String) -> Bool {
+    repeatMode == .daily ? day >= created : date == day
+  }
+
+  func isDone(on day: String) -> Bool { done[day] == true }
+
+  var completionCount: Int { done.values.filter { $0 }.count }
+}
+
+struct NoteEntry: Codable, Identifiable, Hashable {
+  var id: String
+  var text: String
+  var time: String
+  /// Photo file names inside `PhotoStore` (or `data:` URLs while importing).
+  var photos: [String]
+  var tags: [String]
+
+  enum CodingKeys: String, CodingKey { case id, text, time, photos, tags }
+
+  init(text: String, time: String, photos: [String], tags: [String]) {
+    id = UUID().uuidString
+    self.text = text
+    self.time = time
+    self.photos = photos
+    self.tags = tags
+  }
+
+  init(from decoder: Decoder) throws {
+    if let single = try? decoder.singleValueContainer(), let text = try? single.decode(String.self) {
+      id = UUID().uuidString
+      self.text = text.trimmed
+      time = ""
+      photos = []
+      tags = []
+      return
+    }
+    let c = try decoder.container(keyedBy: AnyKey.self)
+    id = c.string("id") ?? UUID().uuidString
+    text = (c.string("text", "content", "value") ?? "").trimmed
+    time = c.string("time") ?? ""
+    photos = c.get("photos", as: LenientArray<String>.self)?.items ?? []
+    tags = c.get("tags", as: LenientArray<String>.self)?.items ?? []
+  }
+}
+
+struct Plan: Codable, Identifiable, Hashable {
+  var id: String
+  var title: String
+  var desc: String
+  var status: PlanStatus
+  var created: String
+
+  init(title: String, desc: String) {
+    id = UUID().uuidString
+    self.title = title
+    self.desc = desc
+    status = .active
+    created = DayKey.today
+  }
+
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: AnyKey.self)
+    id = c.string("id") ?? UUID().uuidString
+    title = (c.string("title", "name") ?? "").trimmed
+    desc = c.string("desc", "description") ?? ""
+    status = c.get("status", as: PlanStatus.self) ?? .active
+    created = c.string("created") ?? DayKey.today
+  }
+}
+
+// MARK: - Settings
+
+struct NotificationPrefs: Codable, Hashable {
+  var enabled = false
+  var morning = true
+  var morningTime = 8 * 60 + 30
+  var evening = true
+  var eveningTime = 20 * 60 + 30
+  var note = true
+  var noteTime = 21 * 60 + 30
+  var taskReminders = true
+  var badge = true
+
+  init() {}
+
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: AnyKey.self)
+    let d = NotificationPrefs()
+    enabled = c.get("enabled") ?? d.enabled
+    morning = c.get("morning") ?? d.morning
+    morningTime = c.get("morningTime") ?? d.morningTime
+    evening = c.get("evening") ?? d.evening
+    eveningTime = c.get("eveningTime") ?? d.eveningTime
+    note = c.get("note") ?? d.note
+    noteTime = c.get("noteTime") ?? d.noteTime
+    taskReminders = c.get("taskReminders") ?? d.taskReminders
+    badge = c.get("badge") ?? d.badge
+  }
+}
+
+struct Settings: Codable, Hashable {
+  static let defaultName = "OneDay"
+  static let defaultSignature = "记录生活，成为更好的自己。"
+  static let defaultAccent = "#287052"
+
+  var theme: ThemeMode = .system
+  var accent = Settings.defaultAccent
+  var customAccent: String?
+  var avatar = ""
+  var name = Settings.defaultName
+  var signature = Settings.defaultSignature
+  var quoteMode = "daily"
+  var homeModules = HomeModule.defaultOrder
+  var uiSize: UISize = .standard
+  var cardStyle: VisualStyle = .glass
+  var bgTone: BgTone = .warm
+  var customTags: [String] = []
+  var celebratedDays: [String] = []
+  var notifications = NotificationPrefs()
+
+  init() {}
+
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: AnyKey.self)
+    let d = Settings()
+    theme = c.get("theme", as: ThemeMode.self) ?? d.theme
+    accent = c.string("accent") ?? d.accent
+    customAccent = c.string("customAccent")
+    avatar = c.string("avatar") ?? ""
+    name = c.string("name") ?? d.name
+    signature = c.string("signature") ?? d.signature
+    quoteMode = c.string("quoteMode") ?? d.quoteMode
+    if let raw = c.get("homeModules", as: LenientArray<String>.self)?.items {
+      homeModules = raw.compactMap(HomeModule.init(rawValue:))
+    }
+    uiSize = c.get("uiSize", as: UISize.self) ?? d.uiSize
+    cardStyle = c.get("cardStyle", as: VisualStyle.self) ?? d.cardStyle
+    bgTone = c.get("bgTone", as: BgTone.self) ?? d.bgTone
+    customTags = c.get("customTags", as: LenientArray<String>.self)?.items ?? []
+    celebratedDays = c.get("celebratedDays", as: LenientArray<String>.self)?.items ?? []
+    notifications = c.get("notifications", as: NotificationPrefs.self) ?? d.notifications
+  }
+}
+
+// MARK: - App state
+
+struct AppState: Codable {
+  static let defaultTags = ["日常", "心情", "灵感"]
+
+  var tasks: [TaskItem] = []
+  var notes: [String: [NoteEntry]] = [:]
+  var plans: [Plan] = []
+  var settings = Settings()
+
+  init() {}
+
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: AnyKey.self)
+    tasks = c.get("tasks", as: LenientArray<TaskItem>.self)?.items ?? []
+    notes = (c.get("notes", as: [String: NoteList].self) ?? [:]).mapValues(\.items)
+    plans = c.get("plans", as: LenientArray<Plan>.self)?.items ?? []
+    settings = c.get("settings", as: Settings.self) ?? Settings()
+  }
+
+  /// Mirrors the web version's `normalize()` so imported and edited data stay valid.
+  mutating func normalize() {
+    var seen = Set<String>()
+    tasks = tasks.compactMap { task in
+      var t = task
+      t.title = t.title.trimmed
+      guard !t.title.isEmpty else { return nil }
+      t.id = Self.safeId(t.id, seen: &seen)
+      t.done = t.done.filter { $0.value }
+      if let r = t.reminder, !(0..<1440).contains(r) { t.reminder = nil }
+      return t
+    }
+    for (day, list) in notes {
+      let cleaned: [NoteEntry] = list.compactMap { entry in
+        var n = entry
+        n.text = n.text.trimmed
+        n.photos = Array(n.photos.filter { !$0.isEmpty }.prefix(6))
+        n.tags = Array(n.tags.map { String($0.trimmed.prefix(12)) }.filter { !$0.isEmpty }.uniqued().prefix(8))
+        return n.text.isEmpty && n.photos.isEmpty ? nil : n
+      }
+      notes[day] = cleaned.isEmpty ? nil : cleaned
+    }
+    plans = plans.compactMap { plan in
+      var p = plan
+      p.title = p.title.trimmed
+      guard !p.title.isEmpty else { return nil }
+      p.id = Self.safeId(p.id, seen: &seen)
+      return p
+    }
+    var s = settings
+    s.name = String(s.name.trimmed.prefix(20))
+    if s.name.isEmpty { s.name = Settings.defaultName }
+    s.signature = String(s.signature.trimmed.prefix(80))
+    if s.signature.isEmpty { s.signature = Settings.defaultSignature }
+    if !HexColor.isValid(s.accent) { s.accent = Settings.defaultAccent }
+    if let custom = s.customAccent, !HexColor.isValid(custom) { s.customAccent = nil }
+    s.quoteMode = s.quoteMode == "static" ? "static" : "daily"
+    s.homeModules = s.homeModules.uniqued()
+    s.customTags = Array(s.customTags.map { String($0.trimmed.prefix(12)) }.filter { !$0.isEmpty }.uniqued().prefix(24))
+    s.celebratedDays = Array(s.celebratedDays.uniqued().suffix(60))
+    settings = s
+  }
+
+  private static func safeId(_ id: String, seen: inout Set<String>) -> String {
+    var safe = String(id.filter { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }.prefix(80))
+    if safe.isEmpty || seen.contains(safe) { safe = UUID().uuidString }
+    seen.insert(safe)
+    return safe
+  }
+}
+
+// MARK: - Derived data
+
+enum DayStatus { case none, partial, all }
+
+struct OverviewItem: Identifiable {
+  let id: String
+  let title: String
+  let count: Int
+}
+
+struct MonthOverview {
+  var items: [OverviewItem]
+  var total: Int
+  var noteDays: Int
+  var textRecords: Int
+  var streak: Int
+}
+
+extension AppState {
+  func tasks(on day: String) -> [TaskItem] { tasks.filter { $0.occurs(on: day) } }
+
+  func openTasks(on day: String) -> [TaskItem] { tasks(on: day).filter { !$0.isDone(on: day) } }
+
+  func allDone(on day: String) -> Bool {
+    let list = tasks(on: day)
+    return !list.isEmpty && list.allSatisfy { $0.isDone(on: day) }
+  }
+
+  func dayStatus(_ day: String) -> DayStatus {
+    let list = tasks(on: day)
+    let done = list.filter { $0.isDone(on: day) }.count
+    if list.isEmpty || done == 0 { return .none }
+    return done == list.count ? .all : .partial
+  }
+
+  /// Review dates come only from notes, never from task completion.
+  var recordDates: [String] {
+    notes.filter { !$0.value.isEmpty }.keys.sorted(by: >)
+  }
+
+  func hasNotes(on day: String) -> Bool { !(notes[day] ?? []).isEmpty }
+
+  var allTags: [String] {
+    Array((Self.defaultTags + settings.customTags).uniqued().prefix(24))
+  }
+
+  func isCustomTag(_ tag: String) -> Bool {
+    settings.customTags.contains(tag) && !Self.defaultTags.contains(tag)
+  }
+
+  var activePlans: [Plan] { plans.filter { $0.status == .active } }
+
+  var referencedPhotos: Set<String> {
+    var names = Set(notes.values.flatMap { $0.flatMap(\.photos) })
+    if !settings.avatar.isEmpty { names.insert(settings.avatar) }
+    return names
+  }
+
+  func overview(month: Date) -> MonthOverview {
+    let (start, end) = DayKey.monthBounds(month)
+    let inMonth: (String) -> Bool = { $0 >= start && $0 <= end }
+    let items = tasks
+      .map { t in OverviewItem(id: t.id, title: t.title, count: t.done.filter { $0.value && inMonth($0.key) }.count) }
+      .filter { $0.count > 0 }
+      .sorted { $0.count != $1.count ? $0.count > $1.count : $0.title.localizedCompare($1.title) == .orderedAscending }
+    let monthNotes = notes.filter { inMonth($0.key) && !$0.value.isEmpty }
+    let textRecords = monthNotes.values.reduce(0) { $0 + $1.filter { !$0.text.isEmpty }.count }
+
+    var doneDays = Set<String>()
+    for t in tasks { for (k, v) in t.done where v && inMonth(k) { doneDays.insert(k) } }
+    var best = 0, current = 0
+    for day in DayKey.days(inMonth: month) {
+      if doneDays.contains(day) {
+        current += 1
+        best = max(best, current)
+      } else {
+        current = 0
+      }
+    }
+    return MonthOverview(
+      items: items,
+      total: items.reduce(0) { $0 + $1.count },
+      noteDays: monthNotes.count,
+      textRecords: textRecords,
+      streak: best
+    )
+  }
+}
+
+// MARK: - Lenient decoding helpers
+
+struct AnyKey: CodingKey {
+  var stringValue: String
+  var intValue: Int?
+  init(_ string: String) { stringValue = string }
+  init?(stringValue: String) { self.stringValue = stringValue }
+  init?(intValue: Int) {
+    stringValue = String(intValue)
+    self.intValue = intValue
+  }
+}
+
+extension KeyedDecodingContainer where K == AnyKey {
+  func get<T: Decodable>(_ key: String, as type: T.Type = T.self) -> T? {
+    let k = AnyKey(key)
+    guard contains(k) else { return nil }
+    return try? decode(T.self, forKey: k)
+  }
+
+  /// First present string among `keys`; numbers are accepted and stringified.
+  func string(_ keys: String...) -> String? {
+    for key in keys {
+      if let s = get(key, as: String.self) { return s }
+      if let n = get(key, as: Double.self) {
+        return n.rounded() == n ? String(Int64(n)) : String(n)
+      }
+    }
+    return nil
+  }
+}
+
+/// Decodes an array, silently skipping elements that fail to decode.
+struct LenientArray<T: Decodable>: Decodable {
+  var items: [T]
+
+  init(from decoder: Decoder) throws {
+    var c = try decoder.unkeyedContainer()
+    var out: [T] = []
+    while !c.isAtEnd {
+      if let v = try? c.decode(T.self) {
+        out.append(v)
+      } else {
+        _ = try? c.decode(Skip.self)
+      }
+    }
+    items = out
+  }
+
+  private struct Skip: Decodable {
+    init(from decoder: Decoder) throws {}
+  }
+}
+
+/// The web version stored a day's notes as an array, a single object or a bare string.
+struct NoteList: Decodable {
+  var items: [NoteEntry]
+
+  init(from decoder: Decoder) throws {
+    if let list = try? LenientArray<NoteEntry>(from: decoder) {
+      items = list.items
+    } else if let one = try? NoteEntry(from: decoder) {
+      items = [one]
+    } else {
+      items = []
+    }
+  }
+}
+
+// MARK: - Small utilities
+
+extension String {
+  var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
+}
+
+extension Array where Element: Hashable {
+  func uniqued() -> [Element] {
+    var seen = Set<Element>()
+    return filter { seen.insert($0).inserted }
+  }
+}
+
+enum HexColor {
+  static func isValid(_ s: String) -> Bool {
+    s.range(of: "^#[0-9a-fA-F]{6}$", options: .regularExpression) != nil
+  }
+}
