@@ -31,6 +31,8 @@ struct TodayView: View {
       .scrollDismissesKeyboard(.interactively)
       .background { AppBackground() }
       .navigationTitle("一天")
+      // The greeting is the page header; a second large title would compete with it.
+      .toolbar(.hidden, for: .navigationBar)
     }
   }
 }
@@ -40,18 +42,20 @@ private struct HeroModule: View {
 
   var body: some View {
     let now = Date()
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: 6) {
       Text("\(DayKey.shortDate(store.today)) \(DayKey.weekday(store.today))")
-        .font(.subheadline.weight(.medium))
+        .font(.subheadline)
         .foregroundStyle(.secondary)
       Text(OneDayText.greeting(now))
-        .font(.system(.largeTitle, design: .serif, weight: .semibold))
+        .font(.largeTitle.weight(.bold))
       Text(OneDayText.quote(for: now, mode: store.settings.quoteMode))
-        .font(.callout)
+        .font(.subheadline)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
+        .padding(.top, 2)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.top, 12)
     .accessibilityElement(children: .combine)
   }
 }
@@ -75,7 +79,7 @@ private struct TodayTasksModule: View {
           TaskList(tasks: open, day: day)
         }
       }
-      .card(padding: open.isEmpty ? Spacing.card : 12)
+      .modifier(ListOrCard(isList: !open.isEmpty))
     }
   }
 }
@@ -89,26 +93,22 @@ private struct ProgressModule: View {
     let list = store.state.tasks(on: day)
     let done = list.filter { $0.isDone(on: day) }.count
     let ratio = list.isEmpty ? 0 : Double(done) / Double(list.count)
-    HStack(spacing: 16) {
+    HStack(spacing: Spacing.inner) {
       ZStack {
-        Circle().stroke(accent.opacity(0.15), lineWidth: 7)
+        Circle().stroke(accent.opacity(0.15), lineWidth: 4)
         Circle()
           .trim(from: 0, to: ratio)
-          .stroke(accent, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+          .stroke(accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
           .rotationEffect(.degrees(-90))
           .animation(.snappy, value: ratio)
-        Text("\(Int((ratio * 100).rounded()))%")
-          .font(.system(.subheadline, design: .rounded, weight: .bold))
-          .contentTransition(.numericText())
       }
-      .frame(width: 64, height: 64)
-      VStack(alignment: .leading, spacing: 4) {
-        Text("今天的完成情况").font(.headline)
-        Text(list.isEmpty ? "从一件小事开始" : "\(done)/\(list.count) 已完成")
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
-      }
+      .frame(width: 30, height: 30)
+      Text("今天的完成情况").font(.body)
       Spacer()
+      Text(list.isEmpty ? "从一件小事开始" : "\(done)/\(list.count) · \(Int((ratio * 100).rounded()))%")
+        .font(.subheadline.monospacedDigit())
+        .foregroundStyle(.secondary)
+        .contentTransition(.numericText())
     }
     .card()
     .accessibilityElement(children: .combine)
@@ -198,9 +198,8 @@ private struct QuickCaptureModule: View {
   var body: some View {
     VStack(alignment: .leading, spacing: Spacing.title) {
       SectionHeader(title: "值得留下")
-      VStack(alignment: .leading, spacing: 14) {
-        NoteTextEditor(placeholder: "今天有什么值得留下的吗？不需要写得很好，只留下真实的你。", text: $draft.text, minHeight: 72)
-          .fieldBackground()
+      VStack(alignment: .leading, spacing: Spacing.inner) {
+        NoteTextEditor(placeholder: "今天有什么值得留下的吗？不需要写得很好，只留下真实的你。", text: $draft.text, minHeight: 64)
 
         if !draft.photos.isEmpty || !draft.media.isEmpty || loading {
           attachmentStrip
@@ -231,6 +230,7 @@ private struct QuickCaptureModule: View {
           .labelStyle(CompactLabelStyle())
         }
 
+        Divider()
         HStack(spacing: 8) {
           GlassGroup(spacing: 6) {
             HStack(spacing: 6) {
@@ -275,9 +275,10 @@ private struct QuickCaptureModule: View {
       RecorderSheet { item in
         withAnimation(.snappy) { draft.media.append(item) }
       }
+      .oneDaySheet()
     }
     .sheet(item: $pending) { note in
-      TagPickerSheet(draft: note)
+      TagPickerSheet(draft: note).oneDaySheet()
     }
   }
 
@@ -374,7 +375,7 @@ private struct QuickCaptureModule: View {
 }
 
 /// Voice recording sheet with a live level meter.
-private struct RecorderSheet: View {
+struct RecorderSheet: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(\.accent) private var accent
   @State private var recorder = AudioRecorder()
@@ -517,5 +518,15 @@ struct TagPickerSheet: View {
     saved = true
     store.addNote(draft, tags: tags)
     dismiss()
+  }
+}
+
+/// Task lists sit flush in a list card; empty states get normal card padding.
+private struct ListOrCard: ViewModifier {
+  let isList: Bool
+
+  @ViewBuilder
+  func body(content: Content) -> some View {
+    if isList { content.listCard() } else { content.card() }
   }
 }

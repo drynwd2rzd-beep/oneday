@@ -66,15 +66,16 @@ struct SecuritySheet: View {
       .toolbar {
         ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } }
       }
-      .sheet(isPresented: $settingUp) { PasscodeSetupSheet() }
-      .sheet(isPresented: $changing) { PasscodeSetupSheet() }
+      .sheet(isPresented: $settingUp) { PasscodeSetupSheet().oneDaySheet() }
+      .sheet(isPresented: $changing) { PasscodeSetupSheet().oneDaySheet() }
       .sheet(isPresented: $verifyingToDisable) {
-        PasscodeVerifySheet(title: "关闭密码锁") { lock.removePasscode() }
+        PasscodeVerifySheet(title: "关闭密码锁") { lock.removePasscode() }.oneDaySheet()
       }
       .sheet(isPresented: $verifyingToChange) {
         PasscodeVerifySheet(title: "更改密码") {
           DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { changing = true }
         }
+        .oneDaySheet()
       }
     }
   }

@@ -15,7 +15,7 @@ struct MeView: View {
     let s = store.settings
     NavigationStack {
       ScrollView {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: Spacing.stack) {
           Button {
             sheet = .profile
           } label: {
@@ -53,7 +53,7 @@ struct MeView: View {
             rowDivider
             SettingRow(icon: "square.grid.2x2", title: "首页自定义", desc: "模块与显示顺序") { sheet = .home }
           }
-          .card(padding: 8)
+          .listCard()
 
           groupTitle("提醒、隐私与数据")
           VStack(spacing: 0) {
@@ -72,7 +72,7 @@ struct MeView: View {
               value: BackupManager.shared.hasFolder ? "自动" : "未设置", tint: .blue
             ) { sheet = .backup }
           }
-          .card(padding: 8)
+          .listCard()
 
           groupTitle("其他")
           VStack(spacing: 0) {
@@ -80,7 +80,7 @@ struct MeView: View {
             rowDivider
             SettingRow(icon: "info.circle", title: "关于 OneDay", desc: "版本信息与使用说明", value: "v\(AppInfo.version)", tint: .gray) { sheet = .about }
           }
-          .card(padding: 8)
+          .listCard()
 
           Text("不是为了记录而记录，\n而是为了更好地生活。\n\nOneDay v\(AppInfo.version)")
             .font(.footnote)
@@ -95,18 +95,21 @@ struct MeView: View {
       .background { AppBackground() }
       .navigationTitle("我的")
       .sheet(item: $sheet) { which in
-        switch which {
-        case .profile: ProfileSheet()
-        case .theme: ThemeSheet()
-        case .uiSize: UISizeSheet()
-        case .appearance: AppearanceSheet()
-        case .home: HomeCustomizeSheet()
-        case .notifications: NotificationSettingsSheet()
-        case .security: SecuritySheet()
-        case .backup: BackupSheet()
-        case .diagnostics: DiagnosticsSheet()
-        case .about: AboutSheet()
+        Group {
+          switch which {
+          case .profile: ProfileSheet()
+          case .theme: ThemeSheet()
+          case .uiSize: UISizeSheet()
+          case .appearance: AppearanceSheet()
+          case .home: HomeCustomizeSheet()
+          case .notifications: NotificationSettingsSheet()
+          case .security: SecuritySheet()
+          case .backup: BackupSheet()
+          case .diagnostics: DiagnosticsSheet()
+          case .about: AboutSheet()
+          }
         }
+        .oneDaySheet()
       }
     }
   }
@@ -115,13 +118,12 @@ struct MeView: View {
     Text(text)
       .font(.footnote.weight(.semibold))
       .foregroundStyle(.secondary)
-      .padding(.leading, 4)
-      .padding(.top, 6)
+      .padding(.top, Spacing.section - Spacing.stack)
       .accessibilityAddTraits(.isHeader)
   }
 
   private var rowDivider: some View {
-    Divider().padding(.leading, 56)
+    Divider().padding(.leading, 46)
   }
 
   private func themeLabel(_ s: Settings) -> String {

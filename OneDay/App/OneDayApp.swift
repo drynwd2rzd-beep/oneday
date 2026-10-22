@@ -89,7 +89,7 @@ struct RootView: View {
     .environment(\.visualStyle, store.settings.cardStyle)
     .environment(\.accent, store.accentColor)
     .overlay(alignment: .top) { ToastView() }
-    .sheet(item: $store.motivation) { MotivationSheet(motivation: $0) }
+    .sheet(item: $store.motivation) { MotivationSheet(motivation: $0).oneDaySheet() }
     .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
       store.refreshDay()
     }
@@ -101,7 +101,7 @@ struct RootView: View {
         Color(uiColor: .systemBackground).ignoresSafeArea()
       }
     }
-    .fullScreenCover(isPresented: $showOnboarding) { OnboardingView() }
+    .fullScreenCover(isPresented: $showOnboarding) { OnboardingView().oneDaySheet() }
     .onAppear {
       if store.hasAnyData { Onboarding.finish() }
       showOnboarding = !Onboarding.isDone

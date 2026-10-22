@@ -158,7 +158,7 @@ struct MediaAttachments: View {
       }
     }
     .fullScreenCover(item: $playing) { item in
-      VideoPlayerScreen(file: item.file)
+      VideoPlayerScreen(file: item.file).oneDaySheet()
     }
   }
 

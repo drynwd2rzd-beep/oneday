@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UIKit
 
@@ -8,11 +9,15 @@ enum Spacing {
   /// Side margins of a page.
   static let page: CGFloat = 16
   /// Between page sections.
-  static let section: CGFloat = 28
+  static let section: CGFloat = 24
+  /// Between sibling cards.
+  static let stack: CGFloat = 12
   /// Between a section title and its content.
   static let title: CGFloat = 10
-  /// Inside cards.
-  static let card: CGFloat = 18
+  /// Padding inside cards.
+  static let card: CGFloat = 16
+  /// Between elements inside a card.
+  static let inner: CGFloat = 12
 }
 
 enum Radius {
@@ -169,6 +174,14 @@ extension View {
     modifier(CardModifier(padding: padding, tint: tint))
   }
 
+  /// Card holding a list of rows: same side inset as `card()`, rows bring their own vertical padding.
+  func listCard() -> some View {
+    padding(.horizontal, Spacing.card)
+      .padding(.vertical, 4)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .modifier(CardModifier(padding: 0, tint: nil))
+  }
+
   func oneDayButton(prominent: Bool = false) -> some View {
     modifier(ButtonStyleModifier(prominent: prominent))
   }
@@ -264,20 +277,43 @@ struct GlassGroup<Inner: View>: View {
 // MARK: - Interface size
 
 /// Steps the system Dynamic Type size so "standard" keeps following the user's setting.
+/// Reads the real system size (not the inherited one), so applying it again inside a sheet
+/// gives the same result instead of stepping twice.
 struct UISizeModifier: ViewModifier {
-  @Environment(\.dynamicTypeSize) private var system
   let size: UISize
+  @State private var system = UISizeModifier.currentSystemSize
+
+  private static var currentSystemSize: DynamicTypeSize {
+    DynamicTypeSize(UIApplication.shared.preferredContentSizeCategory) ?? .large
+  }
 
   func body(content: Content) -> some View {
-    content.dynamicTypeSize(resolved)
+    content
+      .dynamicTypeSize(resolved)
+      .onReceive(NotificationCenter.default.publisher(for: UIContentSizeCategory.didChangeNotification)) { _ in
+        system = Self.currentSystemSize
+      }
   }
 
   private var resolved: DynamicTypeSize {
     let all = DynamicTypeSize.allCases
     let index = all.firstIndex(of: system) ?? all.firstIndex(of: .large) ?? 3
-    let step = size == .compact ? -1 : size == .large ? 2 : 0
+    let step = size == .compact ? -2 : size == .large ? 2 : 0
     return all[min(max(index + step, 0), all.count - 1)]
   }
+}
+
+/// Sheets are hosted separately and do not inherit the interface size, so each one reapplies it.
+private struct SheetStyleModifier: ViewModifier {
+  @Environment(Store.self) private var store
+
+  func body(content: Content) -> some View {
+    content.modifier(UISizeModifier(size: store.settings.uiSize))
+  }
+}
+
+extension View {
+  func oneDaySheet() -> some View { modifier(SheetStyleModifier()) }
 }
 
 // MARK: - Background

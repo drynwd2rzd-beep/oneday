@@ -45,8 +45,8 @@ struct PageIntro: View {
   let subtitle: String
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Text(title).font(.system(.title2, design: .serif, weight: .semibold))
+    VStack(alignment: .leading, spacing: 4) {
+      Text(title).font(.body.weight(.medium))
       Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -201,10 +201,10 @@ struct TaskRow: View {
       } label: {
         Image(systemName: "ellipsis")
           .font(.body.weight(.semibold))
-          .foregroundStyle(.secondary)
           .frame(width: 34, height: 34)
           .contentShape(Rectangle())
       }
+      .tint(.secondary)
       .accessibilityLabel("更多操作：\(task.title)")
     }
     .padding(.vertical, 6)
@@ -218,7 +218,7 @@ struct TaskRow: View {
         withAnimation(.snappy) { store.deleteTask(task.id) }
       })
     .sheet(isPresented: $editingReminder) {
-      ReminderSheet(task: task)
+      ReminderSheet(task: task).oneDaySheet()
     }
   }
 }

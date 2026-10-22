@@ -77,7 +77,7 @@ struct OnboardingView: View {
       }
     }
     .interactiveDismissDisabled()
-    .sheet(isPresented: $settingPasscode) { PasscodeSetupSheet() }
+    .sheet(isPresented: $settingPasscode) { PasscodeSetupSheet().oneDaySheet() }
     .onAppear { name = store.settings.name == Settings.defaultName ? "" : store.settings.name }
   }
 

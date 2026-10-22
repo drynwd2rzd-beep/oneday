@@ -44,6 +44,19 @@ final class OneDayUITests: XCTestCase {
     XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 5), "onboarding dismissed")
   }
 
+  func testEditRecordShowsMediaAndPlace() {
+    let app = launch(["-OneDayTab", "review", "-OneDayReview", "day"])
+    let menu = app.buttons["记录操作"].firstMatch
+    XCTAssertTrue(menu.waitForExistence(timeout: 8))
+    menu.tap()
+    app.buttons["编辑"].tap()
+    XCTAssertTrue(app.staticTexts["照片和视频"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["添加照片或视频"].exists)
+    XCTAssertTrue(app.staticTexts["杭州市 · 西湖区"].exists, "existing place is editable")
+    XCTAssertTrue(app.buttons["移除位置"].exists)
+    app.buttons["取消"].tap()
+  }
+
   func testAddTask() {
     let app = launch(["-OneDayTab", "tasks"])
     app.buttons["添加事项"].tap()

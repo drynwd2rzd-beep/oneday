@@ -208,19 +208,21 @@ final class Store {
     toast("已经留下来了")
   }
 
+  /// Saves an edited note (text, tags, photos, videos, recordings and place).
   @discardableResult
-  func updateNote(day: String, id: String, text: String, tags: [String]) -> Bool {
-    guard let i = state.notes[day]?.firstIndex(where: { $0.id == id }), let note = state.notes[day]?[i] else { return false }
-    let body = text.trimmed
-    if body.isEmpty && note.photos.isEmpty && note.media.isEmpty {
+  func updateNote(day: String, note edited: NoteEntry) -> Bool {
+    guard let i = state.notes[day]?.firstIndex(where: { $0.id == edited.id }) else { return false }
+    var note = edited
+    note.text = note.text.trimmed
+    note.tags = note.tags.uniqued()
+    guard !note.isEmpty else {
       toast("记录不能是空的")
       return false
     }
     checkpoint("编辑记录")
-    state.notes[day]?[i].text = body
-    state.notes[day]?[i].tags = tags.uniqued()
+    state.notes[day]?[i] = note
     save()
-    toast("记录和标签已更新", undoable: "编辑记录")
+    toast("记录已更新", undoable: "编辑记录")
     return true
   }
 

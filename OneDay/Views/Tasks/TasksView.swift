@@ -16,7 +16,7 @@ struct TasksView: View {
   var body: some View {
     NavigationStack {
       ScrollView {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: Spacing.stack) {
           Picker("视图", selection: $panel.animation(.snappy)) {
             ForEach(Panel.allCases, id: \.self) { Text($0.rawValue).tag($0) }
           }
@@ -43,7 +43,7 @@ struct TasksView: View {
           .accessibilityLabel("添加事项")
         }
       }
-      .sheet(isPresented: $showAdd) { AddTaskSheet(day: selected) }
+      .sheet(isPresented: $showAdd) { AddTaskSheet(day: selected).oneDaySheet() }
       .onChange(of: store.today) { old, new in
         if selected == old { selected = new }
       }
@@ -59,7 +59,7 @@ struct TasksView: View {
     case .active: active
     case .done: done
     }
-    return VStack(alignment: .leading, spacing: 14) {
+    return VStack(alignment: .leading, spacing: Spacing.inner) {
       HStack(alignment: .firstTextBaseline) {
         Text(selected == store.today ? "今天" : DayKey.fullDate(selected))
           .font(.title3.bold())
@@ -92,7 +92,7 @@ struct TasksView: View {
 
   private var calendarPanel: some View {
     let list = store.state.tasks(on: selected)
-    return VStack(alignment: .leading, spacing: 16) {
+    return VStack(alignment: .leading, spacing: Spacing.stack) {
       CalendarMonthView(
         month: $month,
         selected: selected,
@@ -105,7 +105,7 @@ struct TasksView: View {
         },
         onSelect: { key in withAnimation(.snappy) { selected = key } }
       )
-      .card(padding: 14)
+      .card()
 
       HStack(spacing: 14) {
         Label("全部完成", systemImage: "circle.fill").foregroundStyle(accent)
@@ -124,7 +124,8 @@ struct TasksView: View {
           TaskList(tasks: list, day: selected)
         }
       }
-      .card(padding: list.isEmpty ? 18 : 12)
+      .padding(.vertical, list.isEmpty ? Spacing.card - 4 : 0)
+      .listCard()
     }
   }
 }

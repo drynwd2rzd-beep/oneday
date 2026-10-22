@@ -11,7 +11,7 @@ struct ReviewView: View {
     NavigationStack {
       ScrollViewReader { proxy in
         ScrollView {
-          VStack(alignment: .leading, spacing: 16) {
+          VStack(alignment: .leading, spacing: Spacing.stack) {
             Color.clear.frame(height: 0).id("top")
             PageIntro(title: "回到走过的日子。", subtitle: "看看发生过什么，也看看坚持了什么。")
             Picker("回顾", selection: tabBinding) {
@@ -68,8 +68,8 @@ struct ReviewView: View {
           .accessibilityLabel("选择回顾日期")
         }
       }
-      .sheet(isPresented: $showSearch) { ReviewSearchSheet() }
-      .sheet(isPresented: $showCalendar) { ReviewCalendarSheet() }
+      .sheet(isPresented: $showSearch) { ReviewSearchSheet().oneDaySheet() }
+      .sheet(isPresented: $showCalendar) { ReviewCalendarSheet().oneDaySheet() }
     }
   }
 
@@ -101,8 +101,7 @@ private struct TimelineList: View {
             Text(DayKey.monthLabel(ofKey: day))
               .font(.footnote.weight(.semibold))
               .foregroundStyle(.secondary)
-              .padding(.top, index == 0 ? 0 : 10)
-              .padding(.leading, 4)
+              .padding(.top, index == 0 ? 0 : Spacing.section - Spacing.stack)
               .accessibilityAddTraits(.isHeader)
           }
           TimelineCard(day: day)
@@ -165,7 +164,7 @@ private struct TimelineCard: View {
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
-    .card(padding: 16)
+    .card()
   }
 
   private func excerpt(_ notes: [NoteEntry]) -> String {
@@ -208,7 +207,7 @@ private struct ReviewDayDetail: View {
   var body: some View {
     let notes = store.state.notes[day] ?? []
     let tasks = store.state.tasks(on: day)
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: Spacing.stack) {
       VStack(alignment: .leading, spacing: 6) {
         Text("\(DayKey.fullDate(day)) · \(DayKey.weekday(day))")
           .font(.subheadline.weight(.medium))
@@ -270,8 +269,8 @@ private struct ReviewDayDetail: View {
         }
       }
     }
-    .sheet(item: $editing) { NoteEditorSheet(day: day, entry: $0.entry) }
-    .fullScreenCover(item: $preview) { PhotoLightbox(name: $0.name) }
+    .sheet(item: $editing) { NoteEditorSheet(day: day, entry: $0.entry).oneDaySheet() }
+    .fullScreenCover(item: $preview) { PhotoLightbox(name: $0.name).oneDaySheet() }
     .alert("删除 \(DayKey.fullDate(day)) 的全部记录？", isPresented: $confirmDeleteAll) {
       Button("删除", role: .destructive) { store.deleteNotes(on: day) }
       Button("取消", role: .cancel) {}
@@ -351,94 +350,6 @@ private struct ReviewDayDetail: View {
   }
 }
 
-// MARK: - Record editor
-
-struct NoteEditorSheet: View {
-  @Environment(Store.self) private var store
-  @Environment(\.dismiss) private var dismiss
-  let day: String
-  let entry: NoteEntry
-  @State private var text = ""
-  @State private var tags: [String] = []
-  @State private var newTag = ""
-
-  var body: some View {
-    NavigationStack {
-      Form {
-        Section {
-          NoteTextEditor(placeholder: "不需要写得很好，只留下真实的你。", text: $text)
-        } header: {
-          Text("内容")
-        } footer: {
-          Text("支持 **粗体**、*斜体*、~~删除线~~。选中文字后点上方按钮即可。")
-        }
-        Section("当前标签") {
-          if tags.isEmpty {
-            Text("暂未添加标签").foregroundStyle(.secondary)
-          } else {
-            FlowLayout(spacing: 8) {
-              ForEach(tags, id: \.self) { tag in
-                TagChip(title: tag, selected: true, onDelete: { remove(tag) }) { remove(tag) }
-              }
-            }
-            .padding(.vertical, 4)
-          }
-        }
-        Section("添加标签") {
-          let available = store.state.allTags.filter { !tags.contains($0) }
-          if !available.isEmpty {
-            FlowLayout(spacing: 8) {
-              ForEach(available, id: \.self) { tag in
-                TagChip(title: "＋ \(tag)") { add(tag) }
-              }
-            }
-            .padding(.vertical, 4)
-          }
-          HStack {
-            TextField("输入新标签", text: $newTag)
-              .submitLabel(.done)
-              .onSubmit(addNew)
-            Button("添加", action: addNew)
-              .buttonStyle(.borderless)
-              .disabled(newTag.trimmed.isEmpty)
-          }
-        }
-      }
-      .navigationTitle("编辑这条记录")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
-        ToolbarItem(placement: .confirmationAction) {
-          Button("保存") {
-            if store.updateNote(day: day, id: entry.id, text: text, tags: tags) { dismiss() }
-          }
-        }
-      }
-      .onAppear {
-        text = entry.text
-        tags = entry.tags
-      }
-    }
-    .presentationDetents([.large])
-  }
-
-  private func add(_ tag: String) {
-    Haptics.tap()
-    if !tags.contains(tag) { tags.append(tag) }
-  }
-
-  private func remove(_ tag: String) {
-    Haptics.tap()
-    tags.removeAll { $0 == tag }
-  }
-
-  private func addNew() {
-    guard let tag = store.addCustomTag(newTag) else { return }
-    add(tag)
-    newTag = ""
-  }
-}
-
 // MARK: - Overview
 
 private struct OverviewPanel: View {
@@ -449,7 +360,7 @@ private struct OverviewPanel: View {
   var body: some View {
     let o = store.state.overview(month: month)
     let maxCount = max(1, o.items.map(\.count).max() ?? 1)
-    VStack(spacing: 14) {
+    VStack(spacing: Spacing.stack) {
       WeeklyReportCard()
       HeatmapCard()
       StreaksCard()
@@ -698,7 +609,7 @@ private struct StatTile: View {
       Text(title).font(.caption).foregroundStyle(.secondary)
       Text(value).font(.title3.bold()).contentTransition(.numericText()).lineLimit(1).minimumScaleFactor(0.7)
     }
-    .card(padding: 14)
+    .card()
     .accessibilityElement(children: .combine)
   }
 }
@@ -728,7 +639,7 @@ struct ReviewCalendarSheet: View {
               dismiss()
             }
           )
-          .card(padding: 14)
+          .card()
         }
         .padding(20)
       }

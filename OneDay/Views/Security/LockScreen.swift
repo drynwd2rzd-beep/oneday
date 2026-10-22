@@ -158,6 +158,7 @@ struct LockScreen: View {
     .environment(\.visualStyle, store.settings.cardStyle)
     .tint(store.accentColor)
     .preferredColorScheme(store.preferredColorScheme)
+    .oneDaySheet()
   }
 
   private var unlockContent: some View {

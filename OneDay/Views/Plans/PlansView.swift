@@ -24,7 +24,7 @@ struct PlansView: View {
     let archived = store.state.plans.filter { $0.status == .archived }
     NavigationStack {
       ScrollView {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Spacing.stack) {
           PageIntro(title: "以后要去哪里。", subtitle: "记录长期方向，真正行动，也允许计划完成、暂停或归档。")
             .padding(.bottom, 4)
 
@@ -63,7 +63,7 @@ struct PlansView: View {
           .accessibilityLabel("新的计划")
         }
       }
-      .sheet(item: $editing) { PlanEditorSheet(target: $0) }
+      .sheet(item: $editing) { PlanEditorSheet(target: $0).oneDaySheet() }
     }
   }
 }
@@ -75,7 +75,7 @@ private struct CollapsibleSection<Inner: View>: View {
   @ViewBuilder var content: () -> Inner
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: Spacing.stack) {
       Button {
         withAnimation(.snappy) { isOpen.toggle() }
       } label: {
@@ -91,7 +91,7 @@ private struct CollapsibleSection<Inner: View>: View {
         .contentShape(Rectangle())
       }
       .buttonStyle(.plain)
-      .card(padding: 16)
+      .card()
       .accessibilityAddTraits(.isHeader)
 
       if isOpen { content() }
