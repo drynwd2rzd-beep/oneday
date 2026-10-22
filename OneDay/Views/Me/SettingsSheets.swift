@@ -592,3 +592,63 @@ private struct InfoPage: View {
     .navigationBarTitleDisplayMode(.inline)
   }
 }
+
+/// 我的 → 字体: each typeface with a live sample.
+struct FontSheet: View {
+  @Environment(Store.self) private var store
+  @Environment(\.dismiss) private var dismiss
+  @Environment(\.accent) private var accent
+
+  var body: some View {
+    NavigationStack {
+      Form {
+        Section {
+          ForEach(FontStyle.allCases) { style in
+            Button {
+              store.setFontStyle(style)
+            } label: {
+              HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack(spacing: 6) {
+                    Text(style.label).font(.headline)
+                    Text(style.hint).font(.caption).foregroundStyle(.secondary)
+                  }
+                  Text("下午好。今天也认真生活了。")
+                    .font(sample(style, size: 20, bold: true))
+                  Text("完成 3/4 · 2026年10月22日 · OneDay")
+                    .font(sample(style, size: 15))
+                    .foregroundStyle(.secondary)
+                }
+                .foregroundStyle(.primary)
+                Spacer(minLength: 0)
+                Image(systemName: store.settings.fontStyle == style ? "checkmark.circle.fill" : "circle")
+                  .font(.title3)
+                  .foregroundStyle(store.settings.fontStyle == style ? accent : Color(uiColor: .tertiaryLabel))
+              }
+              .padding(.vertical, 6)
+              .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(store.settings.fontStyle == style ? .isSelected : [])
+          }
+        } footer: {
+          Text("关闭这一页后，全 App 会换成所选字体。系统弹窗和键盘始终使用系统字体。")
+        }
+      }
+      .onDisappear { store.applyFontStyle() }
+      .navigationTitle("字体")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } }
+      }
+    }
+  }
+
+  private func sample(_ style: FontStyle, size: CGFloat, bold: Bool = false) -> Font {
+    switch style {
+    case .system: .system(size: size, weight: bold ? .semibold : .regular)
+    case .rounded: .system(size: size, weight: bold ? .semibold : .regular, design: .rounded)
+    case .journal: .custom(bold ? "OneDayJournal-Medium" : "OneDayJournal-Regular", size: size)
+    }
+  }
+}

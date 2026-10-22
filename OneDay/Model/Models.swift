@@ -96,6 +96,28 @@ enum VisualStyle: String, Codable, CaseIterable, Identifiable, Hashable {
   var usesGlass: Bool { self == .glass }
 }
 
+/// The app's typeface, chosen in 我的 → 字体.
+enum FontStyle: String, Codable, CaseIterable, Identifiable, Hashable {
+  case system, rounded, journal
+  var id: String { rawValue }
+
+  var label: String {
+    switch self {
+    case .system: "系统字体"
+    case .rounded: "圆体"
+    case .journal: "手帐体"
+    }
+  }
+
+  var hint: String {
+    switch self {
+    case .system: "苹方，和系统 App 一致"
+    case .rounded: "数字和英文更圆润，中文仍是苹方"
+    case .journal: "霞鹜文楷，像在翻自己的手帐"
+    }
+  }
+}
+
 enum BgTone: String, Codable, CaseIterable, Identifiable, Hashable {
   case warm, cool, gray, meteor
   var id: String { rawValue }
@@ -219,9 +241,12 @@ struct NoteEntry: Codable, Identifiable, Hashable {
   var weather: String?
   /// 1 (很糟) … 5 (很好).
   var mood: Int?
+  /// The day's 复盘: written from 回顾 → 复盘, at most one per day.
+  var isReflection = false
 
   enum CodingKeys: String, CodingKey {
     case id, text, time, photos, tags, media, place, latitude, longitude, weather, mood
+    case isReflection = "reflection"
   }
 
   init(text: String, time: String, photos: [String], tags: [String]) {
@@ -255,6 +280,7 @@ struct NoteEntry: Codable, Identifiable, Hashable {
     longitude = c.get("longitude", as: Double.self)
     weather = c.string("weather")
     mood = c.get("mood", as: Int.self)
+    isReflection = c.get("reflection", as: Bool.self) ?? false
   }
 }
 
@@ -346,6 +372,7 @@ struct Settings: Codable, Hashable {
   var uiSize: UISize = .standard
   var cardStyle: VisualStyle = .glass
   var bgTone: BgTone = .warm
+  var fontStyle: FontStyle = .system
   var customTags: [String] = []
   var celebratedDays: [String] = []
   var notifications = NotificationPrefs()
@@ -368,6 +395,7 @@ struct Settings: Codable, Hashable {
     uiSize = c.get("uiSize", as: UISize.self) ?? d.uiSize
     cardStyle = c.get("cardStyle", as: VisualStyle.self) ?? d.cardStyle
     bgTone = c.get("bgTone", as: BgTone.self) ?? d.bgTone
+    fontStyle = c.get("fontStyle", as: FontStyle.self) ?? d.fontStyle
     customTags = c.get("customTags", as: LenientArray<String>.self)?.items ?? []
     celebratedDays = c.get("celebratedDays", as: LenientArray<String>.self)?.items ?? []
     notifications = c.get("notifications", as: NotificationPrefs.self) ?? d.notifications
@@ -434,13 +462,26 @@ struct AppState: Codable {
       if p.status != .done { p.doneAt = nil }
       return p
     }
-    var days: [String: DayReflection] = [:]
-    for (day, r) in dayReflections where DayKey.isValid(day) {
-      var r = r
-      r.text = r.text.trimmed
-      if !r.text.isEmpty { days[day] = r }
+    // 1.2 kept daily reflections apart from notes; they are now the day's 复盘 note.
+    for (day, r) in dayReflections where DayKey.isValid(day) && !r.text.trimmed.isEmpty {
+      guard !(notes[day] ?? []).contains(where: \.isReflection) else { continue }
+      var note = NoteEntry(text: r.text.trimmed, time: r.updatedAt > 0 ? DayKey.clock(Date(timeIntervalSince1970: r.updatedAt)) : "", photos: [], tags: [])
+      note.isReflection = true
+      notes[day, default: []].append(note)
     }
-    dayReflections = days
+    dayReflections = [:]
+    // At most one 复盘 per day; any extra becomes an ordinary note.
+    for (day, list) in notes where list.filter(\.isReflection).count > 1 {
+      var seen = false
+      notes[day] = list.map { note in
+        var n = note
+        if n.isReflection {
+          if seen { n.isReflection = false }
+          seen = true
+        }
+        return n
+      }
+    }
     var weeks: [String: WeekReflection] = [:]
     for (key, r) in weekReflections where DayKey.isValid(key) {
       var r = r
@@ -518,6 +559,12 @@ extension AppState {
   }
 
   func hasNotes(on day: String) -> Bool { !(notes[day] ?? []).isEmpty }
+
+  /// The day's 复盘 note, if written.
+  func reflectionNote(on day: String) -> NoteEntry? { notes[day]?.first(where: \.isReflection) }
+
+  /// Notes left during the day (everything but the 复盘).
+  func moments(on day: String) -> [NoteEntry] { (notes[day] ?? []).filter { !$0.isReflection } }
 
   var allTags: [String] {
     Array((Self.defaultTags + settings.customTags).uniqued().prefix(24))

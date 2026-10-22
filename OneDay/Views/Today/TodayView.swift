@@ -568,7 +568,7 @@ struct RecorderSheet: View {
       Text(recorder.isRecording ? "正在录音" : denied ? "无法使用麦克风" : "准备录音")
         .font(.headline)
       Text(recorder.elapsed.clockText)
-        .font(.system(size: 48, weight: .light, design: .rounded).monospacedDigit())
+        .font(.system(size: 48, weight: .light, design: .default).monospacedDigit())
         .contentTransition(.numericText())
       HStack(spacing: 4) {
         ForEach(0..<24, id: \.self) { i in

@@ -140,7 +140,7 @@ struct RecapCard: View {
 
   private func number(_ value: String, _ label: String) -> some View {
     VStack(alignment: .leading, spacing: 2) {
-      Text(value).font(.system(size: 28, weight: .bold, design: .rounded)).foregroundStyle(accent)
+      Text(value).font(.system(size: 28, weight: .bold, design: .default)).foregroundStyle(accent)
       Text(label).font(.caption).foregroundStyle(Paper.soft)
     }
     .frame(maxWidth: .infinity, alignment: .leading)

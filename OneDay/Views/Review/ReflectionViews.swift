@@ -13,7 +13,7 @@ struct ReflectionPanel: View {
     let past = store.state.pastReflectionWeeks(today: today)
     VStack(alignment: .leading, spacing: Spacing.stack) {
       DayReflectionCard(day: today)
-      if store.state.dayReflections[yesterday] == nil && hasActivity(yesterday) {
+      if store.state.reflectionNote(on: yesterday) == nil && hasActivity(yesterday) {
         Button {
           store.reflection = .day(yesterday)
         } label: {
@@ -49,7 +49,7 @@ struct ReflectionPanel: View {
   }
 
   private func hasActivity(_ day: String) -> Bool {
-    store.state.hasNotes(on: day) || store.state.tasks.contains { $0.isDone(on: day) }
+    !store.state.moments(on: day).isEmpty || store.state.tasks.contains { $0.isDone(on: day) }
   }
 }
 
@@ -60,7 +60,7 @@ private struct DayReflectionCard: View {
 
   var body: some View {
     let summary = store.state.daySummary(day)
-    let text = store.state.dayReflections[day]?.text
+    let text = store.state.reflectionNote(on: day)?.text
     Button {
       store.reflection = .day(day)
     } label: {
@@ -146,7 +146,7 @@ private struct WeekReflectionCard: View {
           VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .lastTextBaseline, spacing: 4) {
               Text("\(week.completions)")
-                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .font(.system(size: 34, weight: .bold, design: .default))
                 .contentTransition(.numericText())
               Text("次完成").font(.subheadline).foregroundStyle(.secondary)
             }
@@ -268,17 +268,21 @@ struct DayReflectionSheet: View {
   @Environment(\.accent) private var accent
   let day: String
   private let original: String
+  private let originalMood: Int?
   @State private var text: String
+  @State private var mood: Int?
   @State private var confirmDiscard = false
   @FocusState private var focused: Bool
 
-  init(day: String, text: String) {
+  init(day: String, note: NoteEntry?) {
     self.day = day
-    original = text
-    _text = State(initialValue: text)
+    original = note?.text ?? ""
+    originalMood = note?.mood
+    _text = State(initialValue: note?.text ?? "")
+    _mood = State(initialValue: note?.mood)
   }
 
-  private var changed: Bool { text.trimmed != original }
+  private var changed: Bool { text.trimmed != original || mood != originalMood }
 
   var body: some View {
     let summary = store.state.daySummary(day)
@@ -307,14 +311,22 @@ struct DayReflectionSheet: View {
             .card()
           }
 
-          VStack(alignment: .leading, spacing: 8) {
-            TextField("今天过得怎么样？做成了什么，卡在了哪里，明天想怎么做……", text: $text, axis: .vertical)
+          DayMomentsCard(day: day)
+
+          VStack(alignment: .leading, spacing: 12) {
+            Label("复盘", systemImage: "moon.stars")
+              .font(.footnote.weight(.semibold))
+              .foregroundStyle(.secondary)
+            TextField("回头看看今天：做成了什么，卡在了哪里，明天想怎么做……", text: $text, axis: .vertical)
               .font(.journal(.body, size: 18))
               .lineSpacing(6)
               .lineLimit(10...)
               .focused($focused)
               .accessibilityLabel("复盘内容")
               .accessibilityIdentifier("reflection-text")
+            Divider()
+            Text("今天整体的心情").font(.footnote).foregroundStyle(.secondary)
+            MoodPicker(selection: $mood)
           }
           .card()
         }
@@ -333,7 +345,7 @@ struct DayReflectionSheet: View {
         }
         ToolbarItem(placement: .confirmationAction) {
           Button("保存") {
-            store.saveDayReflection(day: day, text: text)
+            store.saveDayReflection(day: day, text: text, mood: mood)
             dismiss()
           }
           .fontWeight(.semibold)
@@ -450,7 +462,7 @@ struct WeekReflectionSheet: View {
         Button("继续编辑", role: .cancel) {}
       }
       .sheet(item: $editingDay) { ref in
-        DayReflectionSheet(day: ref.day, text: store.state.dayReflections[ref.day]?.text ?? "").oneDaySheet()
+        DayReflectionSheet(day: ref.day, note: store.state.reflectionNote(on: ref.day)).oneDaySheet()
       }
     }
   }
@@ -530,7 +542,7 @@ private struct WeekNumbers: View {
   private func number(_ value: String, _ label: String) -> some View {
     VStack(alignment: .leading, spacing: 2) {
       Text(value)
-        .font(.system(.title2, design: .rounded, weight: .bold))
+        .font(.system(.title2, design: .default, weight: .bold))
         .lineLimit(1)
         .minimumScaleFactor(0.7)
       Text(label).font(.caption).foregroundStyle(.secondary)
@@ -575,7 +587,7 @@ private struct WeekDaysCard: View {
   }
 
   private func dayRow(_ day: String, letter: String) -> some View {
-    let text = store.state.dayReflections[day]?.text
+    let text = store.state.reflectionNote(on: day)?.text
     return Button {
       onDay(day)
     } label: {
@@ -674,33 +686,50 @@ private struct WeekPlansCard: View {
   }
 }
 
-// MARK: - On the day page
+// MARK: - The day's notes inside its 复盘
 
-/// The day's reflection shown at the bottom of a day in the timeline.
-struct DayReflectionNote: View {
+/// What was left during the day, so the 复盘 is written looking at it instead of repeating it.
+private struct DayMomentsCard: View {
   @Environment(Store.self) private var store
   let day: String
 
   var body: some View {
-    if let text = store.state.dayReflections[day]?.text {
-      Button {
-        store.reflection = .day(day)
-      } label: {
-        VStack(alignment: .leading, spacing: 8) {
-          Label("当天复盘", systemImage: "moon.stars")
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.secondary)
-          Text(text)
-            .font(.journal(.body, size: 17))
-            .lineSpacing(5)
-            .multilineTextAlignment(.leading)
-            .foregroundStyle(.primary)
+    let moments = store.state.moments(on: day)
+    VStack(alignment: .leading, spacing: 12) {
+      Label(day == store.today ? "今天留下的" : "这天留下的", systemImage: "text.quote")
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.secondary)
+      if moments.isEmpty {
+        Text("这一天还没有留下记录。")
+          .font(.subheadline)
+          .foregroundStyle(.tertiary)
+      } else {
+        ForEach(moments) { note in
+          HStack(alignment: .top, spacing: 10) {
+            Text(note.time.isEmpty ? "·" : note.time)
+              .font(.caption.monospacedDigit())
+              .foregroundStyle(.secondary)
+              .frame(width: 40, alignment: .leading)
+            Text(excerpt(note))
+              .font(.journal(.body, size: 16))
+              .lineLimit(3)
+              .frame(maxWidth: .infinity, alignment: .leading)
+            if let photo = note.photos.first {
+              PhotoThumb(name: photo).frame(width: 44, height: 44)
+            }
+          }
+          .accessibilityElement(children: .combine)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
       }
-      .buttonStyle(.plain)
-      .card()
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .card()
+  }
+
+  private func excerpt(_ note: NoteEntry) -> String {
+    if !note.text.isEmpty { return MarkdownText.plain(note.text) }
+    if !note.photos.isEmpty { return "留下了照片" }
+    if note.media.contains(where: { $0.kind == .video }) { return "留下了视频" }
+    return "留下了一段语音"
   }
 }

@@ -109,17 +109,51 @@ struct WidgetToggle: Codable, Hashable {
 enum SharedData {
   static let defaultGroup = "group.com.oneday.app"
 
-  static let containerURL: URL? = {
+  /// App Group ids to try, most trustworthy first. Sideloading tools re-sign with their own
+  /// ids: the provisioning profile inside the bundle says which ones were really granted, and
+  /// AltStore/SideStore also list theirs under `ALTAppGroups`. The app's bundle is read first
+  /// in both processes so the app and the widget settle on the same group.
+  static let candidateGroups: [String] = {
     var ids: [String] = []
-    for bundle in [Bundle.main, hostAppBundle].compactMap({ $0 }) {
+    let bundles = [hostAppBundle, Bundle.main].compactMap { $0 }
+    for bundle in bundles { ids += provisionedGroups(in: bundle) }
+    for bundle in bundles {
       if let alt = bundle.object(forInfoDictionaryKey: "ALTAppGroups") as? [String] { ids += alt }
     }
+    if let id = (hostAppBundle ?? Bundle.main).bundleIdentifier { ids.append("group." + id) }
     ids.append(defaultGroup)
-    for id in ids {
-      if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id) { return url }
+    var seen = Set<String>()
+    return ids.filter { seen.insert($0).inserted }
+  }()
+
+  /// The group in use and its folder, or nil when this build has no App Group at all.
+  static let group: (id: String, url: URL)? = {
+    for id in candidateGroups {
+      if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id) { return (id, url) }
     }
     return nil
   }()
+
+  static var containerURL: URL? { group?.url }
+
+  /// App Groups granted by `embedded.mobileprovision` (a signed envelope around a plist).
+  static func provisionedGroups(in bundle: Bundle) -> [String] {
+    guard let url = bundle.url(forResource: "embedded", withExtension: "mobileprovision"),
+      let data = try? Data(contentsOf: url)
+    else { return [] }
+    return provisionedGroups(fromProfile: data)
+  }
+
+  static func provisionedGroups(fromProfile data: Data) -> [String] {
+    guard let start = data.range(of: Data("<?xml".utf8)),
+      let end = data.range(of: Data("</plist>".utf8), in: start.lowerBound..<data.endIndex),
+      let plist = try? PropertyListSerialization.propertyList(
+        from: data.subdata(in: start.lowerBound..<end.upperBound), format: nil) as? [String: Any],
+      let entitlements = plist["Entitlements"] as? [String: Any],
+      let groups = entitlements["com.apple.security.application-groups"] as? [String]
+    else { return [] }
+    return groups.filter { !$0.contains("*") }
+  }
 
   /// The app bundle when running inside the widget extension (`OneDay.app/PlugIns/X.appex`).
   private static var hostAppBundle: Bundle? {

@@ -1,6 +1,6 @@
 import Foundation
 
-/// A free-form look back at one day (每日复盘).
+/// A daily reflection as stored by 1.2; now migrated into the day's 复盘 note.
 struct DayReflection: Codable, Hashable {
   var text = ""
   /// Seconds since 1970.
@@ -126,7 +126,7 @@ extension AppState {
       day: day,
       done: list.filter { $0.isDone(on: day) },
       open: list.filter { !$0.isDone(on: day) },
-      notes: notes[day]?.count ?? 0,
+      notes: moments(on: day).count,
       mood: mood(on: day))
   }
 
@@ -177,7 +177,7 @@ extension AppState {
       moods: days.map { mood(on: $0) },
       dayDone: dayDone,
       noteDays: noteDays,
-      reflectionDays: days.filter { dayReflections[$0] != nil },
+      reflectionDays: days.filter { reflectionNote(on: $0) != nil },
       plans: plans,
       isCurrent: isCurrent)
   }
@@ -190,7 +190,6 @@ extension AppState {
       for (day, done) in task.done where done && day < current { active.insert(DayKey.weekStart(day)) }
     }
     for day in notes.keys where day < current { active.insert(DayKey.weekStart(day)) }
-    for day in dayReflections.keys where day < current { active.insert(DayKey.weekStart(day)) }
     for key in weekReflections.keys where key < current { active.insert(key) }
     return Array(active.sorted(by: >).prefix(limit))
   }

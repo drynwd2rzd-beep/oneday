@@ -25,6 +25,8 @@ struct WidgetGallerySheet: View {
           }
           .frame(maxWidth: .infinity)
 
+          shareStatus
+
           section("桌面") {
             HStack(spacing: 14) {
               tile(.systemSmall, snapshot, now, width: 158, height: 158)
@@ -87,6 +89,35 @@ struct WidgetGallerySheet: View {
         ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } }
       }
     }
+  }
+
+  /// Whether this install can share data with the widget at all.
+  private var shareStatus: some View {
+    let group = SharedData.group
+    return HStack(alignment: .top, spacing: 12) {
+      Image(systemName: group == nil ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+        .font(.title3)
+        .foregroundStyle(group == nil ? Color.orange : accent)
+      VStack(alignment: .leading, spacing: 4) {
+        Text(group == nil ? "小组件读不到数据" : "数据共享已开启")
+          .font(.subheadline.weight(.semibold))
+        Text(
+          group == nil
+            ? "这次安装没有开启 App Group，App 和小组件之间不能共享数据。可以先在「备份与恢复」导出备份，再用 SideStore 或 AltStore 重新安装，然后导入备份。"
+            : "如果小组件仍显示「安装方式不支持共享」，说明安装工具只给了 App、没有给小组件开启共享。"
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        if let group {
+          Text(group.id)
+            .font(.caption2.monospaced())
+            .foregroundStyle(.tertiary)
+            .textSelection(.enabled)
+        }
+      }
+      Spacer(minLength: 0)
+    }
+    .card()
   }
 
   private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {

@@ -1,7 +1,7 @@
 import SwiftUI
 
 private enum MeSheet: String, Identifiable {
-  case profile, theme, uiSize, appearance, home, widgets, notifications, security, backup, diagnostics, about
+  case profile, theme, uiSize, appearance, font, home, widgets, notifications, security, backup, diagnostics, about
   var id: String { rawValue }
 }
 
@@ -39,6 +39,7 @@ struct MeView: View {
         Section {
           SettingRow(icon: "circle.lefthalf.filled", title: "外观与主题", value: themeLabel(s)) { sheet = .theme }
           SettingRow(icon: "square.on.square", title: "显示偏好", value: s.cardStyle.label, tint: .teal) { sheet = .appearance }
+          SettingRow(icon: "textformat", title: "字体", value: s.fontStyle.label, tint: .purple) { sheet = .font }
           SettingRow(icon: "textformat.size", title: "界面大小", value: s.uiSize.label, tint: .blue) { sheet = .uiSize }
           SettingRow(icon: "square.grid.2x2", title: "首页自定义", tint: .orange) { sheet = .home }
           SettingRow(icon: "rectangle.3.group", title: "桌面小组件", tint: .yellow) { sheet = .widgets }
@@ -85,6 +86,7 @@ struct MeView: View {
           case .theme: ThemeSheet()
           case .uiSize: UISizeSheet()
           case .appearance: AppearanceSheet()
+          case .font: FontSheet()
           case .home: HomeCustomizeSheet()
           case .widgets: WidgetGallerySheet()
           case .notifications: NotificationSettingsSheet()

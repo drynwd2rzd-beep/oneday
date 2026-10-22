@@ -4,7 +4,8 @@ import WidgetKit
 struct TodayEntry: TimelineEntry {
   let date: Date
   let snapshot: WidgetSnapshot
-  var connected = true
+  /// Shown instead of 小日's line when there is no data to show.
+  var notice: String?
 }
 
 struct TodayProvider: TimelineProvider {
@@ -35,8 +36,12 @@ struct TodayProvider: TimelineProvider {
   }
 
   private func entry(at date: Date) -> TodayEntry {
+    guard SharedData.containerURL != nil else {
+      // The sideloading tool gave the widget no App Group, so it cannot see the app's data.
+      return TodayEntry(date: date, snapshot: .empty, notice: "安装方式不支持共享")
+    }
     guard let snapshot = SharedData.loadSnapshot() else {
-      return TodayEntry(date: date, snapshot: .empty, connected: false)
+      return TodayEntry(date: date, snapshot: .empty, notice: "打开 OneDay 一次")
     }
     return TodayEntry(date: date, snapshot: snapshot.resolved(for: SharedDay.key(date)))
   }
@@ -62,7 +67,7 @@ struct TodayWidgetEntryView: View {
   let entry: TodayEntry
 
   var body: some View {
-    OneDayWidgetView(family: family, snapshot: entry.snapshot, date: entry.date, connected: entry.connected)
+    OneDayWidgetView(family: family, snapshot: entry.snapshot, date: entry.date, notice: entry.notice)
       .containerBackground(for: .widget) {
         if family.isAccessory {
           Color.clear

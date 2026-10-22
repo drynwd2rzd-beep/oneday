@@ -6,11 +6,30 @@ enum AppTab: String, Hashable {
 }
 
 enum ReviewTab: String, CaseIterable, Hashable {
-  case timeline = "时间线"
-  case calendar = "日历"
-  case photos = "照片"
+  case timeline = "记录"
   case reflect = "复盘"
   case overview = "统计"
+}
+
+/// How 回顾 → 记录 lays out the notes.
+enum RecordsMode: String, CaseIterable, Hashable {
+  case list, calendar, photos
+
+  var label: String {
+    switch self {
+    case .list: "列表"
+    case .calendar: "日历"
+    case .photos: "照片"
+    }
+  }
+
+  var icon: String {
+    switch self {
+    case .list: "list.bullet"
+    case .calendar: "calendar"
+    case .photos: "photo.on.rectangle"
+    }
+  }
 }
 
 /// Which reflection sheet is open in 回顾 → 复盘.
@@ -87,8 +106,13 @@ final class Store {
   var motivation: Motivation?
   var reviewDate: String?
   var reviewTab: ReviewTab = .timeline
+  var recordsMode: RecordsMode = RecordsMode(rawValue: UserDefaults.standard.string(forKey: "recordsMode") ?? "") ?? .list {
+    didSet { UserDefaults.standard.set(recordsMode.rawValue, forKey: "recordsMode") }
+  }
   var recap: MonthRef?
   var reflection: ReflectionTarget?
+  /// The font the screens were last built with (see `applyFontStyle`).
+  var appliedFontStyle: FontStyle = .system
   /// Set by a quick action or widget link; the screen that handles it clears it.
   var pendingCapture = false
   var pendingAddTask = false
@@ -99,6 +123,8 @@ final class Store {
 
   private init() {
     state = Storage.shared.load()
+    JournalFont.style = state.settings.fontStyle
+    appliedFontStyle = state.settings.fontStyle
     MediaStore.collectGarbage(keeping: state.referencedPhotos)
     #if DEBUG
     applyLaunchArguments()
@@ -310,12 +336,27 @@ final class Store {
 
   // MARK: Reflections
 
-  /// Saves (or, when empty, removes) a day's reflection.
-  func saveDayReflection(day: String, text: String) {
+  /// Saves the day's 复盘 note (or removes it when the text is emptied).
+  func saveDayReflection(day: String, text: String, mood: Int?) {
     let clean = text.trimmed
-    guard clean != (state.dayReflections[day]?.text ?? "") else { return }
+    let existing = state.reflectionNote(on: day)
+    guard clean != (existing?.text ?? "") || (existing != nil && mood != existing?.mood) else { return }
     checkpoint("每日复盘")
-    state.dayReflections[day] = clean.isEmpty ? nil : DayReflection(text: clean)
+    var list = state.notes[day] ?? []
+    if let i = list.firstIndex(where: \.isReflection) {
+      if clean.isEmpty {
+        list.remove(at: i)
+      } else {
+        list[i].text = clean
+        list[i].mood = mood
+      }
+    } else if !clean.isEmpty {
+      var note = NoteEntry(text: clean, time: day == today ? DayKey.clock() : "", photos: [], tags: [])
+      note.isReflection = true
+      note.mood = mood
+      list.append(note)
+    }
+    state.notes[day] = list.isEmpty ? nil : list
     save()
     toast(clean.isEmpty ? "已删除这天的复盘" : "复盘已保存", undoable: "每日复盘")
   }
@@ -537,6 +578,18 @@ final class Store {
     save()
   }
 
+  func setFontStyle(_ style: FontStyle) {
+    JournalFont.style = style
+    state.settings.fontStyle = style
+    save()
+  }
+
+  /// Rebuilds the screens with the chosen font; called when 字体 closes so the sheet
+  /// is not torn down mid-choice.
+  func applyFontStyle() {
+    if appliedFontStyle != state.settings.fontStyle { appliedFontStyle = state.settings.fontStyle }
+  }
+
   // MARK: Home modules
 
   func setHomeModule(_ module: HomeModule, visible: Bool) {
@@ -630,10 +683,12 @@ final class Store {
     if let tab = defaults.string(forKey: "OneDayTab"), let target = AppTab(rawValue: tab) {
       selectedTab = target
     }
+    if defaults.bool(forKey: "OneDayDemo") { recordsMode = .list }
     switch defaults.string(forKey: "OneDayReview") {
     case "overview": reviewTab = .overview
-    case "calendar": reviewTab = .calendar
-    case "photos": reviewTab = .photos
+    case "calendar": recordsMode = .calendar
+    case "photos": recordsMode = .photos
+    case "list": recordsMode = .list
     case "reflect": reviewTab = .reflect
     case "week":
       reviewTab = .reflect
@@ -698,13 +753,19 @@ enum DemoData {
       if k % 8 == 3 { note.photos = [demoPhoto(k / 8)].compactMap { $0 } }
       s.notes[DayKey.add(days: -k, to: t)] = [note]
     }
-    s.dayReflections[y] = DayReflection(text: "效率不错，上午把最难的事先做了。晚上散步时想明白了一件事：慢一点也没关系。")
-    s.dayReflections[DayKey.add(days: -2, to: t)] = DayReflection(text: "被临时的事情打断了好几次，明天先把手机放远一点。")
-    s.dayReflections[DayKey.add(days: -4, to: t)] = DayReflection(text: "早睡早起，状态很好。")
+    func reflect(_ day: String, _ text: String, mood: Int? = nil) {
+      var note = NoteEntry(text: text, time: "22:00", photos: [], tags: [])
+      note.isReflection = true
+      note.mood = mood
+      s.notes[day, default: []].append(note)
+    }
+    reflect(y, "效率不错，上午把最难的事先做了。晚上散步时想明白了一件事：慢一点也没关系。", mood: 5)
+    reflect(DayKey.add(days: -2, to: t), "被临时的事情打断了好几次，明天先把手机放远一点。", mood: 3)
+    reflect(DayKey.add(days: -4, to: t), "早睡早起，状态很好。")
     let lastWeek = DayKey.add(days: -7, to: DayKey.weekStart(t))
     s.weekReflections[lastWeek] = WeekReflection(
       gains: "坚持每天阅读，读完了一本书。", problems: "周三周四熬夜，第二天没精神。", next: "11 点前睡觉\n周末去游泳")
-    s.dayReflections[DayKey.add(days: 2, to: lastWeek)] = DayReflection(text: "开会太多，自己的事几乎没推进。")
+    reflect(DayKey.add(days: 2, to: lastWeek), "开会太多，自己的事几乎没推进。")
     s.normalize()
     return s
   }

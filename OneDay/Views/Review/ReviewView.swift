@@ -19,11 +19,11 @@ struct ReviewView: View {
 
           switch store.reviewTab {
           case .timeline:
-            TimelineList()
-          case .calendar:
-            JournalCalendar(month: $calendarMonth) { store.recap = MonthRef(month: $0) }
-          case .photos:
-            PhotoWall()
+            switch store.recordsMode {
+            case .list: TimelineList()
+            case .calendar: JournalCalendar(month: $calendarMonth) { store.recap = MonthRef(month: $0) }
+            case .photos: PhotoWall()
+            }
           case .reflect:
             ReflectionPanel()
           case .overview:
@@ -33,6 +33,7 @@ struct ReviewView: View {
         .padding(.horizontal, Spacing.page)
         .padding(.bottom, Spacing.section)
         .animation(.snappy, value: store.reviewTab)
+        .animation(.snappy, value: store.recordsMode)
       }
       .background { AppBackground() }
       .navigationTitle("回顾")
@@ -40,7 +41,20 @@ struct ReviewView: View {
         ReviewDayDetail(day: day)
       }
       .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+          if store.reviewTab == .timeline {
+            Menu {
+              Picker("显示方式", selection: recordsModeBinding) {
+                ForEach(RecordsMode.allCases, id: \.self) { mode in
+                  Label(mode.label, systemImage: mode.icon).tag(mode)
+                }
+              }
+            } label: {
+              Image(systemName: store.recordsMode.icon)
+            }
+            .accessibilityLabel("显示方式")
+            .accessibilityValue(store.recordsMode.label)
+          }
           Button {
             showSearch = true
           } label: {
@@ -55,7 +69,7 @@ struct ReviewView: View {
         Group {
           switch target {
           case .day(let day):
-            DayReflectionSheet(day: day, text: store.state.dayReflections[day]?.text ?? "")
+            DayReflectionSheet(day: day, note: store.state.reflectionNote(on: day))
           case .week(let week):
             WeekReflectionSheet(start: week, reflection: store.state.weekReflections[week])
           }
@@ -71,6 +85,10 @@ struct ReviewView: View {
     Binding(
       get: { store.reviewDate.map { [$0] } ?? [] },
       set: { store.reviewDate = $0.last })
+  }
+
+  private var recordsModeBinding: Binding<RecordsMode> {
+    Binding(get: { store.recordsMode }, set: { store.recordsMode = $0 })
   }
 
   private var reflectionBinding: Binding<ReflectionTarget?> {
@@ -227,11 +245,6 @@ private struct TimelineRow: View {
           if let place = first?.place {
             Label(place, systemImage: "location.fill").labelStyle(CompactLabelStyle()).lineLimit(1)
           }
-          if let weather = first?.weather {
-            Image(systemName: LocationWeather.symbol(for: weather))
-          }
-          if notes.contains(where: { $0.media.contains { $0.kind == .audio } }) { Image(systemName: "waveform") }
-          if notes.contains(where: { $0.media.contains { $0.kind == .video } }) { Image(systemName: "video") }
           if notes.count > 1 { Text("\(notes.count) 条") }
         }
         .font(.caption)
@@ -296,8 +309,6 @@ private struct ReviewDayDetail: View {
           }
         }
 
-        DayReflectionNote(day: day)
-
         if !tasks.isEmpty {
           VStack(alignment: .leading, spacing: 10) {
             Text("那一天的事项").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
@@ -334,7 +345,7 @@ private struct ReviewDayDetail: View {
             Button {
               store.reflection = .day(day)
             } label: {
-              Label(store.state.dayReflections[day] == nil ? "写这天的复盘" : "修改这天的复盘", systemImage: "moon.stars")
+              Label(store.state.reflectionNote(on: day) == nil ? "写这天的复盘" : "修改这天的复盘", systemImage: "moon.stars")
             }
             Divider()
             Button(role: .destructive) {
@@ -368,7 +379,12 @@ private struct ReviewDayDetail: View {
   private func entryView(_ note: NoteEntry, index: Int) -> some View {
     VStack(alignment: .leading, spacing: 12) {
       HStack(spacing: 6) {
-        Text(note.time.isEmpty ? "记录 \(index + 1)" : note.time)
+        if note.isReflection {
+          Label("复盘", systemImage: "moon.stars")
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(accent)
+        }
+        Text(note.time.isEmpty ? (note.isReflection ? "" : "记录 \(index + 1)") : note.time)
           .font(.footnote.weight(.medium).monospacedDigit())
           .foregroundStyle(.secondary)
         if let mood = note.mood.flatMap(Mood.init(rawValue:)) {
@@ -406,7 +422,7 @@ private struct ReviewDayDetail: View {
     .contentShape(Rectangle())
     .contextMenu {
       Button {
-        editing = NoteEditTarget(entry: note)
+        edit(note)
       } label: {
         Label("编辑", systemImage: "pencil")
       }
@@ -417,10 +433,19 @@ private struct ReviewDayDetail: View {
       }
     }
     .swipeActions(
-      leading: SwipeAction(title: "编辑", icon: "pencil", tint: .blue) { editing = NoteEditTarget(entry: note) },
+      leading: SwipeAction(title: "编辑", icon: "pencil", tint: .blue) { edit(note) },
       trailing: SwipeAction(title: "删除", icon: "trash", tint: .red) {
         withAnimation(.snappy) { store.deleteNote(day: day, id: note.id) }
       })
+  }
+
+  /// The 复盘 is edited on its own page, next to the day's tasks and notes.
+  private func edit(_ note: NoteEntry) {
+    if note.isReflection {
+      store.reflection = .day(day)
+    } else {
+      editing = NoteEditTarget(entry: note)
+    }
   }
 
   /// One photo fills the width; several share a grid.
@@ -491,12 +516,6 @@ private struct OverviewPanel: View {
       }
       .padding(.top, 8)
 
-      HStack(spacing: 10) {
-        StatTile(title: "本月完成", value: "\(o.total) 次")
-        StatTile(title: "连续完成", value: "\(o.streak) 天")
-        StatTile(title: "有记录", value: "\(o.noteDays) 天")
-      }
-
       RecapEntryCard(recap: store.state.recap(month: month)) { onRecap(month) }
 
       VStack(alignment: .leading, spacing: 14) {
@@ -557,7 +576,7 @@ private struct WeeklyReportCard: View {
       }
       HStack(alignment: .lastTextBaseline, spacing: 6) {
         Text("\(this)")
-          .font(.system(size: 44, weight: .bold, design: .rounded))
+          .font(.system(size: 44, weight: .bold, design: .default))
           .contentTransition(.numericText())
         Text("次完成").foregroundStyle(.secondary)
         Spacer()
@@ -709,7 +728,7 @@ private struct StreaksCard: View {
             Spacer()
             Text("连续").font(.caption).foregroundStyle(.secondary)
             Text("\(s.current)")
-              .font(.system(.title3, design: .rounded, weight: .bold))
+              .font(.system(.title3, design: .default, weight: .bold))
               .foregroundStyle(s.current > 0 ? accent : .secondary)
             Text("天").font(.caption).foregroundStyle(.secondary)
           }

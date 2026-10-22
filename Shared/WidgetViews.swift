@@ -73,8 +73,8 @@ struct OneDayWidgetView: View {
   let snapshot: WidgetSnapshot
   let date: Date
   var interactive = true
-  /// False when the App Group is unavailable (the app never managed to share data).
-  var connected = true
+  /// Replaces 小日's line when there is nothing to show (no shared data yet, or none possible).
+  var notice: String?
 
   var body: some View {
     let theme = CuteTheme.make(scheme, accent: snapshot.accent)
@@ -83,10 +83,10 @@ struct OneDayWidgetView: View {
     case .accessoryCircular: circular
     case .accessoryRectangular: rectangular
     case .accessoryInline: inline
-    case .systemMedium: MediumCute(snapshot: snapshot, mood: mood, theme: theme, interactive: interactive, connected: connected)
+    case .systemMedium: MediumCute(snapshot: snapshot, mood: mood, theme: theme, interactive: interactive, notice: notice)
     case .systemLarge, .systemExtraLarge:
-      LargeCute(snapshot: snapshot, mood: mood, theme: theme, date: date, interactive: interactive, connected: connected)
-    default: SmallCute(snapshot: snapshot, mood: mood, theme: theme, connected: connected)
+      LargeCute(snapshot: snapshot, mood: mood, theme: theme, date: date, interactive: interactive, notice: notice)
+    default: SmallCute(snapshot: snapshot, mood: mood, theme: theme, notice: notice)
     }
   }
 
@@ -142,7 +142,7 @@ private struct SmallCute: View {
   let snapshot: WidgetSnapshot
   let mood: MascotMood
   let theme: CuteTheme
-  let connected: Bool
+  let notice: String?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
@@ -162,7 +162,7 @@ private struct SmallCute: View {
         }
       }
       Spacer(minLength: 0)
-      SpeechBubble(text: connected ? mood.line(for: snapshot) : "打开 OneDay 一次", theme: theme, size: 13)
+      SpeechBubble(text: notice ?? mood.line(for: snapshot), theme: theme, size: 13)
       ChunkyBar(progress: snapshot.progress, theme: theme)
     }
     .widgetURL(URL(string: "oneday://today"))
@@ -176,13 +176,13 @@ private struct MediumCute: View {
   let mood: MascotMood
   let theme: CuteTheme
   let interactive: Bool
-  let connected: Bool
+  let notice: String?
 
   var body: some View {
     HStack(alignment: .center, spacing: 12) {
       VStack(spacing: 6) {
         MascotView(mood: mood, size: 74)
-        Text(connected ? mood.line(for: snapshot) : "打开 OneDay 一次")
+        Text(notice ?? mood.line(for: snapshot))
           .font(.cute(12))
           .foregroundStyle(theme.ink)
           .multilineTextAlignment(.center)
@@ -235,7 +235,7 @@ private struct LargeCute: View {
   let theme: CuteTheme
   let date: Date
   let interactive: Bool
-  let connected: Bool
+  let notice: String?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -243,7 +243,7 @@ private struct LargeCute: View {
         MascotView(mood: mood, size: 72)
         VStack(alignment: .leading, spacing: 4) {
           Text(greeting).font(.cute(20, .heavy)).foregroundStyle(theme.ink)
-          SpeechBubble(text: connected ? mood.line(for: snapshot) : "打开 OneDay 一次", theme: theme, size: 12)
+          SpeechBubble(text: notice ?? mood.line(for: snapshot), theme: theme, size: 12)
         }
         Spacer(minLength: 0)
         ProgressRing(snapshot: snapshot, theme: theme)

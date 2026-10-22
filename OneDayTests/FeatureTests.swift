@@ -201,9 +201,13 @@ final class FeatureTests: XCTestCase {
     s.weekReflections["2026-10-15"] = WeekReflection(gains: "读完一本书", problems: "", next: "")
     s.normalize()
 
-    XCTAssertEqual(s.dayReflections["2026-10-21"]?.text, "还行")
-    XCTAssertNil(s.dayReflections["2026-10-23"], "blank reflections are dropped")
-    XCTAssertNil(s.dayReflections["bad-key"])
+    // 1.2's separate daily reflections become the day's 复盘 note.
+    XCTAssertTrue(s.dayReflections.isEmpty)
+    XCTAssertEqual(s.reflectionNote(on: "2026-10-21")?.text, "还行")
+    XCTAssertNil(s.notes["2026-10-23"], "blank reflections are dropped")
+    XCTAssertNil(s.notes["bad-key"])
+    XCTAssertEqual(s.moments(on: "2026-10-21").count, 0)
+    XCTAssertEqual(s.daySummary("2026-10-20").notes, 1)
     XCTAssertNotNil(s.weekReflections["2026-10-12"], "weekly reflections are keyed by Monday")
 
     let week = s.weekSummary(start: "2026-10-22", today: today)
@@ -213,7 +217,7 @@ final class FeatureTests: XCTestCase {
     XCTAssertEqual(week.completions, 4)
     XCTAssertEqual(week.lastWeekCompletions, 3, "Mon–Thu of last week only")
     XCTAssertEqual(week.dayDone, [1, 1, 1, 1, 0, 0, 0])
-    XCTAssertEqual(week.noteDays, 1)
+    XCTAssertEqual(week.noteDays, 2, "a 复盘 counts as a record")
     XCTAssertEqual(week.reflectionDays, ["2026-10-21"])
     XCTAssertEqual(week.tasks.first { $0.title == "阅读" }?.marks, [true, true, false, true, nil, nil, nil])
     XCTAssertEqual(week.tasks.first { $0.title == "体检" }?.marks, [nil, nil, true, nil, nil, nil, nil])
@@ -238,23 +242,46 @@ final class FeatureTests: XCTestCase {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("reflect-\(UUID().uuidString).sqlite")
     defer { try? FileManager.default.removeItem(at: url) }
     let db = try Database(url: url)
-    var s = AppState()
-    s.dayReflections["2026-10-22"] = DayReflection(text: "今天不错")
-    s.weekReflections["2026-10-19"] = WeekReflection(gains: "收获", problems: "", next: "早睡")
-    try db.apply(Database.diff(from: nil, to: s))
+    // A 1.2 database: the daily reflection lives in its own row.
+    var old = AppState()
+    old.dayReflections["2026-10-22"] = DayReflection(text: "今天不错")
+    old.weekReflections["2026-10-19"] = WeekReflection(gains: "收获", problems: "", next: "早睡")
+    try db.apply(Database.diff(from: nil, to: old))
+
+    // Loading migrates it into a 复盘 note and writes that back, as Storage does.
+    let raw = try XCTUnwrap(try db.load())
+    var migrated = raw
+    migrated.normalize()
+    try db.apply(Database.diff(from: raw, to: migrated))
     var loaded = try XCTUnwrap(try db.load())
-    XCTAssertEqual(loaded.dayReflections["2026-10-22"]?.text, "今天不错")
+    XCTAssertTrue(loaded.dayReflections.isEmpty, "the old row is gone")
+    XCTAssertEqual(loaded.reflectionNote(on: "2026-10-22")?.text, "今天不错")
     XCTAssertEqual(loaded.weekReflections["2026-10-19"]?.next, "早睡")
 
     var edited = loaded
-    edited.dayReflections["2026-10-22"] = nil
+    edited.notes["2026-10-22"] = nil
     edited.weekReflections["2026-10-19"]?.gains = "新的收获"
     let changes = Database.diff(from: loaded, to: edited)
-    XCTAssertEqual(changes.rowCount, 2, "one delete and one update")
+    XCTAssertEqual(changes.rowCount, 2, "one note deleted and one week updated")
     try db.apply(changes)
     loaded = try XCTUnwrap(try db.load())
-    XCTAssertNil(loaded.dayReflections["2026-10-22"])
+    XCTAssertNil(loaded.reflectionNote(on: "2026-10-22"))
     XCTAssertEqual(loaded.weekReflections["2026-10-19"]?.gains, "新的收获")
+  }
+
+  func testOneReflectionNotePerDay() throws {
+    var s = AppState()
+    var a = NoteEntry(text: "复盘一", time: "21:00", photos: [], tags: [])
+    a.isReflection = true
+    var b = NoteEntry(text: "复盘二", time: "22:00", photos: [], tags: [])
+    b.isReflection = true
+    s.notes[today] = [a, b]
+    s.normalize()
+    XCTAssertEqual(s.notes[today]?.filter(\.isReflection).map(\.text), ["复盘一"])
+    XCTAssertEqual(s.moments(on: today).map(\.text), ["复盘二"])
+    let data = try JSONEncoder().encode(s)
+    let back = try JSONDecoder().decode(AppState.self, from: data)
+    XCTAssertEqual(back.reflectionNote(on: today)?.text, "复盘一", "the flag survives backups")
   }
 
   func testWidgetSnapshotRollsOverAtMidnight() {
@@ -301,5 +328,16 @@ final class FeatureTests: XCTestCase {
     XCTAssertNil(AppRoute(url: URL(string: "https://capture")!))
     XCTAssertEqual(AppRoute(shortcutType: "com.oneday.app.reflect"), .reflect)
     XCTAssertNil(AppRoute(shortcutType: "com.oneday.app.unknown"))
+  }
+
+  func testAppGroupFromProvisioningProfile() {
+    let xml = "<?xml version=\"1.0\"?><plist version=\"1.0\"><dict><key>Entitlements</key><dict>"
+      + "<key>com.apple.security.application-groups</key><array><string>group.com.oneday.app.ABC123</string>"
+      + "<string>group.*</string></array></dict></dict></plist>"
+    var data = Data([0x30, 0x82, 0x00])  // stands in for the CMS envelope
+    data.append(Data(xml.utf8))
+    data.append(Data([0x00, 0xA0]))
+    XCTAssertEqual(SharedData.provisionedGroups(fromProfile: data), ["group.com.oneday.app.ABC123"])
+    XCTAssertEqual(SharedData.provisionedGroups(fromProfile: Data("no plist".utf8)), [])
   }
 }

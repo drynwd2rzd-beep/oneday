@@ -118,6 +118,10 @@ struct RootView: View {
         .tag(AppTab.me)
     }
     .tabBarMinimizesOnScroll()
+    // Fonts come from a static switch, so rebuild the screens when it flips.
+    .id(store.appliedFontStyle)
+    // 圆体 reaches every system text style, not only the journal call sites.
+    .fontDesign(store.appliedFontStyle == .rounded ? .rounded : nil)
     .environment(\.palette, Palette.make(tone: store.settings.bgTone, dark: colorScheme == .dark))
     .environment(\.visualStyle, store.settings.cardStyle)
     .environment(\.accent, store.accentColor)

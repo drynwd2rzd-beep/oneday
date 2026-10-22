@@ -37,8 +37,14 @@ final class Storage: @unchecked Sendable {
       let db = try Database(url: databaseURL)
       database = db
       protectFiles()
-      if var state = try db.load() {
+      if let loaded = try db.load() {
+        var state = loaded
         state.normalize()
+        // Write back what normalizing migrated (e.g. 1.2's daily reflections becoming notes),
+        // so the database never resurrects the old rows.
+        if !loaded.dayReflections.isEmpty {
+          try? db.apply(Database.diff(from: loaded, to: state))
+        }
         lastSaved = state
         return state
       }

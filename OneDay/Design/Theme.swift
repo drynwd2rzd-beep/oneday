@@ -27,12 +27,23 @@ enum Radius {
 
 // MARK: - Journal type
 
+/// Mirrors `Settings.fontStyle`; the root view is rebuilt when it changes.
+enum JournalFont {
+  static var style: FontStyle = .system
+}
+
 extension Font {
   /// Journal typeface (a common-character subset of LXGW WenKai, bundled as "OneDay Journal")
   /// for greetings, notes and memories. Scales with Dynamic Type; tools and settings stay in the
   /// system font. Characters outside the subset fall back to the system font.
+  /// Greetings, notes and titles in the font chosen in 我的 → 字体, at the matching text style
+  /// so they read as one typeface with the rest of the screen.
   static func journal(_ style: Font.TextStyle, size: CGFloat, bold: Bool = false) -> Font {
-    .custom(bold ? "OneDayJournal-Medium" : "OneDayJournal-Regular", size: size, relativeTo: style)
+    switch JournalFont.style {
+    case .system: .system(style, weight: bold ? .semibold : .regular)
+    case .rounded: .system(style, design: .rounded, weight: bold ? .semibold : .regular)
+    case .journal: .custom(bold ? "OneDayJournal-Medium" : "OneDayJournal-Regular", size: size, relativeTo: style)
+    }
   }
 }
 

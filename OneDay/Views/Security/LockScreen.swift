@@ -116,7 +116,7 @@ struct PasscodeEntry: View {
         if code.count == 6 { submit() }
       } label: {
         Text(key)
-          .font(.system(size: 32, weight: .regular, design: .rounded))
+          .font(.system(size: 32, weight: .regular, design: .default))
           .frame(width: 76, height: 76)
           .circleSurface(interactive: true)
       }
