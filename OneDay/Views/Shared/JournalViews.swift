@@ -43,62 +43,35 @@ struct MarkdownText: View {
   }
 }
 
-/// Multi-line editor with a small formatting bar that wraps the selection in Markdown.
+/// Multi-line note editor. Plain text in, so what you type is what you see; Markdown already
+/// in older notes still renders when viewing.
 struct NoteTextEditor: View {
   let placeholder: String
   @Binding var text: String
   var minHeight: CGFloat = 96
   var autoFocus = false
   var onFocusChange: (Bool) -> Void = { _ in }
-  @State private var selection: TextSelection?
   @FocusState private var focused: Bool
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      TextField(placeholder, text: $text, selection: $selection, axis: .vertical)
+      TextField(placeholder, text: $text, axis: .vertical)
         .lineLimit(4...14)
         .focused($focused)
         .frame(minHeight: minHeight, alignment: .topLeading)
       if focused {
-        HStack(spacing: 4) {
-          formatButton("bold", label: "粗体", marker: "**")
-          formatButton("italic", label: "斜体", marker: "*")
-          formatButton("strikethrough", label: "删除线", marker: "~~")
-          formatButton("chevron.left.forwardslash.chevron.right", label: "代码", marker: "`")
+        HStack {
           Spacer()
           Button("完成") { focused = false }
             .font(.subheadline.weight(.semibold))
+            .buttonStyle(.borderless)
         }
-        .buttonStyle(.borderless)
         .transition(.opacity)
       }
     }
     .animation(.snappy, value: focused)
     .onAppear { if autoFocus { focused = true } }
     .onChange(of: focused) { _, value in onFocusChange(value) }
-  }
-
-  private func formatButton(_ icon: String, label: String, marker: String) -> some View {
-    Button {
-      wrap(marker)
-    } label: {
-      Image(systemName: icon)
-        .font(.subheadline.weight(.semibold))
-        .frame(width: 34, height: 30)
-    }
-    .foregroundStyle(.secondary)
-    .accessibilityLabel(label)
-  }
-
-  private func wrap(_ marker: String) {
-    if case .selection(let range) = selection?.indices, !range.isEmpty,
-       range.lowerBound >= text.startIndex, range.upperBound <= text.endIndex {
-      let inner = String(text[range])
-      text.replaceSubrange(range, with: marker + inner + marker)
-    } else {
-      text += marker + marker
-    }
-    Haptics.tap()
   }
 }
 

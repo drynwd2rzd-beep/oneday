@@ -37,8 +37,6 @@ struct NoteEditorSheet: View {
           NoteTextEditor(placeholder: "不需要写得很好，只留下真实的你。", text: $note.text)
         } header: {
           Text("内容")
-        } footer: {
-          Text("选中文字后，可以设为粗体、斜体或删除线。")
         }
 
         Section {
