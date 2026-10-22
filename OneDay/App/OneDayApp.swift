@@ -75,10 +75,10 @@ struct RootView: View {
         .tabItem { Label("事项", systemImage: "checklist") }
         .tag(AppTab.tasks)
       PlansView()
-        .tabItem { Label("计划", systemImage: "scope") }
+        .tabItem { Label("计划", systemImage: "flag") }
         .tag(AppTab.plans)
       ReviewView()
-        .tabItem { Label("回顾", systemImage: "clock.arrow.circlepath") }
+        .tabItem { Label("回顾", systemImage: "book") }
         .tag(AppTab.review)
       MeView()
         .tabItem { Label("我的", systemImage: "person.crop.circle") }

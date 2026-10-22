@@ -46,9 +46,10 @@ final class OneDayUITests: XCTestCase {
 
   func testEditRecordShowsMediaAndPlace() {
     let app = launch(["-OneDayTab", "review", "-OneDayReview", "day"])
-    let menu = app.buttons["记录操作"].firstMatch
-    XCTAssertTrue(menu.waitForExistence(timeout: 8))
-    menu.tap()
+    let note = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "傍晚的风")).firstMatch
+    XCTAssertTrue(note.waitForExistence(timeout: 8), "day page pushed with the note")
+    note.press(forDuration: 1.0)
+    XCTAssertTrue(app.buttons["编辑"].waitForExistence(timeout: 3), "long press shows the menu")
     app.buttons["编辑"].tap()
     XCTAssertTrue(app.staticTexts["照片和视频"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.buttons["添加照片或视频"].exists)
@@ -61,10 +62,11 @@ final class OneDayUITests: XCTestCase {
     let app = launch(["-OneDayTab", "plans"])
     XCTAssertTrue(app.staticTexts["成为更强大的人"].waitForExistence(timeout: 8))
     let contains = { (text: String) in NSPredicate(format: "label CONTAINS %@", text) }
-    XCTAssertTrue(app.descendants(matching: .any).matching(contains("近 7 天完成")).firstMatch.exists, "linked tasks give the plan progress")
+    XCTAssertTrue(app.descendants(matching: .any).matching(contains("近 7 天")).firstMatch.exists, "linked tasks give the plan progress")
     XCTAssertTrue(app.buttons.matching(contains("已暂停")).firstMatch.exists, "paused group is shown")
-    let menu = app.buttons.matching(identifier: "计划操作").element(boundBy: 1)
-    menu.tap()
+    let swim = app.descendants(matching: .any).matching(contains("学会游泳")).firstMatch
+    swim.press(forDuration: 1.0)
+    XCTAssertTrue(app.buttons["暂停"].waitForExistence(timeout: 3), "long press shows plan actions")
     app.buttons["暂停"].tap()
     XCTAssertTrue(app.buttons["撤销"].waitForExistence(timeout: 3))
   }

@@ -189,130 +189,6 @@ struct TagLabel: View {
 
 // MARK: - Tasks
 
-struct TaskRow: View {
-  @Environment(Store.self) private var store
-  @Environment(\.accent) private var accent
-  let task: TaskItem
-  let day: String
-  @State private var editingReminder = false
-
-  var body: some View {
-    let done = task.isDone(on: day)
-    HStack(spacing: 14) {
-      Button {
-        withAnimation(.snappy) { store.toggleTask(task.id, on: day) }
-      } label: {
-        Image(systemName: done ? "checkmark.circle.fill" : "circle")
-          .font(.title2)
-          .foregroundStyle(done ? accent : Color.secondary)
-          .contentTransition(.symbolEffect(.replace))
-          .symbolEffect(.bounce, value: done)
-          .frame(width: 34, height: 34)
-          .contentShape(Rectangle())
-      }
-      .buttonStyle(.plain)
-      .accessibilityLabel(done ? "取消完成：\(task.title)" : "完成事项：\(task.title)")
-
-      VStack(alignment: .leading, spacing: 3) {
-        Text(task.title)
-          .font(.body.weight(.semibold))
-          .strikethrough(done, color: .secondary)
-          .foregroundStyle(done ? .secondary : .primary)
-        // One line when it fits; otherwise the plan moves to its own line instead of squeezing words apart.
-        ViewThatFits(in: .horizontal) {
-          HStack(spacing: 8) {
-            metaText
-            planLabel
-          }
-          VStack(alignment: .leading, spacing: 2) {
-            metaText
-            planLabel
-          }
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-      }
-      .frame(maxWidth: .infinity, alignment: .leading)
-      Menu {
-        Button {
-          editingReminder = true
-        } label: {
-          Label(task.reminder == nil ? "设置提醒" : "修改提醒", systemImage: "bell")
-        }
-        if !store.state.activePlans.isEmpty || task.planId != nil {
-          Menu {
-            Picker("所属计划", selection: Binding(get: { task.planId }, set: { store.setPlan($0, for: task.id) })) {
-              Text("不属于计划").tag(String?.none)
-              ForEach(store.state.activePlans) { plan in
-                Label(plan.title, systemImage: plan.symbol).tag(Optional(plan.id))
-              }
-            }
-          } label: {
-            Label("归入计划", systemImage: "scope")
-          }
-        }
-        if task.reminder != nil {
-          Button {
-            store.setReminder(nil, for: task.id)
-          } label: {
-            Label("关闭提醒", systemImage: "bell.slash")
-          }
-        }
-        Divider()
-        Button(role: .destructive) {
-          store.deleteTask(task.id)
-        } label: {
-          Label("删除事项", systemImage: "trash")
-        }
-      } label: {
-        Image(systemName: "ellipsis")
-          .font(.body.weight(.semibold))
-          .frame(width: 34, height: 34)
-          .contentShape(Rectangle())
-      }
-      .tint(.secondary)
-      .accessibilityLabel("更多操作：\(task.title)")
-    }
-    .padding(.vertical, 6)
-    .contentShape(Rectangle())
-    .swipeActions(
-      leading: SwipeAction(
-        title: done ? "取消完成" : "完成", icon: done ? "arrow.uturn.backward" : "checkmark",
-        tint: done ? .gray : accent
-      ) { withAnimation(.snappy) { store.toggleTask(task.id, on: day) } },
-      trailing: SwipeAction(title: "删除", icon: "trash", tint: .red) {
-        withAnimation(.snappy) { store.deleteTask(task.id) }
-      })
-    .sheet(isPresented: $editingReminder) {
-      ReminderSheet(task: task).oneDaySheet()
-    }
-  }
-}
-
-extension TaskRow {
-  fileprivate var metaText: some View {
-    HStack(spacing: 8) {
-      Text("\(task.repeatMode.label) · 已完成 \(task.completionCount) 次")
-      if let reminder = task.reminder {
-        Label(DayKey.clock(minutes: reminder), systemImage: "bell.fill")
-          .labelStyle(CompactLabelStyle())
-      }
-    }
-    .lineLimit(1)
-    .minimumScaleFactor(0.85)
-  }
-
-  @ViewBuilder
-  fileprivate var planLabel: some View {
-    if let plan = store.state.plan(task.planId) {
-      Label(plan.title, systemImage: plan.symbol)
-        .labelStyle(CompactLabelStyle())
-        .foregroundStyle(plan.color.map { Color(hex: $0) } ?? accent)
-        .lineLimit(1)
-    }
-  }
-}
-
 struct TaskList: View {
   let tasks: [TaskItem]
   let day: String
@@ -320,7 +196,7 @@ struct TaskList: View {
   var body: some View {
     VStack(spacing: 0) {
       ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
-        if index > 0 { Divider().padding(.leading, 48) }
+        if index > 0 { Divider().padding(.leading, 40) }
         TaskRow(task: task, day: day)
       }
     }
@@ -553,36 +429,32 @@ struct PhotoLightbox: View {
 
 // MARK: - Settings rows
 
+/// A row in the style of the Settings app: tinted icon tile, title, current value, chevron.
 struct SettingRow: View {
   @Environment(\.accent) private var accent
   let icon: String
   let title: String
-  let desc: String
   var value: String?
   var tint: Color?
   let action: () -> Void
 
   var body: some View {
     Button(action: action) {
-      HStack(spacing: 14) {
+      HStack(spacing: 12) {
         Image(systemName: icon)
-          .font(.callout.weight(.semibold))
+          .font(.subheadline.weight(.semibold))
           .foregroundStyle(.white)
-          .frame(width: 32, height: 32)
-          .background((tint ?? accent).gradient, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-        VStack(alignment: .leading, spacing: 2) {
-          Text(title).foregroundStyle(.primary)
-          Text(desc).font(.caption).foregroundStyle(.secondary)
-        }
+          .frame(width: 29, height: 29)
+          .background(tint ?? accent, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        Text(title).foregroundStyle(.primary)
         Spacer(minLength: 8)
         if let value {
-          Text(value).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+          Text(value).foregroundStyle(.secondary).lineLimit(1)
         }
         Image(systemName: "chevron.right")
           .font(.footnote.weight(.semibold))
           .foregroundStyle(.tertiary)
       }
-      .padding(.vertical, 10)
       .contentShape(Rectangle())
     }
     .buttonStyle(.plain)

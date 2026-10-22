@@ -249,3 +249,69 @@ struct VideoPlayerScreen: View {
     .onDisappear { player?.pause() }
   }
 }
+
+// MARK: - Photo-first journal card
+
+/// A journal card: the first photo large on top (when there is one), then the date and text in
+/// the journal typeface. Used by the timeline and "那年今日".
+struct MemoryCard: View {
+  @Environment(\.palette) private var palette
+  @Environment(\.visualStyle) private var style
+  let caption: String
+  let notes: [NoteEntry]
+  var showsChevron = false
+
+  private var cover: String? { notes.lazy.compactMap(\.photos.first).first }
+
+  var body: some View {
+    let first = notes.first
+    VStack(alignment: .leading, spacing: 0) {
+      if let cover, let image = MediaStore.image(cover) {
+        Color.clear
+          .frame(height: 180)
+          .overlay {
+            Image(uiImage: image).resizable().scaledToFill()
+          }
+          .clipped()
+          .accessibilityHidden(true)
+      }
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(alignment: .firstTextBaseline) {
+          Text(caption)
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.secondary)
+          Spacer(minLength: 8)
+          HStack(spacing: 6) {
+            if notes.contains(where: { $0.media.contains { $0.kind == .video } }) { Image(systemName: "video") }
+            if notes.contains(where: { $0.media.contains { $0.kind == .audio } }) { Image(systemName: "waveform") }
+            if notes.count > 1 { Text("\(notes.count) 条") }
+            if showsChevron { Image(systemName: "chevron.right").fontWeight(.semibold) }
+          }
+          .font(.caption)
+          .foregroundStyle(.tertiary)
+        }
+        if let first {
+          Text(excerpt(first))
+            .font(.journal(.body, size: 17))
+            .foregroundStyle(.primary)
+            .lineSpacing(4)
+            .lineLimit(4)
+            .multilineTextAlignment(.leading)
+          NoteMetaLine(note: first)
+        }
+      }
+      .padding(Spacing.card)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .surface(cornerRadius: style == .flat ? Radius.flatCard : Radius.card)
+    .clipShape(RoundedRectangle(cornerRadius: style == .flat ? Radius.flatCard : Radius.card, style: .continuous))
+    .contentShape(Rectangle())
+  }
+
+  private func excerpt(_ note: NoteEntry) -> String {
+    if !note.text.isEmpty { return MarkdownText.plain(note.text) }
+    if !note.photos.isEmpty { return "留下了照片" }
+    if note.media.contains(where: { $0.kind == .video }) { return "留下了视频" }
+    return "留下了一段语音"
+  }
+}

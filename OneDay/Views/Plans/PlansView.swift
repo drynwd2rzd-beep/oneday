@@ -28,9 +28,6 @@ struct PlansView: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: Spacing.stack) {
-          PageIntro(title: "以后要去哪里。", subtitle: "把长期方向和每天的事项连起来。")
-            .padding(.bottom, 4)
-
           if active.isEmpty {
             EmptyState(title: "还没有进行中的计划", icon: "scope", message: "先写下真正重要的方向。").card()
           } else {
@@ -128,93 +125,59 @@ private struct PlanCard: View {
   var body: some View {
     let progress = store.state.progress(of: plan, today: store.today)
     let muted = plan.status != .active
-    VStack(alignment: .leading, spacing: Spacing.inner) {
-      HStack(alignment: .top, spacing: 12) {
-        Image(systemName: plan.symbol)
-          .font(.body.weight(.semibold))
-          .foregroundStyle(.white)
-          .frame(width: 36, height: 36)
-          .background(tint.opacity(muted ? 0.45 : 1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        VStack(alignment: .leading, spacing: 3) {
-          HStack(spacing: 6) {
-            Text(plan.title)
-              .font(.headline)
-              .foregroundStyle(muted ? .secondary : .primary)
-            if plan.pinned {
-              Image(systemName: "pin.fill").font(.caption2).foregroundStyle(.secondary)
-                .accessibilityLabel("已置顶")
-            }
+    HStack(alignment: .top, spacing: 14) {
+      Image(systemName: plan.symbol)
+        .font(.title3.weight(.medium))
+        .foregroundStyle(muted ? Color.secondary : tint)
+        .frame(width: 28)
+      VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 6) {
+          Text(plan.title)
+            .font(.headline)
+            .foregroundStyle(muted ? .secondary : .primary)
+          if plan.pinned {
+            Image(systemName: "pin.fill").font(.caption2).foregroundStyle(.tertiary)
+              .accessibilityLabel("已置顶")
           }
-          Text(statusLine)
-            .font(.caption)
-            .foregroundStyle(.secondary)
         }
-        Spacer(minLength: 4)
-        actionsMenu
-      }
-
-      if !plan.desc.isEmpty {
-        Text(plan.desc)
-          .font(.subheadline)
+        Text(summary(progress))
+          .font(.footnote)
           .foregroundStyle(.secondary)
-          .fixedSize(horizontal: false, vertical: true)
-      }
-
-      if !progress.tasks.isEmpty {
-        VStack(alignment: .leading, spacing: 8) {
-          HStack(spacing: 14) {
-            stat("\(progress.lastWeek)", "近 7 天完成")
-            stat("\(progress.total)", "累计完成")
-            if progress.streak > 0 { stat("\(progress.streak) 天", "连续") }
-          }
-          FlowLayout(spacing: 6) {
-            ForEach(progress.tasks) { task in
-              Text(task.title)
-                .font(.caption)
-                .foregroundStyle(tint)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(tint.opacity(0.12), in: Capsule())
-            }
-          }
+          .lineLimit(2)
+        if !progress.tasks.isEmpty && plan.status == .active {
+          WeekDots(plan: plan, tint: tint)
+            .padding(.top, 4)
         }
-        .padding(.top, 2)
-      } else if plan.status == .active {
-        Button {
-          onEdit()
-        } label: {
-          Label("关联每天的事项，让计划有进度", systemImage: "link")
-            .font(.caption)
-        }
-        .buttonStyle(.borderless)
-        .tint(tint)
       }
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
     .card()
     .contentShape(Rectangle())
     .onTapGesture(perform: onEdit)
+    .contextMenu { menu }
     .swipeActions(
       leading: leadingSwipe,
       trailing: SwipeAction(title: "删除", icon: "trash", tint: .red) {
         withAnimation(.snappy) { store.deletePlan(plan.id) }
       })
-    .accessibilityHint("轻点编辑")
-  }
-
-  private var statusLine: String {
-    switch plan.status {
-    case .done: plan.doneAt.map { "完成于 \(DayKey.fullDate($0))" } ?? "已经完成"
-    case .active: "进行中 · 开始于 \(DayKey.fullDate(plan.created))"
-    default: plan.status.line
-    }
-  }
-
-  private func stat(_ value: String, _ label: String) -> some View {
-    VStack(alignment: .leading, spacing: 1) {
-      Text(value).font(.subheadline.weight(.semibold).monospacedDigit())
-      Text(label).font(.caption2).foregroundStyle(.secondary)
-    }
     .accessibilityElement(children: .combine)
+    .accessibilityHint("轻点编辑，长按查看更多操作")
+  }
+
+  /// One quiet line: progress when tasks are linked, otherwise the description or status.
+  private func summary(_ progress: PlanProgress) -> String {
+    switch plan.status {
+    case .done: return plan.doneAt.map { "完成于 \(DayKey.fullDate($0))" } ?? "已经完成"
+    case .paused: return "已暂停"
+    case .archived: return "已归档"
+    case .active:
+      if !progress.tasks.isEmpty {
+        var text = "近 7 天 \(progress.lastWeek) 次 · 累计 \(progress.total) 次"
+        if progress.streak > 0 { text += " · 连续 \(progress.streak) 天" }
+        return text
+      }
+      return plan.desc.isEmpty ? "长按可以关联每天的事项" : plan.desc
+    }
   }
 
   private var leadingSwipe: SwipeAction {
@@ -228,48 +191,61 @@ private struct PlanCard: View {
     }
   }
 
-  private var actionsMenu: some View {
-    Menu {
-      Button {
-        onEdit()
-      } label: {
-        Label("编辑", systemImage: "pencil")
-      }
-      if plan.status == .active {
-        Button {
-          store.togglePin(plan.id)
-        } label: {
-          Label(plan.pinned ? "取消置顶" : "置顶", systemImage: plan.pinned ? "pin.slash" : "pin")
-        }
-      }
-      Divider()
-      switch plan.status {
-      case .active:
-        Button { store.setPlanStatus(plan.id, .done) } label: { Label("标记完成", systemImage: "checkmark.circle") }
-        Button { store.setPlanStatus(plan.id, .paused) } label: { Label("暂停", systemImage: "pause.circle") }
-      case .paused:
-        Button { store.setPlanStatus(plan.id, .active) } label: { Label("继续进行", systemImage: "play.circle") }
-        Button { store.setPlanStatus(plan.id, .done) } label: { Label("标记完成", systemImage: "checkmark.circle") }
-      case .done, .archived:
-        Button { store.setPlanStatus(plan.id, .active) } label: { Label("重新进行", systemImage: "arrow.uturn.backward.circle") }
-      }
-      if plan.status != .archived {
-        Button { store.setPlanStatus(plan.id, .archived) } label: { Label("归档", systemImage: "archivebox") }
-      }
-      Divider()
-      Button(role: .destructive) {
-        withAnimation(.snappy) { store.deletePlan(plan.id) }
-      } label: {
-        Label("删除", systemImage: "trash")
-      }
+  @ViewBuilder
+  private var menu: some View {
+    Button {
+      onEdit()
     } label: {
-      Image(systemName: "ellipsis")
-        .font(.body.weight(.semibold))
-        .frame(width: 32, height: 32)
-        .contentShape(Rectangle())
+      Label("编辑与关联事项", systemImage: "pencil")
     }
-    .tint(.secondary)
-    .accessibilityLabel("计划操作")
+    if plan.status == .active {
+      Button {
+        store.togglePin(plan.id)
+      } label: {
+        Label(plan.pinned ? "取消置顶" : "置顶", systemImage: plan.pinned ? "pin.slash" : "pin")
+      }
+    }
+    Divider()
+    switch plan.status {
+    case .active:
+      Button { store.setPlanStatus(plan.id, .done) } label: { Label("标记完成", systemImage: "checkmark.circle") }
+      Button { store.setPlanStatus(plan.id, .paused) } label: { Label("暂停", systemImage: "pause.circle") }
+    case .paused:
+      Button { store.setPlanStatus(plan.id, .active) } label: { Label("继续进行", systemImage: "play.circle") }
+      Button { store.setPlanStatus(plan.id, .done) } label: { Label("标记完成", systemImage: "checkmark.circle") }
+    case .done, .archived:
+      Button { store.setPlanStatus(plan.id, .active) } label: { Label("重新进行", systemImage: "arrow.uturn.backward.circle") }
+    }
+    if plan.status != .archived {
+      Button { store.setPlanStatus(plan.id, .archived) } label: { Label("归档", systemImage: "archivebox") }
+    }
+    Divider()
+    Button(role: .destructive) {
+      withAnimation(.snappy) { store.deletePlan(plan.id) }
+    } label: {
+      Label("删除", systemImage: "trash")
+    }
+  }
+}
+
+/// Seven dots for the last seven days: filled when any linked task was done that day.
+private struct WeekDots: View {
+  @Environment(Store.self) private var store
+  let plan: Plan
+  let tint: Color
+
+  var body: some View {
+    let linked = store.state.tasks.filter { $0.planId == plan.id }
+    HStack(spacing: 6) {
+      ForEach((0..<7).reversed(), id: \.self) { back in
+        let day = DayKey.add(days: -back, to: store.today)
+        let done = linked.contains { $0.isDone(on: day) }
+        Circle()
+          .fill(done ? tint : Color.secondary.opacity(0.18))
+          .frame(width: 8, height: 8)
+      }
+    }
+    .accessibilityHidden(true)
   }
 }
 

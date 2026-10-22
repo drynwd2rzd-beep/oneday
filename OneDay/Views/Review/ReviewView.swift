@@ -8,51 +8,32 @@ struct ReviewView: View {
   @State private var overviewMonth = DayKey.monthStart(Date())
 
   var body: some View {
-    NavigationStack {
-      ScrollViewReader { proxy in
-        ScrollView {
-          VStack(alignment: .leading, spacing: Spacing.stack) {
-            Color.clear.frame(height: 0).id("top")
-            PageIntro(title: "回到走过的日子。", subtitle: "看看发生过什么，也看看坚持了什么。")
-            Picker("回顾", selection: tabBinding) {
-              ForEach(ReviewTab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.segmented)
-
-            switch store.reviewTab {
-            case .timeline:
-              if let day = store.reviewDate {
-                ReviewDayDetail(day: day)
-                  .transition(.move(edge: .trailing).combined(with: .opacity))
-              } else {
-                TimelineList()
-                  .transition(.opacity)
-              }
-            case .overview:
-              OverviewPanel(month: $overviewMonth)
-            }
+    NavigationStack(path: dayPath) {
+      ScrollView {
+        VStack(alignment: .leading, spacing: Spacing.stack) {
+          Picker("回顾", selection: tabBinding) {
+            ForEach(ReviewTab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
           }
-          .padding(.horizontal, Spacing.page)
-          .padding(.bottom, Spacing.section)
-          .animation(.snappy, value: store.reviewDate)
-          .animation(.snappy, value: store.reviewTab)
+          .pickerStyle(.segmented)
+          .padding(.bottom, 4)
+
+          switch store.reviewTab {
+          case .timeline:
+            TimelineList()
+          case .overview:
+            OverviewPanel(month: $overviewMonth)
+          }
         }
-        .onChange(of: store.reviewDate) { _, _ in
-          withAnimation(.snappy) { proxy.scrollTo("top", anchor: .top) }
-        }
+        .padding(.horizontal, Spacing.page)
+        .padding(.bottom, Spacing.section)
+        .animation(.snappy, value: store.reviewTab)
       }
       .background { AppBackground() }
       .navigationTitle("回顾")
+      .navigationDestination(for: String.self) { day in
+        ReviewDayDetail(day: day)
+      }
       .toolbar {
-        if store.reviewDate != nil && store.reviewTab == .timeline {
-          ToolbarItem(placement: .topBarLeading) {
-            Button {
-              store.reviewDate = nil
-            } label: {
-              Label("时间线", systemImage: "chevron.left")
-            }
-          }
-        }
         ToolbarItemGroup(placement: .topBarTrailing) {
           Button {
             showSearch = true
@@ -73,7 +54,14 @@ struct ReviewView: View {
     }
   }
 
-  /// Switching tabs from the picker also leaves the single-day view, like the web version.
+  /// The pushed day page mirrors `store.reviewDate`, so search, the calendar and "那年今日"
+  /// can open a day from anywhere.
+  private var dayPath: Binding<[String]> {
+    Binding(
+      get: { store.reviewDate.map { [$0] } ?? [] },
+      set: { store.reviewDate = $0.last })
+  }
+
   private var tabBinding: Binding<ReviewTab> {
     Binding(
       get: { store.reviewTab },
@@ -92,100 +80,26 @@ private struct TimelineList: View {
   var body: some View {
     let dates = store.state.recordDates
     if dates.isEmpty {
-      EmptyState(title: "时间线还是空的", icon: "clock.arrow.circlepath", message: "开始留下记录后，这里会慢慢长出属于你的时间线。")
+      EmptyState(title: "时间线还是空的", icon: "book", message: "留下第一条记录后，这里会慢慢长出属于你的时间线。")
         .card()
     } else {
-      LazyVStack(alignment: .leading, spacing: 12) {
+      LazyVStack(alignment: .leading, spacing: Spacing.stack) {
         ForEach(Array(dates.enumerated()), id: \.element) { index, day in
           if index == 0 || DayKey.monthLabel(ofKey: dates[index - 1]) != DayKey.monthLabel(ofKey: day) {
             Text(DayKey.monthLabel(ofKey: day))
-              .font(.footnote.weight(.semibold))
-              .foregroundStyle(.secondary)
+              .font(.journal(.title3, size: 20, bold: true))
               .padding(.top, index == 0 ? 0 : Spacing.section - Spacing.stack)
               .accessibilityAddTraits(.isHeader)
           }
-          TimelineCard(day: day)
+          NavigationLink(value: day) {
+            MemoryCard(
+              caption: "\(DayKey.shortDate(day)) \(DayKey.weekday(day))",
+              notes: store.state.notes[day] ?? [])
+          }
+          .buttonStyle(.plain)
         }
       }
     }
-  }
-}
-
-private struct TimelineCard: View {
-  @Environment(Store.self) private var store
-  let day: String
-
-  var body: some View {
-    let notes = store.state.notes[day] ?? []
-    let doneCount = store.state.tasks(on: day).filter { $0.isDone(on: day) }.count
-    let tags = notes.flatMap(\.tags).uniqued()
-    let hasPhotos = notes.contains { !$0.photos.isEmpty }
-    let hasVideo = notes.contains { $0.media.contains { $0.kind == .video } }
-    let hasAudio = notes.contains { $0.media.contains { $0.kind == .audio } }
-    Button {
-      store.reviewDate = day
-    } label: {
-      HStack(alignment: .center, spacing: 12) {
-        VStack(alignment: .leading, spacing: 8) {
-          HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(DayKey.shortDate(day)).font(.headline)
-            Text(DayKey.weekday(day)).font(.subheadline).foregroundStyle(.secondary)
-            Spacer(minLength: 0)
-            HStack(spacing: 6) {
-              if hasPhotos { Image(systemName: "photo") }
-              if hasVideo { Image(systemName: "video") }
-              if hasAudio { Image(systemName: "waveform") }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-          }
-          Text(excerpt(notes))
-            .font(.subheadline)
-            .foregroundStyle(.primary)
-            .lineLimit(2)
-            .multilineTextAlignment(.leading)
-          if let first = notes.first(where: { $0.place != nil || $0.weather != nil }) {
-            NoteMetaLine(note: first)
-          }
-          if !tags.isEmpty {
-            FlowLayout(spacing: 6) {
-              ForEach(tags, id: \.self) { TagLabel(tag: $0) }
-            }
-          }
-          HStack(spacing: 8) {
-            MetaPill(text: notes.count > 1 ? "\(notes.count) 条记录" : "有记录")
-            if doneCount > 0 { MetaPill(text: "完成了 \(doneCount) 件事项") }
-          }
-        }
-        Image(systemName: "chevron.right")
-          .font(.footnote.weight(.semibold))
-          .foregroundStyle(.tertiary)
-      }
-      .contentShape(Rectangle())
-    }
-    .buttonStyle(.plain)
-    .card()
-  }
-
-  private func excerpt(_ notes: [NoteEntry]) -> String {
-    guard let first = notes.first else { return "" }
-    if !first.text.isEmpty { return MarkdownText.plain(first.text).replacingOccurrences(of: "\n", with: " ") }
-    if !first.photos.isEmpty { return "留下了照片" }
-    if first.media.contains(where: { $0.kind == .video }) { return "留下了视频" }
-    return "留下了一段语音"
-  }
-}
-
-private struct MetaPill: View {
-  let text: String
-
-  var body: some View {
-    Text(text)
-      .font(.caption)
-      .foregroundStyle(.secondary)
-      .padding(.horizontal, 8)
-      .padding(.vertical, 3)
-      .background(Color.secondary.opacity(0.12), in: Capsule())
   }
 }
 
@@ -196,6 +110,7 @@ private struct NoteEditTarget: Identifiable {
   var id: String { entry.id }
 }
 
+/// One day, pushed from the timeline: every note as a journal page, then that day's tasks.
 private struct ReviewDayDetail: View {
   @Environment(Store.self) private var store
   @Environment(\.accent) private var accent
@@ -207,65 +122,63 @@ private struct ReviewDayDetail: View {
   var body: some View {
     let notes = store.state.notes[day] ?? []
     let tasks = store.state.tasks(on: day)
-    VStack(alignment: .leading, spacing: Spacing.stack) {
-      VStack(alignment: .leading, spacing: 6) {
-        Text("\(DayKey.fullDate(day)) · \(DayKey.weekday(day))")
-          .font(.subheadline.weight(.medium))
-          .foregroundStyle(.secondary)
-        Text("那一天").font(.system(.largeTitle, design: .serif, weight: .semibold))
-        Text("回到这一天，看看留下了什么。").font(.callout).foregroundStyle(.secondary)
-      }
-      .accessibilityElement(children: .combine)
-      .padding(.vertical, 4)
+    ScrollView {
+      VStack(alignment: .leading, spacing: Spacing.stack) {
+        VStack(alignment: .leading, spacing: 4) {
+          Text(DayKey.weekday(day))
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.secondary)
+          Text(DayKey.fullDate(day))
+            .font(.journal(.title, size: 28, bold: true))
+        }
+        .padding(.bottom, 4)
+        .accessibilityElement(children: .combine)
 
-      if notes.isEmpty {
-        EmptyState(title: "这一天没有记录", icon: "text.page.slash").card()
-      } else {
-        VStack(alignment: .leading, spacing: 0) {
+        if notes.isEmpty {
+          EmptyState(title: "这一天没有记录", icon: "text.page.slash").card()
+        } else {
           ForEach(Array(notes.enumerated()), id: \.element.id) { index, note in
-            if index > 0 { Divider().padding(.vertical, 14) }
             entryView(note, index: index)
           }
         }
-        .card()
-      }
 
-      VStack(alignment: .leading, spacing: 12) {
-        Text("那一天的事项").font(.headline)
-        if tasks.isEmpty {
-          Text("这一天没有安排事项。").font(.subheadline).foregroundStyle(.secondary)
-        } else {
-          ForEach(tasks) { task in
-            let done = task.isDone(on: day)
-            HStack(spacing: 10) {
-              Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(done ? accent : Color.secondary)
-              Text(task.title).foregroundStyle(done ? .primary : .secondary)
+        if !tasks.isEmpty {
+          VStack(alignment: .leading, spacing: 10) {
+            Text("那一天的事项").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+            ForEach(tasks) { task in
+              let done = task.isDone(on: day)
+              HStack(spacing: 10) {
+                Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                  .foregroundStyle(done ? accent : Color(uiColor: .tertiaryLabel))
+                Text(task.title).foregroundStyle(done ? .primary : .secondary)
+              }
+              .accessibilityElement(children: .combine)
+              .accessibilityValue(done ? "已完成" : "未完成")
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityValue(done ? "已完成" : "未完成")
           }
+          .card()
+          .padding(.top, Spacing.section - Spacing.stack)
         }
       }
-      .card()
-
-      GlassGroup {
-        HStack {
-          if !notes.isEmpty {
-            Button("删除全部记录", role: .destructive) { confirmDeleteAll = true }
-              .oneDayButton()
-              .tint(.red)
-          }
-          Spacer()
-          Button {
-            store.reviewDate = nil
-          } label: {
-            HStack(spacing: 6) {
-              Text("查看时间线")
-              Image(systemName: "arrow.right")
+      .padding(.horizontal, Spacing.page)
+      .padding(.bottom, Spacing.section)
+    }
+    .background { AppBackground() }
+    .navigationTitle(DayKey.shortDate(day))
+    .navigationBarTitleDisplayMode(.inline)
+    .toolbar {
+      if !notes.isEmpty {
+        ToolbarItem(placement: .topBarTrailing) {
+          Menu {
+            Button(role: .destructive) {
+              confirmDeleteAll = true
+            } label: {
+              Label("删除这一天的全部记录", systemImage: "trash")
             }
+          } label: {
+            Image(systemName: "ellipsis")
           }
-          .oneDayButton(prominent: true)
+          .accessibilityLabel("更多")
         }
       }
     }
@@ -279,74 +192,92 @@ private struct ReviewDayDetail: View {
     }
   }
 
-  @ViewBuilder
   private func entryView(_ note: NoteEntry, index: Int) -> some View {
-    VStack(alignment: .leading, spacing: 10) {
-      HStack {
-        Text(note.time.isEmpty ? "记录 \(index + 1)" : note.time)
-          .font(.caption.weight(.semibold))
-          .foregroundStyle(.secondary)
-        Spacer()
-        Menu {
-          Button {
-            editing = NoteEditTarget(entry: note)
-          } label: {
-            Label("编辑", systemImage: "pencil")
-          }
-          Button(role: .destructive) {
-            withAnimation(.snappy) { store.deleteNote(day: day, id: note.id) }
-          } label: {
-            Label("删除这条记录", systemImage: "trash")
-          }
-        } label: {
-          Image(systemName: "ellipsis")
-            .font(.body.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .frame(width: 32, height: 28)
-            .contentShape(Rectangle())
-        }
-        .accessibilityLabel("记录操作")
-      }
+    VStack(alignment: .leading, spacing: 12) {
+      Text(note.time.isEmpty ? "记录 \(index + 1)" : note.time)
+        .font(.footnote.weight(.medium).monospacedDigit())
+        .foregroundStyle(.secondary)
       if !note.text.isEmpty {
         MarkdownText(text: note.text)
-          .font(.body)
+          .font(.journal(.body, size: 18))
+          .lineSpacing(6)
           .textSelection(.enabled)
       }
-      NoteMetaLine(note: note)
-      if !note.tags.isEmpty {
-        FlowLayout(spacing: 6) {
-          ForEach(note.tags, id: \.self) { TagLabel(tag: $0) }
-        }
-      }
       if !note.photos.isEmpty {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-          ForEach(note.photos, id: \.self) { photo in
-            PhotoThumb(name: photo)
-              .onTapGesture { preview = PhotoRef(name: photo) }
-              .contextMenu {
-                Button(role: .destructive) {
-                  store.deletePhoto(day: day, noteId: note.id, photo: photo)
-                } label: {
-                  Label("删除这张照片", systemImage: "trash")
-                }
-              }
-              .accessibilityLabel("照片，双击查看")
-              .accessibilityAddTraits(.isButton)
-          }
-        }
+        photoGrid(note)
       }
       if !note.media.isEmpty {
         MediaAttachments(media: note.media) { item in
           store.deleteMedia(day: day, noteId: note.id, file: item.file)
         }
       }
+      if note.place != nil || note.weather != nil || !note.tags.isEmpty {
+        VStack(alignment: .leading, spacing: 8) {
+          NoteMetaLine(note: note)
+          if !note.tags.isEmpty {
+            FlowLayout(spacing: 6) {
+              ForEach(note.tags, id: \.self) { TagLabel(tag: $0) }
+            }
+          }
+        }
+      }
     }
+    .card()
     .contentShape(Rectangle())
+    .contextMenu {
+      Button {
+        editing = NoteEditTarget(entry: note)
+      } label: {
+        Label("编辑", systemImage: "pencil")
+      }
+      Button(role: .destructive) {
+        withAnimation(.snappy) { store.deleteNote(day: day, id: note.id) }
+      } label: {
+        Label("删除这条记录", systemImage: "trash")
+      }
+    }
     .swipeActions(
       leading: SwipeAction(title: "编辑", icon: "pencil", tint: .blue) { editing = NoteEditTarget(entry: note) },
       trailing: SwipeAction(title: "删除", icon: "trash", tint: .red) {
         withAnimation(.snappy) { store.deleteNote(day: day, id: note.id) }
       })
+  }
+
+  /// One photo fills the width; several share a grid.
+  @ViewBuilder
+  private func photoGrid(_ note: NoteEntry) -> some View {
+    if note.photos.count == 1, let photo = note.photos.first, let image = MediaStore.image(photo) {
+      Image(uiImage: image)
+        .resizable()
+        .scaledToFill()
+        .frame(maxWidth: .infinity)
+        .frame(height: 240)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .contentShape(Rectangle())
+        .onTapGesture { preview = PhotoRef(name: photo) }
+        .contextMenu { photoMenu(note, photo) }
+        .accessibilityLabel("照片，双击查看")
+        .accessibilityAddTraits(.isButton)
+    } else {
+      LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: note.photos.count == 2 ? 2 : 3), spacing: 6) {
+        ForEach(note.photos, id: \.self) { photo in
+          PhotoThumb(name: photo)
+            .onTapGesture { preview = PhotoRef(name: photo) }
+            .contextMenu { photoMenu(note, photo) }
+            .accessibilityLabel("照片，双击查看")
+            .accessibilityAddTraits(.isButton)
+        }
+      }
+    }
+  }
+
+  @ViewBuilder
+  private func photoMenu(_ note: NoteEntry, _ photo: String) -> some View {
+    Button(role: .destructive) {
+      store.deletePhoto(day: day, noteId: note.id, photo: photo)
+    } label: {
+      Label("删除这张照片", systemImage: "trash")
+    }
   }
 }
 
@@ -578,7 +509,7 @@ private struct StreaksCard: View {
         ForEach(streaks) { s in
           HStack(spacing: 12) {
             Image(systemName: s.current >= 7 ? "flame.fill" : "flame")
-              .foregroundStyle(s.current > 0 ? Color.orange : Color.secondary)
+              .foregroundStyle(s.current > 0 ? accent : Color.secondary)
               .frame(width: 22)
             VStack(alignment: .leading, spacing: 3) {
               Text(s.title).lineLimit(1)

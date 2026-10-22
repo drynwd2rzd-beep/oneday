@@ -44,12 +44,12 @@ private struct HeroModule: View {
     let now = Date()
     VStack(alignment: .leading, spacing: 6) {
       Text("\(DayKey.shortDate(store.today)) \(DayKey.weekday(store.today))")
-        .font(.subheadline)
+        .font(.footnote.weight(.medium))
         .foregroundStyle(.secondary)
       Text(OneDayText.greeting(now))
-        .font(.largeTitle.weight(.bold))
+        .font(.journal(.largeTitle, size: 34, bold: true))
       Text(OneDayText.quote(for: now, mode: store.settings.quoteMode))
-        .font(.subheadline)
+        .font(.journal(.subheadline, size: 15))
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
         .padding(.top, 2)
@@ -154,24 +154,11 @@ private struct OnThisDayModule: View {
             store.reviewDate = memory.day
             store.selectedTab = .review
           } label: {
-            VStack(alignment: .leading, spacing: 8) {
-              Text("\(memory.yearsAgo) 年前 · \(DayKey.fullDate(memory.day))")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-              if let first = memory.notes.first {
-                Text(first.text.isEmpty ? "留下了照片或语音" : MarkdownText.plain(first.text))
-                  .font(.body)
-                  .foregroundStyle(.primary)
-                  .lineLimit(3)
-                  .multilineTextAlignment(.leading)
-                NoteMetaLine(note: first)
-              }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            MemoryCard(
+              caption: "\(memory.yearsAgo) 年前 · \(DayKey.fullDate(memory.day))",
+              notes: memory.notes)
           }
           .buttonStyle(.plain)
-          .card()
         }
       }
     }
@@ -584,14 +571,13 @@ private struct HomePlanRow: View {
     let tint = plan.color.map { Color(hex: $0) } ?? accent
     HStack(spacing: 12) {
       Image(systemName: plan.symbol)
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.white)
-        .frame(width: 30, height: 30)
-        .background(tint, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .font(.body.weight(.medium))
+        .foregroundStyle(tint)
+        .frame(width: 28)
       VStack(alignment: .leading, spacing: 2) {
-        Text(plan.title).font(.body.weight(.semibold))
+        Text(plan.title).font(.body)
         Text(subtitle(progress))
-          .font(.subheadline)
+          .font(.footnote)
           .foregroundStyle(.secondary)
           .lineLimit(1)
       }
@@ -603,7 +589,7 @@ private struct HomePlanRow: View {
 
   private func subtitle(_ progress: PlanProgress) -> String {
     if progress.tasks.isEmpty { return plan.desc.isEmpty ? "正在前进。" : plan.desc }
-    var text = "近 7 天完成 \(progress.lastWeek) 次"
+    var text = "近 7 天 \(progress.lastWeek) 次"
     if progress.streak > 0 { text += " · 连续 \(progress.streak) 天" }
     return text
   }

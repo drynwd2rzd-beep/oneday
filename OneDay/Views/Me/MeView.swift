@@ -14,15 +14,15 @@ struct MeView: View {
   var body: some View {
     let s = store.settings
     NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: Spacing.stack) {
+      List {
+        Section {
           Button {
             sheet = .profile
           } label: {
-            HStack(spacing: 16) {
-              AvatarView(name: s.avatar, size: 66)
-              VStack(alignment: .leading, spacing: 4) {
-                Text(s.name).font(.title3.bold()).foregroundStyle(.primary)
+            HStack(spacing: 14) {
+              AvatarView(name: s.avatar, size: 60)
+              VStack(alignment: .leading, spacing: 3) {
+                Text(s.name).font(.title3.weight(.semibold)).foregroundStyle(.primary)
                 Text(s.signature).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
               }
               Spacer(minLength: 8)
@@ -30,68 +30,46 @@ struct MeView: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.tertiary)
             }
+            .padding(.vertical, 4)
             .contentShape(Rectangle())
           }
           .buttonStyle(.plain)
-          .card()
-
-          HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text("“").font(.system(.title, design: .serif)).foregroundStyle(accent)
-            Text("每一天，都是向理想生活靠近的一步。")
-              .font(.system(.title3, design: .serif, weight: .medium))
-            Text("”").font(.system(.title, design: .serif)).foregroundStyle(accent)
-          }
-          .card(tint: accent.opacity(0.12))
-
-          groupTitle("个性化")
-          VStack(spacing: 0) {
-            SettingRow(icon: "circle.lefthalf.filled", title: "外观与主题", desc: "模式与强调色", value: themeLabel(s)) { sheet = .theme }
-            rowDivider
-            SettingRow(icon: "square.on.square.intersection.dashed", title: "显示偏好", desc: "液态玻璃或经典样式、背景", value: s.cardStyle.label) { sheet = .appearance }
-            rowDivider
-            SettingRow(icon: "textformat.size", title: "界面大小", desc: "文字与整体布局", value: s.uiSize.label) { sheet = .uiSize }
-            rowDivider
-            SettingRow(icon: "square.grid.2x2", title: "首页自定义", desc: "模块与显示顺序") { sheet = .home }
-          }
-          .listCard()
-
-          groupTitle("提醒、隐私与数据")
-          VStack(spacing: 0) {
-            SettingRow(
-              icon: "bell.badge", title: "通知提醒", desc: "早晨计划、晚间未完成与记录提醒",
-              value: s.notifications.enabled && notifications.isAuthorized ? "已开启" : "未开启", tint: .red
-            ) { sheet = .notifications }
-            rowDivider
-            SettingRow(
-              icon: "lock.shield", title: "隐私与安全", desc: "密码锁与\(AppLock.shared.biometryName)",
-              value: AppLock.shared.isEnabled ? "已开启" : "未开启", tint: .indigo
-            ) { sheet = .security }
-            rowDivider
-            SettingRow(
-              icon: "externaldrive.badge.icloud", title: "备份与恢复", desc: "自动备份、导出与导入",
-              value: BackupManager.shared.hasFolder ? "自动" : "未设置", tint: .blue
-            ) { sheet = .backup }
-          }
-          .listCard()
-
-          groupTitle("其他")
-          VStack(spacing: 0) {
-            SettingRow(icon: "stethoscope", title: "诊断信息", desc: "数据统计与崩溃报告", tint: .teal) { sheet = .diagnostics }
-            rowDivider
-            SettingRow(icon: "info.circle", title: "关于 OneDay", desc: "版本信息与使用说明", value: "v\(AppInfo.version)", tint: .gray) { sheet = .about }
-          }
-          .listCard()
-
-          Text("不是为了记录而记录，\n而是为了更好地生活。\n\nOneDay v\(AppInfo.version)")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .padding(.top, 10)
         }
-        .padding(.horizontal, Spacing.page)
-        .padding(.bottom, Spacing.section)
+
+        Section {
+          SettingRow(icon: "circle.lefthalf.filled", title: "外观与主题", value: themeLabel(s)) { sheet = .theme }
+          SettingRow(icon: "square.on.square", title: "显示偏好", value: s.cardStyle.label, tint: .teal) { sheet = .appearance }
+          SettingRow(icon: "textformat.size", title: "界面大小", value: s.uiSize.label, tint: .blue) { sheet = .uiSize }
+          SettingRow(icon: "square.grid.2x2", title: "首页自定义", tint: .orange) { sheet = .home }
+        }
+
+        Section {
+          SettingRow(
+            icon: "bell.badge.fill", title: "通知提醒",
+            value: s.notifications.enabled && notifications.isAuthorized ? "已开启" : "未开启", tint: .red
+          ) { sheet = .notifications }
+          SettingRow(
+            icon: "lock.fill", title: "隐私与安全",
+            value: AppLock.shared.isEnabled ? "已开启" : "未开启", tint: .indigo
+          ) { sheet = .security }
+          SettingRow(
+            icon: "externaldrive.fill", title: "备份与恢复",
+            value: BackupManager.shared.hasFolder ? "自动" : "未设置", tint: .blue
+          ) { sheet = .backup }
+        }
+
+        Section {
+          SettingRow(icon: "stethoscope", title: "诊断信息", tint: .gray) { sheet = .diagnostics }
+          SettingRow(icon: "info", title: "关于 OneDay", value: "v\(AppInfo.version)", tint: .gray) { sheet = .about }
+        } footer: {
+          Text("不是为了记录而记录，而是为了更好地生活。")
+            .font(.journal(.footnote, size: 13))
+            .frame(maxWidth: .infinity)
+            .padding(.top, 20)
+        }
       }
+      .listStyle(.insetGrouped)
+      .scrollContentBackground(.hidden)
       .background { AppBackground() }
       .navigationTitle("我的")
       .sheet(item: $sheet) { which in
@@ -112,18 +90,6 @@ struct MeView: View {
         .oneDaySheet()
       }
     }
-  }
-
-  private func groupTitle(_ text: String) -> some View {
-    Text(text)
-      .font(.footnote.weight(.semibold))
-      .foregroundStyle(.secondary)
-      .padding(.top, Spacing.section - Spacing.stack)
-      .accessibilityAddTraits(.isHeader)
-  }
-
-  private var rowDivider: some View {
-    Divider().padding(.leading, 46)
   }
 
   private func themeLabel(_ s: Settings) -> String {

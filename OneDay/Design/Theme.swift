@@ -25,6 +25,16 @@ enum Radius {
   static let flatCard: CGFloat = 12
 }
 
+// MARK: - Journal type
+
+extension Font {
+  /// Song typeface for journal content (greetings, notes, memories). Scales with Dynamic Type;
+  /// tools and settings stay in the system font.
+  static func journal(_ style: Font.TextStyle, size: CGFloat, bold: Bool = false) -> Font {
+    .custom(bold ? "STSongti-SC-Bold" : "STSongti-SC-Regular", size: size, relativeTo: style)
+  }
+}
+
 // MARK: - Colors
 
 extension Color {
@@ -72,7 +82,8 @@ struct Palette {
     case .gray:
       return Palette(bg: Color(hex: "#f0f1f1"), surface: Color(hex: "#fbfbfa"), line: Color(hex: "#dedfdd"), isDark: false, isMeteor: false)
     default:
-      return Palette(bg: Color(hex: "#f5f4ef"), surface: Color(hex: "#fffefa"), line: Color(hex: "#e4e1d9"), isDark: false, isMeteor: false)
+      // Warm paper.
+      return Palette(bg: Color(hex: "#f4f0e8"), surface: Color(hex: "#fffcf6"), line: Color(hex: "#e6e0d4"), isDark: false, isMeteor: false)
     }
   }
 }
