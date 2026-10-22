@@ -449,13 +449,23 @@ extension AppState {
 
   func overview(month: Date) -> MonthOverview {
     let (start, end) = DayKey.monthBounds(month)
-    let inMonth: (String) -> Bool = { $0 >= start && $0 <= end }
-    let items = tasks
-      .map { t in OverviewItem(id: t.id, title: t.title, count: t.done.filter { $0.value && inMonth($0.key) }.count) }
-      .filter { $0.count > 0 }
-      .sorted { $0.count != $1.count ? $0.count > $1.count : $0.title.localizedCompare($1.title) == .orderedAscending }
-    let monthNotes = notes.filter { inMonth($0.key) && !$0.value.isEmpty }
-    let textRecords = monthNotes.values.reduce(0) { $0 + $1.filter { !$0.text.isEmpty }.count }
+    let inMonth: (String) -> Bool = { day in day >= start && day <= end }
+    var items: [OverviewItem] = []
+    for task in tasks {
+      var count = 0
+      for (day, done) in task.done where done && inMonth(day) { count += 1 }
+      if count > 0 { items.append(OverviewItem(id: task.id, title: task.title, count: count)) }
+    }
+    items.sort { a, b in
+      if a.count != b.count { return a.count > b.count }
+      return a.title.localizedCompare(b.title) == .orderedAscending
+    }
+    var monthNotes: [String: [NoteEntry]] = [:]
+    var textRecords = 0
+    for (day, list) in notes where inMonth(day) && !list.isEmpty {
+      monthNotes[day] = list
+      textRecords += list.filter { !$0.text.isEmpty }.count
+    }
 
     var doneDays = Set<String>()
     for t in tasks { for (k, v) in t.done where v && inMonth(k) { doneDays.insert(k) } }

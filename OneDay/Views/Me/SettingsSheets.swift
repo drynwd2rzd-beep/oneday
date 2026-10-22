@@ -15,13 +15,14 @@ struct ProfileSheet: View {
   @State private var saved = false
 
   var body: some View {
+    let currentAvatar = newAvatar ?? store.settings.avatar
     NavigationStack {
       Form {
         Section {
           HStack {
             Spacer()
             PhotosPicker(selection: $avatarItem, matching: .images) {
-              AvatarView(name: newAvatar ?? store.settings.avatar, size: 100)
+              AvatarView(name: currentAvatar, size: 100)
                 .overlay(alignment: .bottomTrailing) {
                   Image(systemName: "camera.fill")
                     .font(.footnote.weight(.semibold))

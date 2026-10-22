@@ -34,8 +34,9 @@ jobs:
             -destination 'generic/platform=iOS' \
             -derivedDataPath build/device \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build 2>&1 | tee build-device.log | grep -E "error:|warning: .*OneDay/|BUILD (SUCCEEDED|FAILED)" || true
-          test -d build/device/Build/Products/Release-iphoneos/OneDay.app
+            build > build-device.log 2>&1 || { grep -E "error:" build-device.log; exit 1; }
+          grep -E "warning: .*OneDay/" build-device.log | sort -u || true
+          test -f build/device/Build/Products/Release-iphoneos/OneDay.app/OneDay
 
       - name: Package IPA
         run: |
@@ -57,7 +58,7 @@ jobs:
           echo "Using $DEVICE"
           xcodebuild -project OneDay.xcodeproj -scheme OneDay -configuration Debug \
             -sdk iphonesimulator -destination "platform=iOS Simulator,name=$DEVICE" \
-            -derivedDataPath build/sim build -quiet
+            -derivedDataPath build/sim build -quiet > build-sim.log 2>&1 || { grep -E "error:" build-sim.log; exit 1; }
           APP=build/sim/Build/Products/Debug-iphonesimulator/OneDay.app
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
@@ -84,4 +85,5 @@ jobs:
           path: |
             shots/
             build-device.log
+            build-sim.log
           if-no-files-found: ignore

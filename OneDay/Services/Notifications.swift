@@ -12,9 +12,9 @@ import UserNotifications
 final class NotificationManager {
   static let shared = NotificationManager()
 
-  static let taskCategory = "ONEDAY_TASK"
-  static let doneAction = "ONEDAY_DONE"
-  static let snoozeAction = "ONEDAY_SNOOZE"
+  nonisolated static let taskCategory = "ONEDAY_TASK"
+  nonisolated static let doneAction = "ONEDAY_DONE"
+  nonisolated static let snoozeAction = "ONEDAY_SNOOZE"
 
   var status: UNAuthorizationStatus = .notDetermined
 
