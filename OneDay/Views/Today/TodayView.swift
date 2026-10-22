@@ -32,10 +32,34 @@ struct TodayView: View {
       }
       .scrollDismissesKeyboard(.interactively)
       .background { AppBackground() }
+      // Without a navigation bar, content scrolled up would run under the clock.
+      .overlay(alignment: .top) { StatusBarScrim() }
       .navigationTitle("一天")
       // The greeting is the page header; a second large title would compete with it.
       .toolbar(.hidden, for: .navigationBar)
     }
+  }
+}
+
+/// Fades the page background in behind the status bar.
+private struct StatusBarScrim: View {
+  @Environment(\.palette) private var palette
+
+  var body: some View {
+    GeometryReader { geo in
+      let top = geo.safeAreaInsets.top
+      LinearGradient(
+        stops: [
+          .init(color: palette.bg, location: 0),
+          .init(color: palette.bg.opacity(0.92), location: top / (top + 18)),
+          .init(color: palette.bg.opacity(0), location: 1),
+        ],
+        startPoint: .top, endPoint: .bottom)
+        .frame(height: top + 18)
+        .offset(y: -top)
+    }
+    .allowsHitTesting(false)
+    .accessibilityHidden(true)
   }
 }
 

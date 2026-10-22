@@ -70,7 +70,12 @@ struct NoteTextEditor: View {
       }
     }
     .animation(.snappy, value: focused)
-    .onAppear { if autoFocus { focused = true } }
+    .task {
+      // Let the card finish expanding before the keyboard scrolls the page.
+      guard autoFocus else { return }
+      try? await Task.sleep(for: .milliseconds(280))
+      focused = true
+    }
     .onChange(of: focused) { _, value in onFocusChange(value) }
   }
 }

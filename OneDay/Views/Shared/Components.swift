@@ -366,51 +366,30 @@ struct PhotoThumb: View {
 struct PhotoLightbox: View {
   @Environment(\.dismiss) private var dismiss
   let name: String
-  @State private var scale: CGFloat = 1
-  @State private var offset: CGSize = .zero
-  @GestureState private var pinch: CGFloat = 1
-  @GestureState private var drag: CGSize = .zero
+  @State private var zoomed = false
+  @GestureState private var pull: CGSize = .zero
 
   var body: some View {
+    let progress = min(1, abs(pull.height) / 300)
     ZStack(alignment: .topTrailing) {
-      Color.black.ignoresSafeArea()
-        .onTapGesture { dismiss() }
+      Color.black.opacity(1 - progress * 0.7).ignoresSafeArea()
       if let image = MediaStore.image(name) {
-        Image(uiImage: image)
-          .resizable()
-          .scaledToFit()
-          .scaleEffect(scale * pinch)
-          .offset(x: offset.width + drag.width, y: offset.height + drag.height)
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .gesture(
-            MagnifyGesture()
-              .updating($pinch) { value, state, _ in state = value.magnification }
-              .onEnded { value in
-                withAnimation(.snappy) {
-                  scale = min(max(scale * value.magnification, 1), 4)
-                  if scale == 1 { offset = .zero }
-                }
+        ZoomableImage(image: image, zoomed: $zoomed)
+          .ignoresSafeArea()
+          .offset(y: pull.height)
+          .scaleEffect(1 - progress * 0.2)
+          // Swipe down to close, only while not zoomed (the zoom view pans then).
+          .simultaneousGesture(
+            DragGesture(minimumDistance: 12)
+              .updating($pull) { value, state, _ in
+                if !zoomed && value.translation.height > 0 { state = value.translation }
               }
-              .simultaneously(with:
-                DragGesture()
-                  .updating($drag) { value, state, _ in if scale > 1 { state = value.translation } }
-                  .onEnded { value in
-                    if scale > 1 {
-                      offset.width += value.translation.width
-                      offset.height += value.translation.height
-                    } else if value.translation.height > 120 {
-                      dismiss()
-                    }
-                  }
-              )
-          )
-          .onTapGesture(count: 2) {
-            withAnimation(.snappy) {
-              scale = scale > 1 ? 1 : 2.5
-              offset = .zero
-            }
-          }
+              .onEnded { value in
+                if !zoomed && value.translation.height > 120 { dismiss() }
+              },
+            including: zoomed ? .subviews : .all)
           .accessibilityLabel("记录照片")
+          .accessibilityHint("双指缩放，双击放大，向下轻扫关闭")
       }
       Button {
         dismiss()
@@ -421,9 +400,107 @@ struct PhotoLightbox: View {
       .buttonBorderShape(.circle)
       .environment(\.colorScheme, .dark)
       .padding(20)
+      .opacity(1 - progress)
       .accessibilityLabel("关闭图片预览")
     }
+    .animation(.snappy, value: pull == .zero)
     .environment(\.visualStyle, .glass)
+  }
+}
+
+/// UIScrollView-based zoom, like Photos: pinch around the fingers, bounce at the limits,
+/// double-tap to zoom into the tapped point and back.
+struct ZoomableImage: UIViewRepresentable {
+  let image: UIImage
+  @Binding var zoomed: Bool
+
+  func makeCoordinator() -> Coordinator { Coordinator(zoomed: $zoomed) }
+
+  func makeUIView(context: Context) -> UIScrollView {
+    let scroll = CenteringScrollView()
+    scroll.delegate = context.coordinator
+    scroll.minimumZoomScale = 1
+    scroll.maximumZoomScale = 4
+    scroll.bouncesZoom = true
+    scroll.showsVerticalScrollIndicator = false
+    scroll.showsHorizontalScrollIndicator = false
+    scroll.contentInsetAdjustmentBehavior = .never
+    scroll.backgroundColor = .clear
+    scroll.panGestureRecognizer.isEnabled = false
+    let imageView = UIImageView(image: image)
+    imageView.contentMode = .scaleAspectFit
+    imageView.isUserInteractionEnabled = true
+    scroll.addSubview(imageView)
+    scroll.imageView = imageView
+    context.coordinator.imageView = imageView
+    let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.doubleTapped(_:)))
+    doubleTap.numberOfTapsRequired = 2
+    scroll.addGestureRecognizer(doubleTap)
+    return scroll
+  }
+
+  func updateUIView(_ scroll: UIScrollView, context: Context) {
+    context.coordinator.zoomed = $zoomed
+    if let imageView = context.coordinator.imageView, imageView.image !== image {
+      imageView.image = image
+      scroll.setZoomScale(1, animated: false)
+      scroll.setNeedsLayout()
+    }
+  }
+
+  @MainActor
+  final class Coordinator: NSObject, UIScrollViewDelegate {
+    var zoomed: Binding<Bool>
+    weak var imageView: UIImageView?
+
+    init(zoomed: Binding<Bool>) { self.zoomed = zoomed }
+
+    func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
+
+    func scrollViewDidZoom(_ scrollView: UIScrollView) {
+      let isZoomed = scrollView.zoomScale > 1.01
+      // At 1x the pan belongs to SwiftUI (swipe down to close).
+      scrollView.panGestureRecognizer.isEnabled = isZoomed
+      if zoomed.wrappedValue != isZoomed { zoomed.wrappedValue = isZoomed }
+      scrollView.setNeedsLayout()
+    }
+
+    @objc func doubleTapped(_ tap: UITapGestureRecognizer) {
+      guard let scroll = tap.view as? UIScrollView, let imageView else { return }
+      if scroll.zoomScale > 1.01 {
+        scroll.setZoomScale(1, animated: true)
+      } else {
+        let point = tap.location(in: imageView)
+        let scale: CGFloat = 2.5
+        let size = CGSize(width: scroll.bounds.width / scale, height: scroll.bounds.height / scale)
+        scroll.zoom(to: CGRect(x: point.x - size.width / 2, y: point.y - size.height / 2, width: size.width, height: size.height), animated: true)
+      }
+    }
+  }
+}
+
+/// Fits the image to the screen at 1x and keeps it centered while zooming.
+private final class CenteringScrollView: UIScrollView {
+  weak var imageView: UIImageView?
+  private var lastBounds: CGSize = .zero
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    guard let imageView, let image = imageView.image, bounds.width > 0, bounds.height > 0 else { return }
+    if bounds.size != lastBounds {
+      lastBounds = bounds.size
+      let fit = min(bounds.width / image.size.width, bounds.height / image.size.height)
+      let size = CGSize(width: image.size.width * fit, height: image.size.height * fit)
+      let zoom = zoomScale
+      zoomScale = 1
+      imageView.frame = CGRect(origin: .zero, size: size)
+      contentSize = size
+      zoomScale = zoom
+    }
+    let w = imageView.frame.width, h = imageView.frame.height
+    contentInset = UIEdgeInsets(
+      top: max(0, (bounds.height - h) / 2), left: max(0, (bounds.width - w) / 2),
+      bottom: max(0, (bounds.height - h) / 2), right: max(0, (bounds.width - w) / 2))
   }
 }
 
