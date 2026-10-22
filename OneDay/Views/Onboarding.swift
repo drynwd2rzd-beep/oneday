@@ -21,13 +21,36 @@ struct OnboardingView: View {
     ZStack {
       AppBackground()
       VStack(spacing: 0) {
-        TabView(selection: $page) {
-          welcome.tag(0)
-          personalize.tag(1)
-          remindersAndPrivacy.tag(2)
+        // A plain pager: renders reliably inside a full-screen cover, unlike a paged TabView.
+        ZStack {
+          switch page {
+          case 0: welcome.transition(pageTransition)
+          case 1: personalize.transition(pageTransition)
+          default: remindersAndPrivacy.transition(pageTransition)
+          }
         }
-        .tabViewStyle(.page(indexDisplayMode: .always))
-        .indexViewStyle(.page(backgroundDisplayMode: .interactive))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .gesture(
+          DragGesture(minimumDistance: 30).onEnded { value in
+            let dx = value.translation.width
+            withAnimation(.snappy) {
+              if dx < -60 && page < 2 { page += 1 }
+              if dx > 60 && page > 0 { page -= 1 }
+            }
+          })
+
+        HStack(spacing: 8) {
+          ForEach(0..<3, id: \.self) { i in
+            Capsule()
+              .fill(i == page ? accent : Color.secondary.opacity(0.3))
+              .frame(width: i == page ? 20 : 7, height: 7)
+          }
+        }
+        .animation(.snappy, value: page)
+        .padding(.bottom, 18)
+        .accessibilityElement()
+        .accessibilityLabel("第 \(page + 1) 页，共 3 页")
 
         Button {
           if page < 2 {
@@ -56,6 +79,10 @@ struct OnboardingView: View {
     .interactiveDismissDisabled()
     .sheet(isPresented: $settingPasscode) { PasscodeSetupSheet() }
     .onAppear { name = store.settings.name == Settings.defaultName ? "" : store.settings.name }
+  }
+
+  private var pageTransition: AnyTransition {
+    .asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity))
   }
 
   private var welcome: some View {

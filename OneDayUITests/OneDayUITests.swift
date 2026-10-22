@@ -33,6 +33,17 @@ final class OneDayUITests: XCTestCase {
     XCTAssertTrue(app.staticTexts["散步 30 分钟"].exists, "vertical drag did not delete the row")
   }
 
+  func testOnboardingShowsAndFinishes() {
+    let app = launch(["-OneDayOnboarding", "YES"])
+    XCTAssertTrue(app.staticTexts["每一天，都值得留下。"].waitForExistence(timeout: 8), "first page renders")
+    app.buttons["继续"].tap()
+    XCTAssertTrue(app.staticTexts["怎么称呼你？"].waitForExistence(timeout: 3))
+    app.buttons["继续"].tap()
+    XCTAssertTrue(app.staticTexts["提醒与隐私"].waitForExistence(timeout: 3))
+    app.buttons["开始使用"].tap()
+    XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 5), "onboarding dismissed")
+  }
+
   func testAddTask() {
     let app = launch(["-OneDayTab", "tasks"])
     app.buttons["添加事项"].tap()
