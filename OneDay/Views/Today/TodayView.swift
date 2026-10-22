@@ -19,7 +19,7 @@ struct TodayView: View {
             case .tasks: TodayTasksModule()
             case .note: QuickCaptureModule()
             case .onThisDay: OnThisDayModule()
-            case .progress: ProgressModule()
+            case .progress: EmptyView()
             case .plans: HomePlansModule()
             }
           }
@@ -62,56 +62,58 @@ private struct HeroModule: View {
 
 private struct TodayTasksModule: View {
   @Environment(Store.self) private var store
-
-  var body: some View {
-    let day = store.today
-    let list = store.state.tasks(on: day)
-    let open = list.filter { !$0.isDone(on: day) }
-    VStack(alignment: .leading, spacing: Spacing.title) {
-      SectionHeader(title: "今天", actionTitle: "全部事项") { store.selectedTab = .tasks }
-      VStack(alignment: .leading, spacing: 0) {
-        if open.isEmpty {
-          EmptyState(
-            title: list.isEmpty ? "今天没有待办" : "今天的事项都完成了",
-            icon: list.isEmpty ? "sun.max" : "checkmark.seal",
-            message: list.isEmpty ? "在「事项」里添加一件小事。" : nil)
-        } else {
-          TaskList(tasks: open, day: day)
-        }
-      }
-      .modifier(ListOrCard(isList: !open.isEmpty))
-    }
-  }
-}
-
-private struct ProgressModule: View {
-  @Environment(Store.self) private var store
   @Environment(\.accent) private var accent
 
   var body: some View {
     let day = store.today
     let list = store.state.tasks(on: day)
-    let done = list.filter { $0.isDone(on: day) }.count
-    let ratio = list.isEmpty ? 0 : Double(done) / Double(list.count)
-    HStack(spacing: Spacing.inner) {
-      ZStack {
-        Circle().stroke(accent.opacity(0.15), lineWidth: 4)
-        Circle()
-          .trim(from: 0, to: ratio)
-          .stroke(accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-          .rotationEffect(.degrees(-90))
-          .animation(.snappy, value: ratio)
+    let open = list.filter { !$0.isDone(on: day) }
+    let done = list.count - open.count
+    VStack(alignment: .leading, spacing: Spacing.title) {
+      HStack(alignment: .firstTextBaseline, spacing: 8) {
+        Text("今天")
+          .font(.title3.weight(.semibold))
+          .accessibilityAddTraits(.isHeader)
+        if !list.isEmpty {
+          Text("\(done)/\(list.count)")
+            .font(.subheadline.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .contentTransition(.numericText())
+            .accessibilityLabel("已完成 \(done) 件，共 \(list.count) 件")
+        }
+        Spacer()
+        Button {
+          store.selectedTab = .tasks
+        } label: {
+          HStack(spacing: 3) {
+            Text("全部事项")
+            Image(systemName: "chevron.right").font(.caption.weight(.semibold))
+          }
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+        }
       }
-      .frame(width: 30, height: 30)
-      Text("今天的完成情况").font(.body)
-      Spacer()
-      Text(list.isEmpty ? "从一件小事开始" : "\(done)/\(list.count) · \(Int((ratio * 100).rounded()))%")
-        .font(.subheadline.monospacedDigit())
-        .foregroundStyle(.secondary)
-        .contentTransition(.numericText())
+      VStack(alignment: .leading, spacing: 0) {
+        if !list.isEmpty {
+          ProgressView(value: Double(done), total: Double(list.count))
+            .tint(accent)
+            .padding(.top, 12)
+            .padding(.bottom, open.isEmpty ? 0 : 4)
+            .animation(.snappy, value: done)
+            .accessibilityHidden(true)
+        }
+        if open.isEmpty {
+          EmptyState(
+            title: list.isEmpty ? "今天没有待办" : "今天的事项都完成了",
+            icon: list.isEmpty ? "sun.max" : "checkmark.seal",
+            message: list.isEmpty ? "在「事项」里添加一件小事。" : nil)
+            .padding(.vertical, 12)
+        } else {
+          TaskList(tasks: open, day: day)
+        }
+      }
+      .listCard()
     }
-    .card()
-    .accessibilityElement(children: .combine)
   }
 }
 
@@ -187,12 +189,81 @@ private struct QuickCaptureModule: View {
   @State private var locating = false
   @State private var recording = false
   @State private var pending: NoteDraft?
+  @State private var expanded = false
+  @State private var focusOnOpen = false
 
   var body: some View {
+    Group {
+      if expanded || !draft.isEmpty {
+        editor
+      } else {
+        collapsed
+      }
+    }
+    .animation(.snappy, value: expanded)
+    .onChange(of: pickerItems) { _, items in
+      guard !items.isEmpty else { return }
+      focusOnOpen = false
+      expanded = true
+      Task { await load(items) }
+    }
+    .sheet(isPresented: $recording) {
+      RecorderSheet { item in
+        withAnimation(.snappy) { draft.media.append(item) }
+      }
+      .oneDaySheet()
+    }
+    .sheet(item: $pending) { note in
+      TagPickerSheet(draft: note).oneDaySheet()
+    }
+  }
+
+  /// One quiet line until the user wants to write.
+  private var collapsed: some View {
+    HStack(spacing: 12) {
+      Button {
+        focusOnOpen = true
+        expanded = true
+      } label: {
+        HStack(spacing: 10) {
+          Image(systemName: "square.and.pencil")
+            .font(.body.weight(.medium))
+            .foregroundStyle(accent)
+          Text("今天有什么值得留下的？")
+            .foregroundStyle(.secondary)
+          Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel("写一条记录")
+      PhotosPicker(selection: $pickerItems, maxSelectionCount: 6, matching: .any(of: [.images, .videos])) {
+        Image(systemName: "photo").font(.body).foregroundStyle(.secondary)
+      }
+      .accessibilityLabel("添加照片或视频")
+      Button {
+        focusOnOpen = false
+        expanded = true
+        recording = true
+      } label: {
+        Image(systemName: "mic").font(.body).foregroundStyle(.secondary)
+      }
+      .accessibilityLabel("录制语音")
+    }
+    .padding(.vertical, 2)
+    .card()
+  }
+
+  private var editor: some View {
     VStack(alignment: .leading, spacing: Spacing.title) {
       SectionHeader(title: "值得留下")
       VStack(alignment: .leading, spacing: Spacing.inner) {
-        NoteTextEditor(placeholder: "今天有什么值得留下的吗？不需要写得很好，只留下真实的你。", text: $draft.text, minHeight: 64)
+        NoteTextEditor(
+          placeholder: "不需要写得很好，只留下真实的你。", text: $draft.text, minHeight: 64,
+          autoFocus: focusOnOpen && draft.isEmpty,
+          onFocusChange: { focused in
+            if !focused && draft.isEmpty { expanded = false }
+          })
 
         if !draft.photos.isEmpty || !draft.media.isEmpty || loading {
           attachmentStrip
@@ -259,19 +330,6 @@ private struct QuickCaptureModule: View {
         }
       }
       .card()
-    }
-    .onChange(of: pickerItems) { _, items in
-      guard !items.isEmpty else { return }
-      Task { await load(items) }
-    }
-    .sheet(isPresented: $recording) {
-      RecorderSheet { item in
-        withAnimation(.snappy) { draft.media.append(item) }
-      }
-      .oneDaySheet()
-    }
-    .sheet(item: $pending) { note in
-      TagPickerSheet(draft: note).oneDaySheet()
     }
   }
 
@@ -364,6 +422,7 @@ private struct QuickCaptureModule: View {
     guard !draft.isEmpty else { return store.toast("写一点内容，或者留下一张照片") }
     pending = draft
     draft = NoteDraft()
+    expanded = false
   }
 }
 
@@ -514,15 +573,6 @@ struct TagPickerSheet: View {
   }
 }
 
-/// Task lists sit flush in a list card; empty states get normal card padding.
-private struct ListOrCard: ViewModifier {
-  let isList: Bool
-
-  @ViewBuilder
-  func body(content: Content) -> some View {
-    if isList { content.listCard() } else { content.card() }
-  }
-}
 
 private struct HomePlanRow: View {
   @Environment(Store.self) private var store

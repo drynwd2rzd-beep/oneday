@@ -48,6 +48,8 @@ struct NoteTextEditor: View {
   let placeholder: String
   @Binding var text: String
   var minHeight: CGFloat = 96
+  var autoFocus = false
+  var onFocusChange: (Bool) -> Void = { _ in }
   @State private var selection: TextSelection?
   @FocusState private var focused: Bool
 
@@ -72,6 +74,8 @@ struct NoteTextEditor: View {
       }
     }
     .animation(.snappy, value: focused)
+    .onAppear { if autoFocus { focused = true } }
+    .onChange(of: focused) { _, value in onFocusChange(value) }
   }
 
   private func formatButton(_ icon: String, label: String, marker: String) -> some View {

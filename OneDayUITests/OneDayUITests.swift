@@ -69,6 +69,31 @@ final class OneDayUITests: XCTestCase {
     XCTAssertTrue(app.buttons["撤销"].waitForExistence(timeout: 3))
   }
 
+  /// Regression: checking a task off used to make the filter highlight jump to another segment.
+  func testFilterSelectionSurvivesToggling() {
+    let app = launch(["-OneDayTab", "tasks"])
+    let all = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "全部")).firstMatch
+    XCTAssertTrue(all.waitForExistence(timeout: 8))
+    XCTAssertTrue(all.isSelected)
+    let check = app.buttons["完成事项：整理房间"]
+    for _ in 0..<3 {
+      check.firstMatch.tap()
+      XCTAssertTrue(all.isSelected, "「全部」 stays selected after completing")
+      app.buttons["取消完成：整理房间"].firstMatch.tap()
+      XCTAssertTrue(all.isSelected, "「全部」 stays selected after un-completing")
+    }
+  }
+
+  func testHomeCaptureExpandsFromOneLine() {
+    let app = launch(["-OneDayTab", "today"])
+    let entry = app.buttons["写一条记录"]
+    XCTAssertTrue(entry.waitForExistence(timeout: 8), "capture starts as one line")
+    entry.tap()
+    XCTAssertTrue(app.staticTexts["值得留下"].waitForExistence(timeout: 3), "tapping opens the editor")
+    app.typeText("今天的风很舒服")
+    XCTAssertTrue(app.buttons["留下"].isEnabled)
+  }
+
   func testAddTask() {
     let app = launch(["-OneDayTab", "tasks"])
     app.buttons["添加事项"].tap()

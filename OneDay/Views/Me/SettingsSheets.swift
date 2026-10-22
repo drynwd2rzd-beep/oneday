@@ -362,7 +362,7 @@ struct HomeCustomizeSheet: View {
 
   var body: some View {
     let shown = store.settings.homeModules
-    let hidden = HomeModule.allCases.filter { !shown.contains($0) }
+    let hidden = HomeModule.choosable.filter { !shown.contains($0) }
     NavigationStack {
       List {
         Section {

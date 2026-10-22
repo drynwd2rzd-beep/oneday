@@ -27,6 +27,56 @@ struct SectionHeader: View {
   }
 }
 
+/// Segmented control whose labels may change (e.g. counts) without the selection jumping.
+/// The system segmented picker rebuilds itself whenever a label changes, which made the
+/// highlight flicker to the wrong segment when tasks were checked off.
+struct SegmentedBar<Value: Hashable>: View {
+  struct Option: Identifiable {
+    let value: Value
+    let title: String
+    var id: Value { value }
+  }
+
+  let options: [Option]
+  @Binding var selection: Value
+  @Namespace private var namespace
+
+  var body: some View {
+    HStack(spacing: 2) {
+      ForEach(options) { option in
+        let selected = option.value == selection
+        Button {
+          guard !selected else { return }
+          Haptics.tap()
+          withAnimation(.snappy(duration: 0.25)) { selection = option.value }
+        } label: {
+          Text(option.title)
+            .font(.subheadline.weight(selected ? .semibold : .regular).monospacedDigit())
+            .foregroundStyle(selected ? Color.primary : Color.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .contentTransition(.numericText())
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 7)
+            .background {
+              if selected {
+                Capsule()
+                  .fill(Color(uiColor: .systemBackground))
+                  .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
+                  .matchedGeometryEffect(id: "selection", in: namespace)
+              }
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+      }
+    }
+    .padding(3)
+    .background(Color.secondary.opacity(0.12), in: Capsule())
+  }
+}
+
 struct EmptyText: View {
   let text: String
   init(_ text: String) { self.text = text }

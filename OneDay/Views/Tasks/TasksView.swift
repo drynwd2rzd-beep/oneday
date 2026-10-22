@@ -74,12 +74,13 @@ struct TasksView: View {
           .font(.subheadline.weight(.medium))
         }
       }
-      Picker("筛选", selection: $filter.animation(.snappy)) {
-        Text("全部 \(all.count)").tag(Filter.all)
-        Text("进行中 \(active.count)").tag(Filter.active)
-        Text("已完成 \(done.count)").tag(Filter.done)
-      }
-      .pickerStyle(.segmented)
+      SegmentedBar(
+        options: [
+          .init(value: Filter.all, title: "全部 \(all.count)"),
+          .init(value: Filter.active, title: "进行中 \(active.count)"),
+          .init(value: Filter.done, title: "已完成 \(done.count)"),
+        ],
+        selection: $filter)
 
       if shown.isEmpty {
         EmptyState(title: "这里还没有事项", icon: "checklist", message: "点右上角的 ＋ 添加一件事。")

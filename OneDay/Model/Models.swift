@@ -114,7 +114,9 @@ enum HomeModule: String, Codable, CaseIterable, Identifiable, Hashable {
   case hero, tasks, note, onThisDay, progress, plans
   var id: String { rawValue }
 
-  static let defaultOrder: [HomeModule] = [.hero, .tasks, .note, .onThisDay, .progress, .plans]
+  static let defaultOrder: [HomeModule] = [.hero, .tasks, .note, .onThisDay, .plans]
+  /// Modules the user can show or hide. Progress now lives in the "今天" header.
+  static let choosable: [HomeModule] = allCases.filter { $0 != .progress }
 
   var title: String {
     switch self {
@@ -435,7 +437,7 @@ struct AppState: Codable {
     if !HexColor.isValid(s.accent) { s.accent = Settings.defaultAccent }
     if let custom = s.customAccent, !HexColor.isValid(custom) { s.customAccent = nil }
     s.quoteMode = s.quoteMode == "static" ? "static" : "daily"
-    s.homeModules = s.homeModules.uniqued()
+    s.homeModules = s.homeModules.uniqued().filter { $0 != .progress }
     s.customTags = Array(s.customTags.map { String($0.trimmed.prefix(12)) }.filter { !$0.isEmpty }.uniqued().prefix(24))
     s.celebratedDays = Array(s.celebratedDays.uniqued().suffix(60))
     settings = s
