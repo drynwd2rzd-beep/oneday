@@ -21,7 +21,7 @@ struct MoodPicker: View {
               .scaleEffect(selected ? 1.15 : 1)
             if !compact {
               Text(mood.label)
-                .font(.caption2)
+                .font(.app(.caption2))
                 .foregroundStyle(selected ? Color(hex: mood.hex) : .secondary)
             }
           }

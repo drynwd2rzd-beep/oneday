@@ -94,10 +94,10 @@ private struct CollapsibleSection<Inner: View>: View {
         withAnimation(.snappy) { isOpen.toggle() }
       } label: {
         HStack(spacing: 6) {
-          Text(title).font(.subheadline.weight(.semibold))
-          Text("\(count)").font(.subheadline).foregroundStyle(.secondary)
+          Text(title).font(.app(.subheadline).weight(.semibold))
+          Text("\(count)").font(.app(.subheadline)).foregroundStyle(.secondary)
           Image(systemName: "chevron.right")
-            .font(.caption.weight(.semibold))
+            .font(.app(.caption).weight(.semibold))
             .foregroundStyle(.secondary)
             .rotationEffect(.degrees(isOpen ? 90 : 0))
           Spacer()
@@ -127,21 +127,21 @@ private struct PlanCard: View {
     let muted = plan.status != .active
     HStack(alignment: .top, spacing: 14) {
       Image(systemName: plan.symbol)
-        .font(.title3.weight(.medium))
+        .font(.app(.title3).weight(.medium))
         .foregroundStyle(muted ? Color.secondary : tint)
         .frame(width: 28)
       VStack(alignment: .leading, spacing: 4) {
         HStack(spacing: 6) {
           Text(plan.title)
-            .font(.headline)
+            .font(.app(.headline))
             .foregroundStyle(muted ? .secondary : .primary)
           if plan.pinned {
-            Image(systemName: "pin.fill").font(.caption2).foregroundStyle(.tertiary)
+            Image(systemName: "pin.fill").font(.app(.caption2)).foregroundStyle(.tertiary)
               .accessibilityLabel("已置顶")
           }
         }
         Text(summary(progress))
-          .font(.footnote)
+          .font(.app(.footnote))
           .foregroundStyle(.secondary)
           .lineLimit(2)
         if !progress.tasks.isEmpty && plan.status == .active {
@@ -282,12 +282,12 @@ struct PlanEditorSheet: View {
         Section {
           HStack(spacing: 12) {
             Image(systemName: icon ?? "scope")
-              .font(.title3.weight(.semibold))
+              .font(.app(.title3).weight(.semibold))
               .foregroundStyle(.white)
               .frame(width: 44, height: 44)
               .background(tint, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             TextField("计划名称，例如：成为更强大的人", text: $title)
-              .font(.headline)
+              .font(.app(.headline))
               .focused($focused)
           }
           TextField("为什么要做？下一步是什么？", text: $desc, axis: .vertical)
@@ -358,7 +358,7 @@ struct PlanEditorSheet: View {
   private func iconCell(_ symbol: String, tint: Color) -> some View {
     let selected = (icon ?? "scope") == symbol
     return Image(systemName: symbol)
-      .font(.body)
+      .font(.app(.body))
       .frame(width: 40, height: 40)
       .foregroundStyle(selected ? Color.white : Color.primary)
       .background(selected ? tint : Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -377,7 +377,7 @@ struct PlanEditorSheet: View {
       .frame(width: 30, height: 30)
       .overlay {
         if selected {
-          Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.white)
+          Image(systemName: "checkmark").font(.app(.caption).bold()).foregroundStyle(.white)
         }
       }
       .contentShape(Circle())
@@ -398,11 +398,11 @@ struct PlanEditorSheet: View {
       HStack {
         VStack(alignment: .leading, spacing: 2) {
           Text(task.title).foregroundStyle(.primary)
-          Text(taskCaption(task)).font(.caption).foregroundStyle(.secondary)
+          Text(taskCaption(task)).font(.app(.caption)).foregroundStyle(.secondary)
         }
         Spacer()
         Image(systemName: isLinked ? "checkmark.circle.fill" : "circle")
-          .font(.title3)
+          .font(.app(.title3))
           .foregroundStyle(isLinked ? tint : Color.secondary)
       }
       .contentShape(Rectangle())
@@ -465,7 +465,7 @@ struct PlanReorderSheet: View {
         Text(plan.title)
         Spacer()
         if plan.pinned {
-          Image(systemName: "pin.fill").font(.caption).foregroundStyle(.secondary)
+          Image(systemName: "pin.fill").font(.app(.caption)).foregroundStyle(.secondary)
         }
       }
     }

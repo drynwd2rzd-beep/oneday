@@ -125,6 +125,7 @@ final class Store {
     state = Storage.shared.load()
     JournalFont.style = state.settings.fontStyle
     appliedFontStyle = state.settings.fontStyle
+    UIKitFonts.apply(state.settings.fontStyle)
     MediaStore.collectGarbage(keeping: state.referencedPhotos)
     #if DEBUG
     applyLaunchArguments()
@@ -587,7 +588,9 @@ final class Store {
   /// Rebuilds the screens with the chosen font; called when 字体 closes so the sheet
   /// is not torn down mid-choice.
   func applyFontStyle() {
-    if appliedFontStyle != state.settings.fontStyle { appliedFontStyle = state.settings.fontStyle }
+    guard appliedFontStyle != state.settings.fontStyle else { return }
+    UIKitFonts.apply(state.settings.fontStyle)
+    appliedFontStyle = state.settings.fontStyle
   }
 
   // MARK: Home modules
@@ -679,6 +682,12 @@ final class Store {
       state = DemoData.make()
       if let style = defaults.string(forKey: "OneDayStyle"), let v = VisualStyle(rawValue: style) { state.settings.cardStyle = v }
       if let tone = defaults.string(forKey: "OneDayTone"), let v = BgTone(rawValue: tone) { state.settings.bgTone = v }
+      if let font = defaults.string(forKey: "OneDayFont"), let v = FontStyle(rawValue: font) {
+        state.settings.fontStyle = v
+        JournalFont.style = v
+        appliedFontStyle = v
+        UIKitFonts.apply(v)
+      }
     }
     if let tab = defaults.string(forKey: "OneDayTab"), let target = AppTab(rawValue: tab) {
       selectedTab = target

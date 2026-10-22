@@ -10,16 +10,16 @@ struct SectionHeader: View {
   var body: some View {
     HStack(alignment: .firstTextBaseline) {
       Text(title)
-        .font(.title3.weight(.semibold))
+        .font(.app(.title3).weight(.semibold))
         .accessibilityAddTraits(.isHeader)
       Spacer()
       if let actionTitle, let action {
         Button(action: action) {
           HStack(spacing: 3) {
             Text(actionTitle)
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold))
+            Image(systemName: "chevron.right").font(.app(.caption).weight(.semibold))
           }
-          .font(.subheadline)
+          .font(.app(.subheadline))
           .foregroundStyle(.secondary)
         }
       }
@@ -51,7 +51,7 @@ struct SegmentedBar<Value: Hashable>: View {
           withAnimation(.snappy(duration: 0.25)) { selection = option.value }
         } label: {
           Text(option.title)
-            .font(.subheadline.weight(selected ? .semibold : .regular).monospacedDigit())
+            .font(.app(.subheadline).weight(selected ? .semibold : .regular).monospacedDigit())
             .foregroundStyle(selected ? Color.primary : Color.secondary)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
@@ -83,7 +83,7 @@ struct EmptyText: View {
 
   var body: some View {
     Text(text)
-      .font(.subheadline)
+      .font(.app(.subheadline))
       .foregroundStyle(.secondary)
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.vertical, 6)
@@ -96,8 +96,8 @@ struct PageIntro: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text(title).font(.body.weight(.medium))
-      Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
+      Text(title).font(.app(.body).weight(.medium))
+      Text(subtitle).font(.app(.subheadline)).foregroundStyle(.secondary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .combine)
@@ -153,12 +153,12 @@ struct TagChip: View {
   var body: some View {
     HStack(spacing: 6) {
       Button(action: action) {
-        Text(title).font(.subheadline.weight(.medium)).lineLimit(1)
+        Text(title).font(.app(.subheadline).weight(.medium)).lineLimit(1)
       }
       .buttonStyle(.plain)
       if let onDelete {
         Button(action: onDelete) {
-          Image(systemName: "xmark").font(.caption2.weight(.bold))
+          Image(systemName: "xmark").font(.app(.caption2).weight(.bold))
         }
         .buttonStyle(.plain)
         .opacity(0.7)
@@ -179,7 +179,7 @@ struct TagLabel: View {
 
   var body: some View {
     Text("# \(tag)")
-      .font(.caption.weight(.bold))
+      .font(.app(.caption).weight(.bold))
       .foregroundStyle(accent)
       .padding(.horizontal, 8)
       .padding(.vertical, 4)
@@ -272,14 +272,14 @@ struct CalendarMonthView: View {
         monthButton("chevron.left", label: "上个月", by: -1)
         Spacer()
         Text(DayKey.monthLabel(month))
-          .font(.headline)
+          .font(.app(.headline))
           .contentTransition(.numericText())
         Spacer()
         monthButton("chevron.right", label: "下个月", by: 1)
       }
       LazyVGrid(columns: columns, spacing: 6) {
         ForEach(weekdays, id: \.self) { name in
-          Text(name).font(.caption.weight(.medium)).foregroundStyle(.secondary)
+          Text(name).font(.app(.caption).weight(.medium)).foregroundStyle(.secondary)
         }
         ForEach(0..<DayKey.leadingBlanks(month), id: \.self) { _ in
           Color.clear.frame(height: 42)
@@ -296,7 +296,7 @@ struct CalendarMonthView: View {
       withAnimation(.snappy) { month = DayKey.shiftMonth(month, by: value) }
     } label: {
       Image(systemName: icon)
-        .font(.body.weight(.semibold))
+        .font(.app(.body).weight(.semibold))
         .frame(width: 22, height: 22)
     }
     .oneDayButton()
@@ -315,7 +315,7 @@ struct CalendarMonthView: View {
     } label: {
       VStack(spacing: 3) {
         Text("\(day)")
-          .font(.callout.weight(isSelected || isToday ? .bold : .regular))
+          .font(.app(.callout).weight(isSelected || isToday ? .bold : .regular))
           .foregroundStyle(isSelected ? Color.white : isToday ? accent : Color.primary)
           .frame(width: 36, height: 36)
           .background {
@@ -394,7 +394,7 @@ struct PhotoLightbox: View {
       Button {
         dismiss()
       } label: {
-        Image(systemName: "xmark").font(.body.weight(.semibold)).frame(width: 24, height: 24)
+        Image(systemName: "xmark").font(.app(.body).weight(.semibold)).frame(width: 24, height: 24)
       }
       .oneDayButton()
       .buttonBorderShape(.circle)
@@ -519,7 +519,7 @@ struct SettingRow: View {
     Button(action: action) {
       HStack(spacing: 12) {
         Image(systemName: icon)
-          .font(.subheadline.weight(.semibold))
+          .font(.app(.subheadline).weight(.semibold))
           .foregroundStyle(.white)
           .frame(width: 29, height: 29)
           .background(tint ?? accent, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
@@ -529,7 +529,7 @@ struct SettingRow: View {
           Text(value).foregroundStyle(.secondary).lineLimit(1)
         }
         Image(systemName: "chevron.right")
-          .font(.footnote.weight(.semibold))
+          .font(.app(.footnote).weight(.semibold))
           .foregroundStyle(.tertiary)
       }
       .contentShape(Rectangle())

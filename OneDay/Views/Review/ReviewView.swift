@@ -173,7 +173,7 @@ private struct MonthHeader: View {
       Text("\(month)月")
         .font(.journal(.title2, size: 24, bold: true))
       Text(subtitle(year: year))
-        .font(.footnote)
+        .font(.app(.footnote))
         .foregroundStyle(.secondary)
       Spacer()
     }
@@ -206,7 +206,7 @@ private struct TimelineRow: View {
             .font(.journal(.title, size: 26, bold: true))
             .foregroundStyle(day == store.today ? accent : .primary)
           Text(relativeLabel)
-            .font(.caption2.weight(.medium))
+            .font(.app(.caption2).weight(.medium))
             .foregroundStyle(day == store.today ? accent : .secondary)
         }
         .frame(width: 44)
@@ -247,7 +247,7 @@ private struct TimelineRow: View {
           }
           if notes.count > 1 { Text("\(notes.count) 条") }
         }
-        .font(.caption)
+        .font(.app(.caption))
         .foregroundStyle(.secondary)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -293,7 +293,7 @@ private struct ReviewDayDetail: View {
       VStack(alignment: .leading, spacing: Spacing.stack) {
         VStack(alignment: .leading, spacing: 4) {
           Text(DayKey.weekday(day))
-            .font(.footnote.weight(.medium))
+            .font(.app(.footnote).weight(.medium))
             .foregroundStyle(.secondary)
           Text(DayKey.fullDate(day))
             .font(.journal(.title, size: 28, bold: true))
@@ -311,7 +311,7 @@ private struct ReviewDayDetail: View {
 
         if !tasks.isEmpty {
           VStack(alignment: .leading, spacing: 10) {
-            Text("那一天的事项").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+            Text("那一天的事项").font(.app(.footnote).weight(.semibold)).foregroundStyle(.secondary)
             ForEach(tasks) { task in
               let done = task.isDone(on: day)
               HStack(spacing: 10) {
@@ -381,15 +381,15 @@ private struct ReviewDayDetail: View {
       HStack(spacing: 6) {
         if note.isReflection {
           Label("复盘", systemImage: "moon.stars")
-            .font(.footnote.weight(.semibold))
+            .font(.app(.footnote).weight(.semibold))
             .foregroundStyle(accent)
         }
         Text(note.time.isEmpty ? (note.isReflection ? "" : "记录 \(index + 1)") : note.time)
-          .font(.footnote.weight(.medium).monospacedDigit())
+          .font(.app(.footnote).weight(.medium).monospacedDigit())
           .foregroundStyle(.secondary)
         if let mood = note.mood.flatMap(Mood.init(rawValue:)) {
           Text("\(mood.emoji) \(mood.label)")
-            .font(.footnote)
+            .font(.app(.footnote))
             .foregroundStyle(Color(hex: mood.hex))
         }
       }
@@ -488,7 +488,60 @@ private struct ReviewDayDetail: View {
 
 // MARK: - Overview
 
+/// Long-term numbers only; this week lives in 复盘.
 private struct OverviewPanel: View {
+  @Environment(Store.self) private var store
+  @Binding var month: Date
+  var onRecap: (Date) -> Void
+
+  var body: some View {
+    VStack(spacing: Spacing.stack) {
+      TotalsCard()
+      HeatmapCard()
+      StreaksCard()
+      if store.state.moodSeries(today: store.today, days: 30).count >= 2 {
+        MoodCard()
+      }
+      MonthCard(month: $month, onRecap: onRecap)
+    }
+  }
+}
+
+/// 累计完成 · 有记录 · 最长连续.
+private struct TotalsCard: View {
+  @Environment(Store.self) private var store
+
+  var body: some View {
+    let state = store.state
+    let completions = state.tasks.reduce(0) { $0 + $1.completionCount }
+    let best = state.taskStreaks(today: store.today).map(\.best).max() ?? 0
+    HStack(alignment: .top, spacing: 0) {
+      number("\(completions)", "累计完成", unit: "次")
+      number("\(state.recordDates.count)", "有记录", unit: "天")
+      number("\(best)", "最长连续", unit: "天")
+    }
+    .card()
+  }
+
+  private func number(_ value: String, _ label: String, unit: String) -> some View {
+    VStack(alignment: .leading, spacing: 4) {
+      HStack(alignment: .lastTextBaseline, spacing: 2) {
+        Text(value)
+          .font(.app(size: 28, weight: .bold))
+          .contentTransition(.numericText())
+          .lineLimit(1)
+          .minimumScaleFactor(0.6)
+        Text(unit).font(.app(.caption)).foregroundStyle(.secondary)
+      }
+      Text(label).font(.app(.caption)).foregroundStyle(.secondary)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .combine)
+  }
+}
+
+/// One month: completions per task, and its recap card.
+private struct MonthCard: View {
   @Environment(Store.self) private var store
   @Environment(\.accent) private var accent
   @Binding var month: Date
@@ -496,117 +549,73 @@ private struct OverviewPanel: View {
 
   var body: some View {
     let o = store.state.overview(month: month)
+    let recap = store.state.recap(month: month)
     let maxCount = max(1, o.items.map(\.count).max() ?? 1)
-    VStack(spacing: Spacing.stack) {
-      WeeklyReportCard()
-      MoodCard()
-      HeatmapCard()
-      StreaksCard()
-
-      GlassGroup {
-        HStack {
-          shiftButton("chevron.left", label: "上个月", by: -1)
-          Spacer()
-          Text(DayKey.monthLabel(month)).font(.headline).contentTransition(.numericText())
-          Spacer()
-          shiftButton("chevron.right", label: "下个月", by: 1)
-        }
-        .padding(6)
-        .capsuleSurface()
+    let isCurrent = DayKey.monthStart(month) >= DayKey.monthStart(Date())
+    VStack(alignment: .leading, spacing: 14) {
+      HStack {
+        shiftButton("chevron.left", label: "上个月", by: -1)
+        Spacer()
+        Text(DayKey.monthLabel(month)).font(.app(.headline)).contentTransition(.numericText())
+        Spacer()
+        shiftButton("chevron.right", label: "下个月", by: 1)
+          .disabled(isCurrent)
+          .opacity(isCurrent ? 0.3 : 1)
       }
-      .padding(.top, 8)
 
-      RecapEntryCard(recap: store.state.recap(month: month)) { onRecap(month) }
-
-      VStack(alignment: .leading, spacing: 14) {
-        HStack {
-          Text("各事项完成次数").font(.headline)
-          Spacer()
-          Text(o.items.isEmpty ? "暂无数据" : "\(o.items.count) 个事项")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        if o.items.isEmpty {
-          EmptyState(title: "这个月还没有完成记录", icon: "chart.bar", message: "完成一次事项后，这里会自动出现。")
-        } else {
-          ForEach(o.items) { item in
-            VStack(alignment: .leading, spacing: 6) {
-              HStack {
-                Text(item.title).lineLimit(1)
-                Spacer()
-                Text("\(item.count) 次").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-              }
-              ProgressView(value: Double(item.count), total: Double(maxCount))
-                .tint(accent)
+      if o.items.isEmpty {
+        Text("这个月还没有完成记录。")
+          .font(.app(.subheadline))
+          .foregroundStyle(.secondary)
+          .frame(maxWidth: .infinity, alignment: .center)
+          .padding(.vertical, 8)
+      } else {
+        ForEach(o.items) { item in
+          VStack(alignment: .leading, spacing: 6) {
+            HStack {
+              Text(item.title).font(.app(.subheadline)).lineLimit(1)
+              Spacer()
+              Text("\(item.count) 次").font(.app(.subheadline).weight(.semibold)).foregroundStyle(.secondary)
             }
-            .accessibilityElement(children: .combine)
+            ProgressView(value: Double(item.count), total: Double(maxCount))
+              .tint(accent)
           }
+          .accessibilityElement(children: .combine)
         }
       }
-      .card()
+
+      Divider()
+      Button {
+        onRecap(month)
+      } label: {
+        HStack(spacing: 8) {
+          Image(systemName: "sparkles").foregroundStyle(accent)
+          Text("\(DayKey.calendar.component(.month, from: month))月回顾").font(.app(.subheadline).weight(.semibold))
+          Spacer()
+          Text(recap.isEmpty ? "暂无内容" : "可以分享成图片").font(.app(.caption)).foregroundStyle(.secondary)
+          Image(systemName: "chevron.right").font(.app(.caption).weight(.semibold)).foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .disabled(recap.isEmpty)
+      .accessibilityLabel("\(DayKey.calendar.component(.month, from: month))月回顾")
     }
+    .card()
   }
 
   private func shiftButton(_ icon: String, label: String, by value: Int) -> some View {
     Button {
       withAnimation(.snappy) { month = DayKey.shiftMonth(month, by: value) }
     } label: {
-      Image(systemName: icon).font(.body.weight(.semibold)).frame(width: 22, height: 22)
+      Image(systemName: icon)
+        .font(.app(.body).weight(.semibold))
+        .foregroundStyle(accent)
+        .frame(width: 32, height: 32)
+        .contentShape(Rectangle())
     }
-    .oneDayButton()
-    .buttonBorderShape(.circle)
+    .buttonStyle(.plain)
     .accessibilityLabel(label)
-  }
-}
-
-/// This week vs last week, with an eight-week chart.
-private struct WeeklyReportCard: View {
-  @Environment(Store.self) private var store
-  @Environment(\.accent) private var accent
-
-  var body: some View {
-    let weeks = store.state.weeklyStats(today: store.today, weeks: 8)
-    let (this, last) = store.state.weekToDate(today: store.today)
-    let diff = this - last
-    VStack(alignment: .leading, spacing: 14) {
-      HStack(alignment: .firstTextBaseline) {
-        Text("本周").font(.headline)
-        Spacer()
-        Text("近 8 周").font(.caption).foregroundStyle(.secondary)
-      }
-      HStack(alignment: .lastTextBaseline, spacing: 6) {
-        Text("\(this)")
-          .font(.system(size: 44, weight: .bold, design: .default))
-          .contentTransition(.numericText())
-        Text("次完成").foregroundStyle(.secondary)
-        Spacer()
-        VStack(alignment: .trailing, spacing: 2) {
-          Text(diff == 0 ? "和上周同期持平" : diff > 0 ? "比上周同期多 \(diff) 次" : "比上周同期少 \(-diff) 次")
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(diff >= 0 ? accent : .secondary)
-          Text("留下记录 \(weeks.last?.noteDays ?? 0) 天")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-      }
-      Chart(weeks) { week in
-        BarMark(x: .value("周", week.label), y: .value("完成次数", week.completions))
-          .foregroundStyle(week.id == weeks.last?.id ? accent : accent.opacity(0.35))
-          .cornerRadius(5)
-      }
-      .chartYAxis {
-        AxisMarks(position: .trailing) { _ in
-          AxisGridLine().foregroundStyle(Color.secondary.opacity(0.15))
-          AxisValueLabel()
-        }
-      }
-      .chartXAxis {
-        AxisMarks { _ in AxisValueLabel().font(.caption2) }
-      }
-      .frame(height: 140)
-      .accessibilityLabel("近 8 周完成次数柱状图")
-    }
-    .card()
   }
 }
 
@@ -623,11 +632,11 @@ private struct HeatmapCard: View {
     let columns = store.state.heatmap(today: store.today, weeks: 53)
     VStack(alignment: .leading, spacing: 12) {
       HStack {
-        Text("这一年").font(.headline)
+        Text("这一年").font(.app(.headline))
         Spacer()
         if let selected {
           Text("\(DayKey.shortDate(selected.day)) · \(selected.total == 0 ? "无事项" : "完成 \(selected.done)/\(selected.total)")\(selected.hasNote ? " · 有记录" : "")")
-            .font(.caption)
+            .font(.app(.caption))
             .foregroundStyle(.secondary)
             .transition(.opacity)
         }
@@ -662,13 +671,13 @@ private struct HeatmapCard: View {
       }
       .defaultScrollAnchor(.trailing)
       HStack(spacing: 4) {
-        Text("少").font(.caption2).foregroundStyle(.secondary)
+        Text("少").font(.app(.caption2)).foregroundStyle(.secondary)
         ForEach(0..<5, id: \.self) { level in
           RoundedRectangle(cornerRadius: 2).fill(color(level: level)).frame(width: 10, height: 10)
         }
-        Text("多").font(.caption2).foregroundStyle(.secondary)
+        Text("多").font(.app(.caption2)).foregroundStyle(.secondary)
         Spacer()
-        Text("圆点表示当天有记录").font(.caption2).foregroundStyle(.secondary)
+        Text("圆点表示当天有记录").font(.app(.caption2)).foregroundStyle(.secondary)
       }
     }
     .card()
@@ -704,14 +713,14 @@ private struct StreaksCard: View {
     let streaks = store.state.taskStreaks(today: store.today)
     VStack(alignment: .leading, spacing: 14) {
       VStack(alignment: .leading, spacing: 3) {
-        Text("每日打卡").font(.headline)
+        Text("每日打卡").font(.app(.headline))
         Text("设为「每天」重复的事项，连续完成了几天")
-          .font(.caption)
+          .font(.app(.caption))
           .foregroundStyle(.secondary)
       }
       if streaks.isEmpty {
         Text("添加「每天循环」的事项后，这里会显示连续完成的天数。")
-          .font(.subheadline)
+          .font(.app(.subheadline))
           .foregroundStyle(.secondary)
       } else {
         ForEach(streaks) { s in
@@ -722,15 +731,15 @@ private struct StreaksCard: View {
             VStack(alignment: .leading, spacing: 3) {
               Text(s.title).lineLimit(1)
               Text("最长 \(s.best) 天 · 近 30 天完成率 \(Int((s.rate30 * 100).rounded()))%")
-                .font(.caption)
+                .font(.app(.caption))
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            Text("连续").font(.caption).foregroundStyle(.secondary)
+            Text("连续").font(.app(.caption)).foregroundStyle(.secondary)
             Text("\(s.current)")
-              .font(.system(.title3, design: .default, weight: .bold))
+              .font(.app(.title3).weight(.bold))
               .foregroundStyle(s.current > 0 ? accent : .secondary)
-            Text("天").font(.caption).foregroundStyle(.secondary)
+            Text("天").font(.app(.caption)).foregroundStyle(.secondary)
           }
           .accessibilityElement(children: .combine)
         }
@@ -740,19 +749,6 @@ private struct StreaksCard: View {
   }
 }
 
-private struct StatTile: View {
-  let title: String
-  let value: String
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      Text(title).font(.caption).foregroundStyle(.secondary)
-      Text(value).font(.title3.bold()).contentTransition(.numericText()).lineLimit(1).minimumScaleFactor(0.7)
-    }
-    .card()
-    .accessibilityElement(children: .combine)
-  }
-}
 
 // MARK: - Sheets
 
@@ -793,7 +789,7 @@ struct ReviewSearchSheet: View {
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                   Text(([DayKey.fullDate(result.day)] + [result.note.place].compactMap { $0 } + result.note.tags.map { "#\($0)" }).joined(separator: " · "))
-                    .font(.caption)
+                    .font(.app(.caption))
                     .foregroundStyle(.secondary)
                 }
               }

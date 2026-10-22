@@ -29,7 +29,7 @@ struct JournalCalendar: View {
         }
         LazyVGrid(columns: columns, spacing: 4) {
           ForEach(weekdays, id: \.self) { name in
-            Text(name).font(.caption.weight(.medium)).foregroundStyle(.secondary)
+            Text(name).font(.app(.caption).weight(.medium)).foregroundStyle(.secondary)
           }
           ForEach(0..<DayKey.leadingBlanks(month), id: \.self) { _ in
             Color.clear.aspectRatio(0.8, contentMode: .fit)
@@ -74,7 +74,7 @@ struct JournalCalendar: View {
       .clipShape(shape)
       .overlay(alignment: .topLeading) {
         Text("\(number)")
-          .font(.caption.weight(isToday ? .bold : .medium).monospacedDigit())
+          .font(.app(.caption).weight(isToday ? .bold : .medium).monospacedDigit())
           .foregroundStyle(numberColor(hasPhoto: photo != nil, isToday: isToday, isFuture: isFuture))
           .padding(.leading, 5)
           .padding(.top, 3)
@@ -82,7 +82,7 @@ struct JournalCalendar: View {
       .overlay(alignment: .bottom) {
         if photo == nil {
           if let mood = store.state.mood(on: day), let face = Mood(average: mood) {
-            Text(face.emoji).font(.callout).padding(.bottom, 4)
+            Text(face.emoji).font(.app(.callout)).padding(.bottom, 4)
           } else if !notes.isEmpty {
             Circle().fill(accent).frame(width: 5, height: 5).padding(.bottom, 8)
           }
@@ -113,7 +113,7 @@ struct JournalCalendar: View {
     Button {
       withAnimation(.snappy) { month = DayKey.shiftMonth(month, by: value) }
     } label: {
-      Image(systemName: icon).font(.body.weight(.semibold)).frame(width: 22, height: 22)
+      Image(systemName: icon).font(.app(.body).weight(.semibold)).frame(width: 22, height: 22)
     }
     .oneDayButton()
     .buttonBorderShape(.circle)
@@ -131,20 +131,20 @@ struct RecapEntryCard: View {
     Button(action: action) {
       HStack(spacing: 12) {
         Image(systemName: "sparkles.rectangle.stack")
-          .font(.title3)
+          .font(.app(.title3))
           .foregroundStyle(accent)
           .frame(width: 32)
         VStack(alignment: .leading, spacing: 3) {
           Text("\(DayKey.calendar.component(.month, from: recap.month))月回顾")
-            .font(.headline)
+            .font(.app(.headline))
           Text(summary)
-            .font(.subheadline)
+            .font(.app(.subheadline))
             .foregroundStyle(.secondary)
             .lineLimit(1)
         }
         Spacer(minLength: 8)
         Image(systemName: "chevron.right")
-          .font(.footnote.weight(.semibold))
+          .font(.app(.footnote).weight(.semibold))
           .foregroundStyle(.tertiary)
       }
       .contentShape(Rectangle())
@@ -211,7 +211,7 @@ struct PhotoWall: View {
               Text(DayKey.monthLabel(ofKey: section.key + "-01"))
                 .font(.journal(.headline, size: 18, bold: true))
               Text("\(section.items.count) 张")
-                .font(.footnote)
+                .font(.app(.footnote))
                 .foregroundStyle(.secondary)
               Spacer()
             }
@@ -250,13 +250,13 @@ struct MoodCard: View {
     let counts = Dictionary(grouping: series, by: { Mood(average: $0.value) ?? .okay }).mapValues(\.count)
     VStack(alignment: .leading, spacing: 14) {
       HStack(alignment: .firstTextBaseline) {
-        Text("心情").font(.headline)
+        Text("心情").font(.app(.headline))
         Spacer()
-        Text("近 30 天").font(.caption).foregroundStyle(.secondary)
+        Text("近 30 天").font(.app(.caption)).foregroundStyle(.secondary)
       }
       if series.count < 2 {
         Text("写记录时选一个心情，这里会画出你最近的情绪曲线。")
-          .font(.subheadline)
+          .font(.app(.subheadline))
           .foregroundStyle(.secondary)
       } else {
         Chart(series) { point in
@@ -278,7 +278,7 @@ struct MoodCard: View {
         }
         .chartXAxis {
           AxisMarks(values: .stride(by: .day, count: 7)) { _ in
-            AxisValueLabel(format: .dateTime.month(.defaultDigits).day()).font(.caption2)
+            AxisValueLabel(format: .dateTime.month(.defaultDigits).day()).font(.app(.caption2))
           }
         }
         .frame(height: 140)
@@ -287,9 +287,9 @@ struct MoodCard: View {
         HStack(spacing: 0) {
           ForEach(Mood.allCases) { mood in
             VStack(spacing: 4) {
-              Text(mood.emoji).font(.title3)
+              Text(mood.emoji).font(.app(.title3))
               Text("\(counts[mood] ?? 0) 天")
-                .font(.caption2.monospacedDigit())
+                .font(.app(.caption2).monospacedDigit())
                 .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)

@@ -15,7 +15,7 @@ struct EmptyState: View {
     } description: {
       if let message { Text(message) }
     }
-    .font(.subheadline)
+    .font(.app(.subheadline))
     .padding(.vertical, -12)
     .frame(maxWidth: .infinity)
   }
@@ -63,7 +63,7 @@ struct NoteTextEditor: View {
         HStack {
           Spacer()
           Button("完成") { focused = false }
-            .font(.subheadline.weight(.semibold))
+            .font(.app(.subheadline).weight(.semibold))
             .buttonStyle(.borderless)
         }
         .transition(.opacity)
@@ -96,7 +96,7 @@ struct NoteMetaLine: View {
           Label(weather, systemImage: LocationWeather.symbol(for: weather))
         }
       }
-      .font(.caption)
+      .font(.app(.caption))
       .foregroundStyle(.secondary)
       .labelStyle(CompactLabelStyle())
       .lineLimit(1)
@@ -170,13 +170,13 @@ struct VideoThumb: View {
       }
       .overlay {
         Image(systemName: "play.fill")
-          .font(.title3)
+          .font(.app(.title3))
           .foregroundStyle(.white)
           .shadow(radius: 4)
       }
       .overlay(alignment: .bottomTrailing) {
         Text(item.duration.clockText)
-          .font(.caption2.weight(.semibold).monospacedDigit())
+          .font(.app(.caption2).weight(.semibold).monospacedDigit())
           .foregroundStyle(.white)
           .padding(.horizontal, 5)
           .padding(.vertical, 2)
@@ -200,18 +200,18 @@ struct AudioRow: View {
     } label: {
       HStack(spacing: 12) {
         Image(systemName: isPlaying ? "stop.fill" : "play.fill")
-          .font(.footnote.weight(.bold))
+          .font(.app(.footnote).weight(.bold))
           .foregroundStyle(.white)
           .frame(width: 32, height: 32)
           .background(accent, in: Circle())
           .contentTransition(.symbolEffect(.replace))
         VStack(alignment: .leading, spacing: 5) {
-          Text("语音记录").font(.subheadline.weight(.medium))
+          Text("语音记录").font(.app(.subheadline).weight(.medium))
           ProgressView(value: isPlaying ? playback.progress : 0)
             .tint(accent)
         }
         Text(item.duration.clockText)
-          .font(.caption.monospacedDigit())
+          .font(.app(.caption).monospacedDigit())
           .foregroundStyle(.secondary)
       }
       .padding(10)
@@ -237,7 +237,7 @@ struct VideoPlayerScreen: View {
       Button {
         dismiss()
       } label: {
-        Image(systemName: "xmark").font(.body.weight(.semibold)).frame(width: 24, height: 24)
+        Image(systemName: "xmark").font(.app(.body).weight(.semibold)).frame(width: 24, height: 24)
       }
       .oneDayButton()
       .buttonBorderShape(.circle)
@@ -283,7 +283,7 @@ struct MemoryCard: View {
       VStack(alignment: .leading, spacing: 8) {
         HStack(alignment: .firstTextBaseline) {
           Text(caption)
-            .font(.footnote.weight(.medium))
+            .font(.app(.footnote).weight(.medium))
             .foregroundStyle(.secondary)
           Spacer(minLength: 8)
           HStack(spacing: 6) {
@@ -292,7 +292,7 @@ struct MemoryCard: View {
             if notes.count > 1 { Text("\(notes.count) 条") }
             if showsChevron { Image(systemName: "chevron.right").fontWeight(.semibold) }
           }
-          .font(.caption)
+          .font(.app(.caption))
           .foregroundStyle(.tertiary)
         }
         if let first {

@@ -120,8 +120,9 @@ struct RootView: View {
     .tabBarMinimizesOnScroll()
     // Fonts come from a static switch, so rebuild the screens when it flips.
     .id(store.appliedFontStyle)
-    // 圆体 reaches every system text style, not only the journal call sites.
+    // 圆体 reaches every system text style; text without its own font gets the app font.
     .fontDesign(store.appliedFontStyle == .rounded ? .rounded : nil)
+    .font(.app(.body))
     .environment(\.palette, Palette.make(tone: store.settings.bgTone, dark: colorScheme == .dark))
     .environment(\.visualStyle, store.settings.cardStyle)
     .environment(\.accent, store.accentColor)
@@ -172,13 +173,13 @@ struct MotivationSheet: View {
   var body: some View {
     VStack(spacing: 18) {
       Image(systemName: "sparkles")
-        .font(.system(size: 46, weight: .semibold))
+        .font(.app(size: 46, weight: .semibold))
         .foregroundStyle(accent)
         .symbolEffect(.bounce, value: appeared)
       Text("今天做得很好。")
-        .font(.title2.bold())
+        .font(.app(.title2).bold())
       Text("“\(motivation.text)”")
-        .font(.title3)
+        .font(.app(.title3))
         .multilineTextAlignment(.center)
       Text("—— \(motivation.author)")
         .foregroundStyle(.secondary)

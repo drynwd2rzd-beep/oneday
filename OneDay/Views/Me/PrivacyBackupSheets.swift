@@ -58,7 +58,7 @@ struct SecuritySheet: View {
         } header: {
           Text("隐私说明")
         }
-        .font(.subheadline)
+        .font(.app(.subheadline))
         .foregroundStyle(.secondary)
       }
       .navigationTitle("隐私与安全")
@@ -144,7 +144,7 @@ struct BackupSheet: View {
             Label {
               VStack(alignment: .leading, spacing: 2) {
                 Text("从备份恢复")
-                Text("选择备份文件夹，或网页版导出的 JSON 文件").font(.caption).foregroundStyle(.secondary)
+                Text("选择备份文件夹，或网页版导出的 JSON 文件").font(.app(.caption)).foregroundStyle(.secondary)
               }
             } icon: {
               if reading { ProgressView() } else { Image(systemName: "arrow.down.doc") }
@@ -270,7 +270,7 @@ struct BackupSheet: View {
           Label {
             VStack(alignment: .leading, spacing: 2) {
               Text("选择备份文件夹")
-              Text("推荐选择「iCloud 云盘」中的文件夹").font(.caption).foregroundStyle(.secondary)
+              Text("推荐选择「iCloud 云盘」中的文件夹").font(.app(.caption)).foregroundStyle(.secondary)
             }
           } icon: {
             Image(systemName: "icloud.and.arrow.up")
@@ -278,7 +278,7 @@ struct BackupSheet: View {
         }
       }
       if let error = backup.lastError {
-        Text(error).font(.caption).foregroundStyle(.red)
+        Text(error).font(.app(.caption)).foregroundStyle(.red)
       }
     } header: {
       Text("自动备份")
@@ -300,7 +300,7 @@ struct BackupSheet: View {
             HStack {
               Label(url.deletingPathExtension().lastPathComponent.replacingOccurrences(of: "oneday-", with: ""), systemImage: "doc.text")
               Spacer()
-              Text("恢复").font(.subheadline).foregroundStyle(.secondary)
+              Text("恢复").font(.app(.subheadline)).foregroundStyle(.secondary)
             }
           }
         }
@@ -320,7 +320,7 @@ struct BackupSheet: View {
         Label {
           VStack(alignment: .leading, spacing: 2) {
             Text("导出完整备份")
-            Text("包含照片、视频和录音的文件夹").font(.caption).foregroundStyle(.secondary)
+            Text("包含照片、视频和录音的文件夹").font(.app(.caption)).foregroundStyle(.secondary)
           }
         } icon: {
           if exportingPackage { ProgressView() } else { Image(systemName: "shippingbox") }
@@ -334,7 +334,7 @@ struct BackupSheet: View {
         Label {
           VStack(alignment: .leading, spacing: 2) {
             Text("导出网页版备份")
-            Text("单个 JSON 文件，网页版 OneDay 可以导入（不含视频和录音）").font(.caption).foregroundStyle(.secondary)
+            Text("单个 JSON 文件，网页版 OneDay 可以导入（不含视频和录音）").font(.app(.caption)).foregroundStyle(.secondary)
           }
         } icon: {
           Image(systemName: "doc.badge.arrow.up")
@@ -399,7 +399,7 @@ struct DiagnosticsSheet: View {
           LabeledContent("照片、视频和录音", value: "\(state.referencedPhotos.count) 个 · \(MediaStore.totalSizeText)")
           LabeledContent("存储", value: Storage.shared.lastError == nil ? "正常" : "有错误")
           if let error = Storage.shared.lastError {
-            Text(error).font(.caption).foregroundStyle(.red)
+            Text(error).font(.app(.caption)).foregroundStyle(.red)
           }
         }
         Section {

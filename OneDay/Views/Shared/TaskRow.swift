@@ -18,7 +18,7 @@ struct TaskRow: View {
         withAnimation(.snappy) { store.toggleTask(task.id, on: day) }
       } label: {
         Image(systemName: done ? "checkmark.circle.fill" : "circle")
-          .font(.title3)
+          .font(.app(.title3))
           .foregroundStyle(done ? accent : Color(uiColor: .tertiaryLabel))
           .contentTransition(.symbolEffect(.replace))
           .symbolEffect(.bounce, value: done)
@@ -30,7 +30,7 @@ struct TaskRow: View {
 
       VStack(alignment: .leading, spacing: 3) {
         Text(task.title)
-          .font(.body)
+          .font(.app(.body))
           .strikethrough(done, color: .secondary)
           .foregroundStyle(done ? .secondary : .primary)
         if task.repeatMode == .daily || task.reminder != nil || plan != nil {
@@ -49,7 +49,7 @@ struct TaskRow: View {
                 .lineLimit(1)
             }
           }
-          .font(.footnote)
+          .font(.app(.footnote))
           .foregroundStyle(.secondary)
         }
       }

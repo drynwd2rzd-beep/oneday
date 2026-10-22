@@ -67,7 +67,7 @@ struct NoteEditorSheet: View {
                   .fill(Color.secondary.opacity(0.1))
                   .aspectRatio(1, contentMode: .fit)
                   .overlay {
-                    Image(systemName: "plus").font(.title3.weight(.medium)).foregroundStyle(accent)
+                    Image(systemName: "plus").font(.app(.title3).weight(.medium)).foregroundStyle(accent)
                   }
               }
               .buttonStyle(.plain)
@@ -196,7 +196,7 @@ struct NoteEditorSheet: View {
       withAnimation(.snappy) { action() }
     } label: {
       Image(systemName: inline ? "minus.circle.fill" : "xmark.circle.fill")
-        .font(inline ? .title3 : .body)
+        .font(inline ? .app(.title3) : .app(.body))
         .symbolRenderingMode(inline ? .multicolor : .palette)
         .foregroundStyle(inline ? Color.red : Color.white, Color.black.opacity(0.55))
     }

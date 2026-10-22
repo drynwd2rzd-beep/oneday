@@ -90,7 +90,7 @@ private struct SwipeActionsModifier: ViewModifier {
       RoundedRectangle(cornerRadius: 14, style: .continuous)
         .fill(action.tint.opacity(armed ? 1 : 0.75))
       Image(systemName: action.icon)
-        .font(.body.weight(.bold))
+        .font(.app(.body).weight(.bold))
         .foregroundStyle(.white)
         .scaleEffect(armed ? 1.15 : 0.9)
         .padding(.horizontal, 18)
@@ -117,11 +117,11 @@ struct ToastView: View {
       if let message = store.toastMessage {
         HStack(spacing: 14) {
           Text(message)
-            .font(.subheadline.weight(.semibold))
+            .font(.app(.subheadline).weight(.semibold))
             .lineLimit(2)
           if store.toastUndoLabel != nil {
             Button("撤销") { store.undo() }
-              .font(.subheadline.weight(.bold))
+              .font(.app(.subheadline).weight(.bold))
               .foregroundStyle(store.accentColor)
               .accessibilityHint("撤销刚才的操作")
           }

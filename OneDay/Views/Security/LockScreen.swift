@@ -46,7 +46,7 @@ struct PasscodeEntry: View {
             .onSubmit(submit)
             .fieldBackground()
           Button(action: submit) {
-            Image(systemName: "arrow.right").font(.body.weight(.semibold)).frame(width: 22, height: 22)
+            Image(systemName: "arrow.right").font(.app(.body).weight(.semibold)).frame(width: 22, height: 22)
           }
           .oneDayButton(prominent: true)
           .buttonBorderShape(.circle)
@@ -65,7 +65,7 @@ struct PasscodeEntry: View {
         .onAppear { fieldFocused = true }
         if showsBiometrics {
           Button(action: onBiometrics) {
-            Image(systemName: biometryIcon).font(.title)
+            Image(systemName: biometryIcon).font(.app(.title))
           }
           .accessibilityLabel("使用生物识别解锁")
         }
@@ -93,7 +93,7 @@ struct PasscodeEntry: View {
     case "bio":
       if showsBiometrics {
         Button(action: onBiometrics) {
-          Image(systemName: biometryIcon).font(.title2).frame(width: 76, height: 76)
+          Image(systemName: biometryIcon).font(.app(.title2)).frame(width: 76, height: 76)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("使用生物识别解锁")
@@ -104,7 +104,7 @@ struct PasscodeEntry: View {
       Button {
         if !code.isEmpty { code.removeLast() }
       } label: {
-        Image(systemName: "delete.left").font(.title2).frame(width: 76, height: 76)
+        Image(systemName: "delete.left").font(.app(.title2)).frame(width: 76, height: 76)
       }
       .buttonStyle(.plain)
       .accessibilityLabel("删除")
@@ -116,7 +116,7 @@ struct PasscodeEntry: View {
         if code.count == 6 { submit() }
       } label: {
         Text(key)
-          .font(.system(size: 32, weight: .regular, design: .default))
+          .font(.app(size: 32, weight: .regular))
           .frame(width: 76, height: 76)
           .circleSurface(interactive: true)
       }
@@ -169,9 +169,9 @@ struct LockScreen: View {
         .frame(width: 64, height: 64)
         .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
       VStack(spacing: 6) {
-        Text(lock.kind == .digits6 ? "输入密码" : "输入密码解锁").font(.title3.weight(.semibold))
+        Text(lock.kind == .digits6 ? "输入密码" : "输入密码解锁").font(.app(.title3).weight(.semibold))
         Text(statusText)
-          .font(.subheadline)
+          .font(.app(.subheadline))
           .foregroundStyle(lock.failedAttempts > 0 ? Color.red : .secondary)
           .contentTransition(.numericText())
       }
@@ -189,7 +189,7 @@ struct LockScreen: View {
       .opacity(isWaiting ? 0.4 : 1)
       Spacer()
       Button("忘记密码？") { confirmForgot = true }
-        .font(.footnote)
+        .font(.app(.footnote))
         .foregroundStyle(.secondary)
     }
     .padding(24)
@@ -239,9 +239,9 @@ struct PasscodeSetupSheet: View {
         .pickerStyle(.segmented)
         .disabled(first != nil)
         VStack(spacing: 6) {
-          Text(first == nil ? "设置新密码" : "再输入一次").font(.title3.weight(.semibold))
+          Text(first == nil ? "设置新密码" : "再输入一次").font(.app(.title3).weight(.semibold))
           Text(mismatch ? "两次输入不一致，请重新设置" : kind == .digits6 ? "输入 6 位数字" : "至少 4 位，可包含字母和数字")
-            .font(.subheadline)
+            .font(.app(.subheadline))
             .foregroundStyle(mismatch ? Color.red : .secondary)
         }
         PasscodeEntry(kind: kind, onSubmit: handle, errorCount: $errors)
@@ -288,7 +288,7 @@ struct PasscodeVerifySheet: View {
     NavigationStack {
       VStack(spacing: 22) {
         Text(errors > 0 ? "密码错误，请重试" : "输入当前密码")
-          .font(.title3.weight(.semibold))
+          .font(.app(.title3).weight(.semibold))
           .foregroundStyle(errors > 0 ? Color.red : .primary)
         PasscodeEntry(kind: AppLock.shared.kind, onSubmit: { code in
           if AppLock.shared.verify(code) {

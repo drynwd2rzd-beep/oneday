@@ -67,7 +67,7 @@ struct TasksView: View {
     return VStack(alignment: .leading, spacing: Spacing.inner) {
       HStack(alignment: .firstTextBaseline) {
         Text(selected == store.today ? "今天" : DayKey.fullDate(selected))
-          .font(.title3.bold())
+          .font(.app(.title3).bold())
         Spacer()
         if selected != store.today {
           Button("回到今天") {
@@ -76,7 +76,7 @@ struct TasksView: View {
               month = DayKey.monthStart(Date())
             }
           }
-          .font(.subheadline.weight(.medium))
+          .font(.app(.subheadline).weight(.medium))
         }
       }
       SegmentedBar(
@@ -117,11 +117,11 @@ struct TasksView: View {
         Label("全部完成", systemImage: "circle.fill").foregroundStyle(accent)
         Label("部分完成", systemImage: "circle.fill").foregroundStyle(Color.partialDone)
       }
-      .font(.caption)
+      .font(.app(.caption))
       .labelStyle(LegendLabelStyle())
 
       Text("\(DayKey.fullDate(selected)) \(DayKey.weekday(selected))")
-        .font(.title3.bold())
+        .font(.app(.title3).bold())
 
       VStack(alignment: .leading, spacing: 0) {
         if list.isEmpty {

@@ -116,6 +116,9 @@ jobs:
           shoot glass-review-reflect -OneDayDemo YES -OneDayTab review -OneDayReview reflect
           shoot glass-review-week -OneDayDemo YES -OneDayTab review -OneDayReview week
           shoot widgets -OneDayDemo YES -OneDayTab me -OneDayWidgets YES
+          shoot journal-today -OneDayDemo YES -OneDayTab today -OneDayFont journal
+          shoot journal-review -OneDayDemo YES -OneDayTab review -OneDayFont journal
+          shoot rounded-tasks -OneDayDemo YES -OneDayTab tasks -OneDayFont rounded
           shoot classic-today -OneDayDemo YES -OneDayTab today -OneDayStyle soft
           shoot flat-tasks -OneDayDemo YES -OneDayTab tasks -OneDayStyle flat -OneDayTone cool
           shoot onboarding -OneDayDemo YES -OneDayOnboarding YES

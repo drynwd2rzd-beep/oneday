@@ -21,9 +21,9 @@ struct ReflectionPanel: View {
             Image(systemName: "clock.arrow.circlepath")
             Text("补写昨天的复盘")
             Spacer()
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+            Image(systemName: "chevron.right").font(.app(.caption).weight(.semibold)).foregroundStyle(.tertiary)
           }
-          .font(.subheadline)
+          .font(.app(.subheadline))
           .foregroundStyle(accent)
           .contentShape(Rectangle())
         }
@@ -34,7 +34,7 @@ struct ReflectionPanel: View {
 
       if !past.isEmpty {
         Text("往期复盘")
-          .font(.title3.weight(.semibold))
+          .font(.app(.title3).weight(.semibold))
           .accessibilityAddTraits(.isHeader)
           .padding(.top, Spacing.section - Spacing.stack)
         LazyVStack(spacing: 0) {
@@ -66,13 +66,13 @@ private struct DayReflectionCard: View {
     } label: {
       VStack(alignment: .leading, spacing: 12) {
         HStack(alignment: .firstTextBaseline) {
-          Text("今日复盘").font(.headline)
+          Text("今日复盘").font(.app(.headline))
           Text("\(DayKey.shortDate(day)) \(DayKey.weekday(day))")
-            .font(.caption)
+            .font(.app(.caption))
             .foregroundStyle(.secondary)
           Spacer()
           Image(systemName: text == nil ? "square.and.pencil" : "chevron.right")
-            .font(.subheadline.weight(.semibold))
+            .font(.app(.subheadline).weight(.semibold))
             .foregroundStyle(text == nil ? accent : Color(uiColor: .tertiaryLabel))
         }
         DaySummaryLine(summary: summary)
@@ -116,7 +116,7 @@ private struct DaySummaryLine: View {
       }
     }
     .labelStyle(CompactLabelStyle())
-    .font(.caption)
+    .font(.app(.caption))
     .foregroundStyle(.secondary)
   }
 }
@@ -135,23 +135,23 @@ private struct WeekReflectionCard: View {
     } label: {
       VStack(alignment: .leading, spacing: 14) {
         HStack(alignment: .firstTextBaseline) {
-          Text("本周复盘").font(.headline)
-          Text(DayKey.weekRange(start)).font(.caption).foregroundStyle(.secondary)
+          Text("本周复盘").font(.app(.headline))
+          Text(DayKey.weekRange(start)).font(.app(.caption)).foregroundStyle(.secondary)
           Spacer()
           Image(systemName: "chevron.right")
-            .font(.subheadline.weight(.semibold))
+            .font(.app(.subheadline).weight(.semibold))
             .foregroundStyle(.tertiary)
         }
         HStack(alignment: .bottom, spacing: 16) {
           VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .lastTextBaseline, spacing: 4) {
               Text("\(week.completions)")
-                .font(.system(size: 34, weight: .bold, design: .default))
+                .font(.app(size: 34, weight: .bold))
                 .contentTransition(.numericText())
-              Text("次完成").font(.subheadline).foregroundStyle(.secondary)
+              Text("次完成").font(.app(.subheadline)).foregroundStyle(.secondary)
             }
             Text(diff == 0 ? "和上周同期持平" : diff > 0 ? "比上周同期多 \(diff) 次" : "比上周同期少 \(-diff) 次")
-              .font(.caption)
+              .font(.app(.caption))
               .foregroundStyle(diff >= 0 ? accent : .secondary)
           }
           Spacer(minLength: 8)
@@ -170,7 +170,7 @@ private struct WeekReflectionCard: View {
             Spacer()
             Text("开始复盘").fontWeight(.medium).foregroundStyle(accent)
           }
-          .font(.subheadline)
+          .font(.app(.subheadline))
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -201,7 +201,7 @@ private struct WeekBars: View {
             }
           }
           Text(DayKey.weekdayLetters[i])
-            .font(.system(size: 9, weight: day == today ? .bold : .regular))
+            .font(.app(size: 9, weight: day == today ? .bold : .regular))
             .foregroundStyle(day == today ? accent : .secondary)
         }
       }
@@ -225,20 +225,20 @@ private struct PastWeekRow: View {
       HStack(spacing: 12) {
         VStack(alignment: .leading, spacing: 3) {
           Text(DayKey.weekRange(start) + yearSuffix)
-            .font(.body)
+            .font(.app(.body))
           Text(detail(week))
-            .font(.caption)
+            .font(.app(.caption))
             .foregroundStyle(.secondary)
         }
         Spacer(minLength: 8)
         if done {
           Label("已复盘", systemImage: "checkmark.seal.fill")
             .labelStyle(CompactLabelStyle())
-            .font(.caption.weight(.medium))
+            .font(.app(.caption).weight(.medium))
             .foregroundStyle(accent)
         }
         Image(systemName: "chevron.right")
-          .font(.footnote.weight(.semibold))
+          .font(.app(.footnote).weight(.semibold))
           .foregroundStyle(.tertiary)
       }
       .padding(.vertical, 12)
@@ -291,7 +291,7 @@ struct DayReflectionSheet: View {
         VStack(alignment: .leading, spacing: Spacing.stack) {
           VStack(alignment: .leading, spacing: 4) {
             Text(DayKey.weekday(day))
-              .font(.footnote.weight(.medium))
+              .font(.app(.footnote).weight(.medium))
               .foregroundStyle(.secondary)
             Text(DayKey.fullDate(day))
               .font(.journal(.title, size: 26, bold: true))
@@ -315,7 +315,7 @@ struct DayReflectionSheet: View {
 
           VStack(alignment: .leading, spacing: 12) {
             Label("复盘", systemImage: "moon.stars")
-              .font(.footnote.weight(.semibold))
+              .font(.app(.footnote).weight(.semibold))
               .foregroundStyle(.secondary)
             TextField("回头看看今天：做成了什么，卡在了哪里，明天想怎么做……", text: $text, axis: .vertical)
               .font(.journal(.body, size: 18))
@@ -325,7 +325,7 @@ struct DayReflectionSheet: View {
               .accessibilityLabel("复盘内容")
               .accessibilityIdentifier("reflection-text")
             Divider()
-            Text("今天整体的心情").font(.footnote).foregroundStyle(.secondary)
+            Text("今天整体的心情").font(.app(.footnote)).foregroundStyle(.secondary)
             MoodPicker(selection: $mood)
           }
           .card()
@@ -368,7 +368,7 @@ struct DayReflectionSheet: View {
       Text(title)
         .foregroundStyle(done ? .primary : .secondary)
     }
-    .font(.subheadline)
+    .font(.app(.subheadline))
     .accessibilityElement(children: .combine)
     .accessibilityValue(done ? "已完成" : "未完成")
   }
@@ -410,7 +410,7 @@ struct WeekReflectionSheet: View {
         VStack(alignment: .leading, spacing: Spacing.stack) {
           VStack(alignment: .leading, spacing: 4) {
             Text(week.isCurrent ? "本周" : String(start.prefix(4)) + " 年")
-              .font(.footnote.weight(.medium))
+              .font(.app(.footnote).weight(.medium))
               .foregroundStyle(.secondary)
             Text(DayKey.weekRange(start))
               .font(.journal(.title, size: 26, bold: true))
@@ -423,7 +423,7 @@ struct WeekReflectionSheet: View {
           if !week.plans.isEmpty { WeekPlansCard(week: week) }
 
           Text("复盘")
-            .font(.title3.weight(.semibold))
+            .font(.app(.title3).weight(.semibold))
             .accessibilityAddTraits(.isHeader)
             .padding(.top, Spacing.section - Spacing.stack)
           question("本周收获", prompt: "这周最值得记住的事、进步和收获", text: $draft.gains)
@@ -473,7 +473,7 @@ struct WeekReflectionSheet: View {
 
   private func questionField(_ title: String, prompt: String, text: Binding<String>) -> some View {
     VStack(alignment: .leading, spacing: 8) {
-      Text(title).font(.headline)
+      Text(title).font(.app(.headline))
       TextField(prompt, text: text, axis: .vertical)
         .font(.journal(.body, size: 17))
         .lineSpacing(5)
@@ -494,7 +494,7 @@ struct WeekReflectionSheet: View {
     if !items.isEmpty {
       let plans = store.state.activePlans
       let label = Label("把 \(items.count) 件加入 \(DayKey.shortDate(focusDay)) 的事项", systemImage: "plus.circle")
-        .font(.subheadline.weight(.medium))
+        .font(.app(.subheadline).weight(.medium))
         .foregroundStyle(accent)
       if plans.isEmpty {
         Button { store.addFocusTasks(items, on: focusDay, planId: nil) } label: { label }
@@ -533,7 +533,7 @@ private struct WeekNumbers: View {
         number("\(week.reflectionDays.count)", "天复盘")
       }
       Text(diff == 0 ? "完成次数和上周同期持平" : diff > 0 ? "比上周同期多完成 \(diff) 次" : "比上周同期少完成 \(-diff) 次")
-        .font(.subheadline)
+        .font(.app(.subheadline))
         .foregroundStyle(diff >= 0 ? accent : .secondary)
     }
     .card()
@@ -542,10 +542,10 @@ private struct WeekNumbers: View {
   private func number(_ value: String, _ label: String) -> some View {
     VStack(alignment: .leading, spacing: 2) {
       Text(value)
-        .font(.system(.title2, design: .default, weight: .bold))
+        .font(.app(.title2).weight(.bold))
         .lineLimit(1)
         .minimumScaleFactor(0.7)
-      Text(label).font(.caption).foregroundStyle(.secondary)
+      Text(label).font(.app(.caption)).foregroundStyle(.secondary)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .accessibilityElement(children: .combine)
@@ -562,13 +562,13 @@ private struct WeekDaysCard: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
-      Text("每一天").font(.headline)
+      Text("每一天").font(.app(.headline))
       WeekBars(week: week, today: today)
         .frame(height: 64)
       HStack(spacing: 6) {
         ForEach(Array(week.moods.enumerated()), id: \.offset) { _, mood in
           Text(mood.flatMap(Mood.init(average:))?.emoji ?? "·")
-            .font(.callout)
+            .font(.app(.callout))
             .foregroundStyle(.tertiary)
             .frame(maxWidth: .infinity)
         }
@@ -593,17 +593,17 @@ private struct WeekDaysCard: View {
     } label: {
       HStack(alignment: .firstTextBaseline, spacing: 12) {
         Text("周" + letter)
-          .font(.subheadline.weight(.medium))
+          .font(.app(.subheadline).weight(.medium))
           .foregroundStyle(day == today ? accent : .secondary)
           .frame(width: 32, alignment: .leading)
         Text(text ?? "写这天的复盘")
-          .font(text == nil ? .subheadline : .journal(.body, size: 16))
+          .font(text == nil ? .app(.subheadline) : .journal(.body, size: 16))
           .foregroundStyle(text == nil ? Color(uiColor: .tertiaryLabel) : .primary)
           .lineLimit(2)
           .multilineTextAlignment(.leading)
           .frame(maxWidth: .infinity, alignment: .leading)
         Image(systemName: text == nil ? "plus" : "chevron.right")
-          .font(.caption.weight(.semibold))
+          .font(.app(.caption).weight(.semibold))
           .foregroundStyle(.tertiary)
       }
       .padding(.vertical, 8)
@@ -622,16 +622,16 @@ private struct WeekTasksCard: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
       HStack(spacing: 0) {
-        Text("打卡").font(.headline)
+        Text("打卡").font(.app(.headline))
         Spacer(minLength: 8)
         marksRow { i in
-          Text(DayKey.weekdayLetters[i]).font(.caption2).foregroundStyle(.secondary)
+          Text(DayKey.weekdayLetters[i]).font(.app(.caption2)).foregroundStyle(.secondary)
         }
       }
       ForEach(week.tasks) { row in
         HStack(spacing: 0) {
           Text(row.title)
-            .font(.subheadline)
+            .font(.app(.subheadline))
             .lineLimit(1)
           Spacer(minLength: 8)
           marksRow { i in mark(row.marks[i]) }
@@ -667,7 +667,7 @@ private struct WeekPlansCard: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text("计划").font(.headline)
+      Text("计划").font(.app(.headline))
       ForEach(week.plans) { row in
         HStack(spacing: 10) {
           Image(systemName: row.plan.symbol)
@@ -676,7 +676,7 @@ private struct WeekPlansCard: View {
           Text(row.plan.title).lineLimit(1)
           Spacer()
           Text(row.completions == 0 ? "本周没有推进" : "本周完成 \(row.completions) 次")
-            .font(.subheadline)
+            .font(.app(.subheadline))
             .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
@@ -697,17 +697,17 @@ private struct DayMomentsCard: View {
     let moments = store.state.moments(on: day)
     VStack(alignment: .leading, spacing: 12) {
       Label(day == store.today ? "今天留下的" : "这天留下的", systemImage: "text.quote")
-        .font(.footnote.weight(.semibold))
+        .font(.app(.footnote).weight(.semibold))
         .foregroundStyle(.secondary)
       if moments.isEmpty {
         Text("这一天还没有留下记录。")
-          .font(.subheadline)
+          .font(.app(.subheadline))
           .foregroundStyle(.tertiary)
       } else {
         ForEach(moments) { note in
           HStack(alignment: .top, spacing: 10) {
             Text(note.time.isEmpty ? "·" : note.time)
-              .font(.caption.monospacedDigit())
+              .font(.app(.caption).monospacedDigit())
               .foregroundStyle(.secondary)
               .frame(width: 40, alignment: .leading)
             Text(excerpt(note))

@@ -22,7 +22,7 @@ struct RecapCard: View {
     VStack(alignment: .leading, spacing: 18) {
       VStack(alignment: .leading, spacing: 4) {
         Text("\(String(comps.year ?? 0)) · \(name.isEmpty ? "我" : name)的")
-          .font(.footnote.weight(.medium))
+          .font(.app(.footnote).weight(.medium))
           .foregroundStyle(Paper.soft)
         Text("\(comps.month ?? 0)月回顾")
           .font(.journal(.largeTitle, size: 34, bold: true))
@@ -62,7 +62,7 @@ struct RecapCard: View {
             line("waveform", mediaLine)
           }
         }
-        .font(.subheadline)
+        .font(.app(.subheadline))
       }
 
       if let highlight = recap.highlight {
@@ -72,7 +72,7 @@ struct RecapCard: View {
             .lineSpacing(5)
             .lineLimit(5)
           Text(DayKey.fullDate(highlight.day))
-            .font(.caption)
+            .font(.app(.caption))
             .foregroundStyle(Paper.soft)
         }
         .padding(14)
@@ -140,8 +140,8 @@ struct RecapCard: View {
 
   private func number(_ value: String, _ label: String) -> some View {
     VStack(alignment: .leading, spacing: 2) {
-      Text(value).font(.system(size: 28, weight: .bold, design: .default)).foregroundStyle(accent)
-      Text(label).font(.caption).foregroundStyle(Paper.soft)
+      Text(value).font(.app(size: 28, weight: .bold)).foregroundStyle(accent)
+      Text(label).font(.app(.caption)).foregroundStyle(Paper.soft)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
   }
@@ -157,7 +157,7 @@ struct RecapCard: View {
     HStack {
       Rectangle().fill(Paper.line).frame(height: 1)
       Text("OneDay · 把每一天留下来")
-        .font(.caption2)
+        .font(.app(.caption2))
         .foregroundStyle(Paper.soft)
         .fixedSize()
     }
@@ -179,7 +179,7 @@ struct DayShareCard: View {
       HStack(alignment: .lastTextBaseline) {
         VStack(alignment: .leading, spacing: 2) {
           Text(DayKey.weekday(day))
-            .font(.footnote.weight(.medium))
+            .font(.app(.footnote).weight(.medium))
             .foregroundStyle(Paper.soft)
           Text(DayKey.fullDate(day))
             .font(.journal(.title, size: 26, bold: true))
@@ -201,7 +201,7 @@ struct DayShareCard: View {
         ForEach(notes.filter { !$0.text.isEmpty }.prefix(3)) { note in
           VStack(alignment: .leading, spacing: 4) {
             if notes.count > 1 && !note.time.isEmpty {
-              Text(note.time).font(.caption.monospacedDigit()).foregroundStyle(Paper.soft)
+              Text(note.time).font(.app(.caption).monospacedDigit()).foregroundStyle(Paper.soft)
             }
             Text(MarkdownText.plain(note.text))
               .font(.journal(.body, size: 18))
@@ -217,13 +217,13 @@ struct DayShareCard: View {
           if let weather = first.weather { Label(weather, systemImage: LocationWeather.symbol(for: weather)) }
         }
         .labelStyle(CompactLabelStyle())
-        .font(.caption)
+        .font(.app(.caption))
         .foregroundStyle(Paper.soft)
       }
 
       HStack {
         Rectangle().fill(Paper.line).frame(height: 1)
-        Text("OneDay").font(.caption2.weight(.semibold)).foregroundStyle(accent).fixedSize()
+        Text("OneDay").font(.app(.caption2).weight(.semibold)).foregroundStyle(accent).fixedSize()
       }
     }
     .foregroundStyle(Paper.ink)

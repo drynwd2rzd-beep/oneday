@@ -60,7 +60,7 @@ struct OnboardingView: View {
           }
         } label: {
           Text(page < 2 ? "继续" : "开始使用")
-            .font(.headline)
+            .font(.app(.headline))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
         }
@@ -70,7 +70,7 @@ struct OnboardingView: View {
         .padding(.bottom, 12)
 
         Button("跳过") { finish() }
-          .font(.subheadline)
+          .font(.app(.subheadline))
           .foregroundStyle(.secondary)
           .opacity(page < 2 ? 1 : 0)
           .padding(.bottom, 8)
@@ -95,8 +95,8 @@ struct OnboardingView: View {
         .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
         .accessibilityHidden(true)
       VStack(spacing: 8) {
-        Text("一天").font(.system(.largeTitle, design: .serif, weight: .semibold))
-        Text("每一天，都值得留下。").font(.title3).foregroundStyle(.secondary)
+        Text("一天").font(.app(.largeTitle).weight(.semibold))
+        Text("每一天，都值得留下。").font(.app(.title3)).foregroundStyle(.secondary)
       }
       VStack(alignment: .leading, spacing: 18) {
         feature("checklist", "事项", "每天要做的小事，完成一件勾一件。")
@@ -112,12 +112,12 @@ struct OnboardingView: View {
   private var personalize: some View {
     VStack(alignment: .leading, spacing: 24) {
       Spacer()
-      Text("怎么称呼你？").font(.title2.weight(.semibold))
+      Text("怎么称呼你？").font(.app(.title2).weight(.semibold))
       TextField("你的名字", text: $name)
-        .font(.title3)
+        .font(.app(.title3))
         .submitLabel(.done)
         .fieldBackground()
-      Text("界面风格").font(.title2.weight(.semibold)).padding(.top, 8)
+      Text("界面风格").font(.app(.title2).weight(.semibold)).padding(.top, 8)
       VStack(spacing: 10) {
         ForEach(VisualStyle.allCases) { style in
           Button {
@@ -125,12 +125,12 @@ struct OnboardingView: View {
           } label: {
             HStack {
               VStack(alignment: .leading, spacing: 2) {
-                Text(style.label).font(.headline)
-                Text(style.hint).font(.caption).foregroundStyle(.secondary)
+                Text(style.label).font(.app(.headline))
+                Text(style.hint).font(.app(.caption)).foregroundStyle(.secondary)
               }
               Spacer()
               Image(systemName: store.settings.cardStyle == style ? "checkmark.circle.fill" : "circle")
-                .font(.title3)
+                .font(.app(.title3))
                 .foregroundStyle(store.settings.cardStyle == style ? accent : Color.secondary)
             }
             .contentShape(Rectangle())
@@ -140,7 +140,7 @@ struct OnboardingView: View {
           .accessibilityAddTraits(store.settings.cardStyle == style ? .isSelected : [])
         }
       }
-      Text("之后可以在「我的 → 显示偏好」中随时更改。").font(.caption).foregroundStyle(.secondary)
+      Text("之后可以在「我的 → 显示偏好」中随时更改。").font(.app(.caption)).foregroundStyle(.secondary)
       Spacer()
     }
     .padding(.horizontal, 24)
@@ -149,7 +149,7 @@ struct OnboardingView: View {
   private var remindersAndPrivacy: some View {
     VStack(alignment: .leading, spacing: 20) {
       Spacer()
-      Text("提醒与隐私").font(.title2.weight(.semibold))
+      Text("提醒与隐私").font(.app(.title2).weight(.semibold))
       choice(
         icon: "bell.badge", title: "开启提醒",
         detail: "早上看今天的事项，晚上提醒留下记录。",
@@ -165,7 +165,7 @@ struct OnboardingView: View {
         settingPasscode = true
       }
       Label("所有内容都保存在这台 iPhone 上。可以在「备份与恢复」中设置自动备份到 iCloud 云盘。", systemImage: "internaldrive")
-        .font(.footnote)
+        .font(.app(.footnote))
         .foregroundStyle(.secondary)
         .padding(.top, 6)
       Spacer()
@@ -176,12 +176,12 @@ struct OnboardingView: View {
   private func feature(_ icon: String, _ title: String, _ text: String) -> some View {
     HStack(alignment: .top, spacing: 14) {
       Image(systemName: icon)
-        .font(.title3)
+        .font(.app(.title3))
         .foregroundStyle(accent)
         .frame(width: 30)
       VStack(alignment: .leading, spacing: 2) {
-        Text(title).font(.headline)
-        Text(text).font(.subheadline).foregroundStyle(.secondary)
+        Text(title).font(.app(.headline))
+        Text(text).font(.app(.subheadline)).foregroundStyle(.secondary)
       }
     }
     .accessibilityElement(children: .combine)
@@ -190,10 +190,10 @@ struct OnboardingView: View {
   private func choice(icon: String, title: String, detail: String, done: Bool, action: @escaping () -> Void) -> some View {
     Button(action: action) {
       HStack(spacing: 14) {
-        Image(systemName: icon).font(.title3).foregroundStyle(accent).frame(width: 30)
+        Image(systemName: icon).font(.app(.title3)).foregroundStyle(accent).frame(width: 30)
         VStack(alignment: .leading, spacing: 2) {
-          Text(title).font(.headline)
-          Text(detail).font(.caption).foregroundStyle(.secondary)
+          Text(title).font(.app(.headline))
+          Text(detail).font(.app(.caption)).foregroundStyle(.secondary)
         }
         Spacer()
         Image(systemName: done ? "checkmark.circle.fill" : "chevron.right")

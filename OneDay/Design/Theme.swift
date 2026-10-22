@@ -30,19 +30,81 @@ enum Radius {
 /// Mirrors `Settings.fontStyle`; the root view is rebuilt when it changes.
 enum JournalFont {
   static var style: FontStyle = .system
+  static let regular = "OneDayJournal-Regular"
+  static let medium = "OneDayJournal-Medium"
 }
 
 extension Font {
-  /// Journal typeface (a common-character subset of LXGW WenKai, bundled as "OneDay Journal")
-  /// for greetings, notes and memories. Scales with Dynamic Type; tools and settings stay in the
-  /// system font. Characters outside the subset fall back to the system font.
-  /// Greetings, notes and titles in the font chosen in 我的 → 字体, at the matching text style
-  /// so they read as one typeface with the rest of the screen.
+  /// Every text style in the app goes through here, so 我的 → 字体 changes all of it.
+  /// 圆体 is applied by `.fontDesign(.rounded)` at the root, so it uses the system path.
+  /// The journal face is a common-character subset of LXGW WenKai, bundled as "OneDay Journal";
+  /// characters outside the subset fall back to the system font.
+  static func app(_ style: Font.TextStyle) -> Font {
+    guard JournalFont.style == .journal else { return .system(style) }
+    let emphasized = style == .headline
+    return .custom(emphasized ? JournalFont.medium : JournalFont.regular, size: style.defaultSize, relativeTo: style)
+  }
+
+  /// A fixed-size font (big numbers and the like) in the chosen typeface.
+  static func app(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+    guard JournalFont.style == .journal else { return .system(size: size, weight: weight) }
+    let heavy = [Font.Weight.medium, .semibold, .bold, .heavy, .black].contains(weight)
+    return .custom(heavy ? JournalFont.medium : JournalFont.regular, size: size)
+  }
+
+  /// Greetings, notes and titles (kept for their call sites; now the same as `app`).
   static func journal(_ style: Font.TextStyle, size: CGFloat, bold: Bool = false) -> Font {
-    switch JournalFont.style {
-    case .system: .system(style, weight: bold ? .semibold : .regular)
-    case .rounded: .system(style, design: .rounded, weight: bold ? .semibold : .regular)
-    case .journal: .custom(bold ? "OneDayJournal-Medium" : "OneDayJournal-Regular", size: size, relativeTo: style)
+    guard JournalFont.style == .journal else { return .system(style, weight: bold ? .semibold : .regular) }
+    return .custom(bold ? JournalFont.medium : JournalFont.regular, size: size, relativeTo: style)
+  }
+}
+
+/// Bars drawn by UIKit (navigation titles, tab labels, segmented controls, toolbar buttons) take
+/// their fonts from appearance proxies; set before the screens are (re)built.
+@MainActor
+enum UIKitFonts {
+  static func apply(_ style: FontStyle) {
+    func font(_ size: CGFloat, _ weight: UIFont.Weight) -> UIFont {
+      let system = UIFont.systemFont(ofSize: size, weight: weight)
+      switch style {
+      case .system:
+        return system
+      case .rounded:
+        guard let descriptor = system.fontDescriptor.withDesign(.rounded) else { return system }
+        return UIFont(descriptor: descriptor, size: size)
+      case .journal:
+        return UIFont(name: weight == .regular ? JournalFont.regular : JournalFont.medium, size: size) ?? system
+      }
+    }
+    let nav = UINavigationBar.appearance()
+    nav.titleTextAttributes = [.font: font(17, .semibold)]
+    nav.largeTitleTextAttributes = [.font: font(34, .bold)]
+    UITabBarItem.appearance().setTitleTextAttributes([.font: font(10, .medium)], for: .normal)
+    let segmented = UISegmentedControl.appearance()
+    segmented.setTitleTextAttributes([.font: font(13, .regular)], for: .normal)
+    segmented.setTitleTextAttributes([.font: font(13, .semibold)], for: .selected)
+    let bar = UIBarButtonItem.appearance()
+    for state in [UIControl.State.normal, .highlighted, .disabled] {
+      bar.setTitleTextAttributes([.font: font(17, .regular)], for: state)
+    }
+  }
+}
+
+extension Font.TextStyle {
+  /// Point size at the default Dynamic Type setting.
+  var defaultSize: CGFloat {
+    switch self {
+    case .largeTitle: 34
+    case .title: 28
+    case .title2: 22
+    case .title3: 20
+    case .headline, .body: 17
+    case .callout: 16
+    case .subheadline: 15
+    case .footnote: 13
+    case .caption: 12
+    case .caption2: 11
+    default: 17
     }
   }
 }

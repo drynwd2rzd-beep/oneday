@@ -121,13 +121,13 @@ private struct RecapBanner: View {
         } label: {
           HStack(spacing: 12) {
             Image(systemName: "sparkles.rectangle.stack")
-              .font(.title3)
+              .font(.app(.title3))
               .foregroundStyle(accent)
             VStack(alignment: .leading, spacing: 2) {
               Text("\(DayKey.calendar.component(.month, from: lastMonth))月回顾已经准备好了")
-                .font(.subheadline.weight(.semibold))
+                .font(.app(.subheadline).weight(.semibold))
               Text("看看上个月的自己")
-                .font(.caption)
+                .font(.app(.caption))
                 .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
@@ -139,7 +139,7 @@ private struct RecapBanner: View {
           withAnimation(.snappy) { dismissed = key }
         } label: {
           Image(systemName: "xmark")
-            .font(.footnote.weight(.semibold))
+            .font(.app(.footnote).weight(.semibold))
             .foregroundStyle(.tertiary)
             .frame(width: 28, height: 28)
             .contentShape(Rectangle())
@@ -160,7 +160,7 @@ private struct HeroModule: View {
     let now = Date()
     VStack(alignment: .leading, spacing: 6) {
       Text("\(DayKey.shortDate(store.today)) \(DayKey.weekday(store.today))")
-        .font(.footnote.weight(.medium))
+        .font(.app(.footnote).weight(.medium))
         .foregroundStyle(.secondary)
       Text(OneDayText.greeting(now))
         .font(.journal(.largeTitle, size: 34, bold: true))
@@ -188,11 +188,11 @@ private struct TodayTasksModule: View {
     VStack(alignment: .leading, spacing: Spacing.title) {
       HStack(alignment: .firstTextBaseline, spacing: 8) {
         Text("今天")
-          .font(.title3.weight(.semibold))
+          .font(.app(.title3).weight(.semibold))
           .accessibilityAddTraits(.isHeader)
         if !list.isEmpty {
           Text("\(done)/\(list.count)")
-            .font(.subheadline.monospacedDigit())
+            .font(.app(.subheadline).monospacedDigit())
             .foregroundStyle(.secondary)
             .contentTransition(.numericText())
             .accessibilityLabel("已完成 \(done) 件，共 \(list.count) 件")
@@ -203,9 +203,9 @@ private struct TodayTasksModule: View {
         } label: {
           HStack(spacing: 3) {
             Text("全部事项")
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold))
+            Image(systemName: "chevron.right").font(.app(.caption).weight(.semibold))
           }
-          .font(.subheadline)
+          .font(.app(.subheadline))
           .foregroundStyle(.secondary)
         }
       }
@@ -334,7 +334,7 @@ private struct QuickCaptureModule: View {
       } label: {
         HStack(spacing: 10) {
           Image(systemName: "square.and.pencil")
-            .font(.body.weight(.medium))
+            .font(.app(.body).weight(.medium))
             .foregroundStyle(accent)
           Text("今天有什么值得留下的？")
             .foregroundStyle(.secondary)
@@ -345,7 +345,7 @@ private struct QuickCaptureModule: View {
       .buttonStyle(.plain)
       .accessibilityLabel("写一条记录")
       PhotosPicker(selection: $pickerItems, maxSelectionCount: 6, matching: .any(of: [.images, .videos])) {
-        Image(systemName: "photo").font(.body).foregroundStyle(.secondary)
+        Image(systemName: "photo").font(.app(.body)).foregroundStyle(.secondary)
       }
       .accessibilityLabel("添加照片或视频")
       Button {
@@ -353,7 +353,7 @@ private struct QuickCaptureModule: View {
         expanded = true
         recording = true
       } label: {
-        Image(systemName: "mic").font(.body).foregroundStyle(.secondary)
+        Image(systemName: "mic").font(.app(.body)).foregroundStyle(.secondary)
       }
       .accessibilityLabel("录制语音")
     }
@@ -367,7 +367,7 @@ private struct QuickCaptureModule: View {
       // must not close it, or picked photos have nowhere to go.
       HStack(alignment: .firstTextBaseline) {
         Text("值得留下")
-          .font(.title3.weight(.semibold))
+          .font(.app(.title3).weight(.semibold))
           .accessibilityAddTraits(.isHeader)
         Spacer()
         if draft.isEmpty && !loading {
@@ -375,7 +375,7 @@ private struct QuickCaptureModule: View {
             focusOnOpen = false
             expanded = false
           }
-          .font(.subheadline)
+          .font(.app(.subheadline))
           .foregroundStyle(.secondary)
         }
       }
@@ -408,7 +408,7 @@ private struct QuickCaptureModule: View {
             .buttonStyle(.plain)
             .accessibilityLabel("移除位置")
           }
-          .font(.caption)
+          .font(.app(.caption))
           .foregroundStyle(.secondary)
           .labelStyle(CompactLabelStyle())
         }
@@ -468,8 +468,8 @@ private struct QuickCaptureModule: View {
               VideoThumb(item: item)
             } else {
               VStack(spacing: 4) {
-                Image(systemName: "waveform").font(.title3).foregroundStyle(accent)
-                Text(item.duration.clockText).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                Image(systemName: "waveform").font(.app(.title3)).foregroundStyle(accent)
+                Text(item.duration.clockText).font(.app(.caption2).monospacedDigit()).foregroundStyle(.secondary)
               }
               .frame(maxWidth: .infinity, maxHeight: .infinity)
               .background(accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -488,7 +488,7 @@ private struct QuickCaptureModule: View {
       withAnimation(.snappy) { action() }
     } label: {
       Image(systemName: "xmark.circle.fill")
-        .font(.title3)
+        .font(.app(.title3))
         .symbolRenderingMode(.palette)
         .foregroundStyle(.white, .black.opacity(0.55))
     }
@@ -566,9 +566,9 @@ struct RecorderSheet: View {
   var body: some View {
     VStack(spacing: 24) {
       Text(recorder.isRecording ? "正在录音" : denied ? "无法使用麦克风" : "准备录音")
-        .font(.headline)
+        .font(.app(.headline))
       Text(recorder.elapsed.clockText)
-        .font(.system(size: 48, weight: .light, design: .default).monospacedDigit())
+        .font(.app(size: 48, weight: .light).monospacedDigit())
         .contentTransition(.numericText())
       HStack(spacing: 4) {
         ForEach(0..<24, id: \.self) { i in
@@ -580,7 +580,7 @@ struct RecorderSheet: View {
       .frame(height: 56)
       .animation(.linear(duration: 0.1), value: recorder.level)
       if denied {
-        Text("请在系统设置中允许「一天」使用麦克风。").font(.subheadline).foregroundStyle(.secondary)
+        Text("请在系统设置中允许「一天」使用麦克风。").font(.app(.subheadline)).foregroundStyle(.secondary)
       }
       HStack(spacing: 16) {
         Button("取消") {
@@ -625,7 +625,7 @@ struct TagPickerSheet: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 18) {
           Text("标签可选，也可以自己创建；以后可在回顾中按标签搜索。")
-            .font(.subheadline)
+            .font(.app(.subheadline))
             .foregroundStyle(.secondary)
           FlowLayout(spacing: 9) {
             ForEach(store.state.allTags, id: \.self) { tag in
@@ -713,13 +713,13 @@ private struct HomePlanRow: View {
     let tint = plan.color.map { Color(hex: $0) } ?? accent
     HStack(spacing: 12) {
       Image(systemName: plan.symbol)
-        .font(.body.weight(.medium))
+        .font(.app(.body).weight(.medium))
         .foregroundStyle(tint)
         .frame(width: 28)
       VStack(alignment: .leading, spacing: 2) {
-        Text(plan.title).font(.body)
+        Text(plan.title).font(.app(.body))
         Text(subtitle(progress))
-          .font(.footnote)
+          .font(.app(.footnote))
           .foregroundStyle(.secondary)
           .lineLimit(1)
       }

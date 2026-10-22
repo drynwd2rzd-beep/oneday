@@ -19,7 +19,7 @@ struct WidgetGallerySheet: View {
             Text("小日来啦")
               .font(.system(.title2, design: .rounded, weight: .heavy))
             Text("把 OneDay 放到桌面，不打开 App 也能看到今天、直接打勾。")
-              .font(.subheadline)
+              .font(.app(.subheadline))
               .foregroundStyle(.secondary)
               .multilineTextAlignment(.center)
           }
@@ -57,7 +57,7 @@ struct WidgetGallerySheet: View {
               ForEach(MascotMood.allCases, id: \.self) { mood in
                 VStack(spacing: 6) {
                   MascotView(mood: mood, size: 54)
-                  Text(Self.moodName(mood)).font(.caption2).foregroundStyle(.secondary)
+                  Text(Self.moodName(mood)).font(.app(.caption2)).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
               }
@@ -72,7 +72,7 @@ struct WidgetGallerySheet: View {
               step(3, "搜索「一天」，选一个大小，点「添加小组件」。")
               step(4, "锁屏小组件：长按锁屏 →「自定」→ 点时间下面的方框添加。")
               Text("小组件上可以直接点圆圈打勾，下次打开 App 时会同步。如果小组件一直显示「打开 OneDay 一次」，说明自签工具没有开启 App Group，可以换用 SideStore 或 AltStore 安装。")
-                .font(.footnote)
+                .font(.app(.footnote))
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)
             }
@@ -96,21 +96,21 @@ struct WidgetGallerySheet: View {
     let group = SharedData.group
     return HStack(alignment: .top, spacing: 12) {
       Image(systemName: group == nil ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-        .font(.title3)
+        .font(.app(.title3))
         .foregroundStyle(group == nil ? Color.orange : accent)
       VStack(alignment: .leading, spacing: 4) {
         Text(group == nil ? "小组件读不到数据" : "数据共享已开启")
-          .font(.subheadline.weight(.semibold))
+          .font(.app(.subheadline).weight(.semibold))
         Text(
           group == nil
             ? "这次安装没有开启 App Group，App 和小组件之间不能共享数据。可以先在「备份与恢复」导出备份，再用 SideStore 或 AltStore 重新安装，然后导入备份。"
             : "如果小组件仍显示「安装方式不支持共享」，说明安装工具只给了 App、没有给小组件开启共享。"
         )
-        .font(.caption)
+        .font(.app(.caption))
         .foregroundStyle(.secondary)
         if let group {
           Text(group.id)
-            .font(.caption2.monospaced())
+            .font(.app(.caption2).monospaced())
             .foregroundStyle(.tertiary)
             .textSelection(.enabled)
         }
@@ -122,7 +122,7 @@ struct WidgetGallerySheet: View {
 
   private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
     VStack(alignment: .leading, spacing: Spacing.title) {
-      Text(title).font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
+      Text(title).font(.app(.title3).weight(.semibold)).accessibilityAddTraits(.isHeader)
       content()
     }
   }
@@ -135,11 +135,11 @@ struct WidgetGallerySheet: View {
   private func step(_ n: Int, _ text: String) -> some View {
     HStack(alignment: .firstTextBaseline, spacing: 10) {
       Text("\(n)")
-        .font(.footnote.weight(.bold))
+        .font(.app(.footnote).weight(.bold))
         .foregroundStyle(.white)
         .frame(width: 22, height: 22)
         .background(accent, in: Circle())
-      Text(text).font(.subheadline)
+      Text(text).font(.app(.subheadline))
     }
   }
 

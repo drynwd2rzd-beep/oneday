@@ -22,12 +22,12 @@ struct MeView: View {
             HStack(spacing: 14) {
               AvatarView(name: s.avatar, size: 60)
               VStack(alignment: .leading, spacing: 3) {
-                Text(s.name).font(.title3.weight(.semibold)).foregroundStyle(.primary)
-                Text(s.signature).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                Text(s.name).font(.app(.title3).weight(.semibold)).foregroundStyle(.primary)
+                Text(s.signature).font(.app(.subheadline)).foregroundStyle(.secondary).lineLimit(2)
               }
               Spacer(minLength: 8)
               Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
+                .font(.app(.footnote).weight(.semibold))
                 .foregroundStyle(.tertiary)
             }
             .padding(.vertical, 4)

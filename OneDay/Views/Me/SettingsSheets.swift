@@ -25,7 +25,7 @@ struct ProfileSheet: View {
               AvatarView(name: currentAvatar, size: 100)
                 .overlay(alignment: .bottomTrailing) {
                   Image(systemName: "camera.fill")
-                    .font(.footnote.weight(.semibold))
+                    .font(.app(.footnote).weight(.semibold))
                     .foregroundStyle(.white)
                     .frame(width: 32, height: 32)
                     .background(accent, in: Circle())
@@ -111,8 +111,8 @@ struct ThemeSheet: View {
                 withAnimation(.snappy) { mode = m }
               } label: {
                 VStack(spacing: 8) {
-                  Image(systemName: m.icon).font(.title2)
-                  Text(m.label).font(.subheadline)
+                  Image(systemName: m.icon).font(.app(.title2))
+                  Text(m.label).font(.app(.subheadline))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -141,7 +141,7 @@ struct ThemeSheet: View {
                 .frame(width: 44, height: 44)
                 .overlay {
                   if hex.lowercased() == accent.lowercased() {
-                    Image(systemName: "checkmark").font(.headline.bold()).foregroundStyle(.white)
+                    Image(systemName: "checkmark").font(.app(.headline).bold()).foregroundStyle(.white)
                   }
                 }
                 .contentShape(Circle())
@@ -214,11 +214,11 @@ struct UISizeSheet: View {
               HStack {
                 VStack(alignment: .leading, spacing: 2) {
                   Text(size.label).foregroundStyle(.primary)
-                  Text(size.hint).font(.caption).foregroundStyle(.secondary)
+                  Text(size.hint).font(.app(.caption)).foregroundStyle(.secondary)
                 }
                 Spacer()
                 if store.settings.uiSize == size {
-                  Image(systemName: "checkmark").font(.body.weight(.semibold)).foregroundStyle(accent)
+                  Image(systemName: "checkmark").font(.app(.body).weight(.semibold)).foregroundStyle(accent)
                 }
               }
               .contentShape(Rectangle())
@@ -230,7 +230,7 @@ struct UISizeSheet: View {
         }
         Section("预览") {
           VStack(alignment: .leading, spacing: 6) {
-            Text("早上好。").font(.title2.bold())
+            Text("早上好。").font(.app(.title2).bold())
             Text(OneDayText.quotes[0]).foregroundStyle(.secondary)
           }
           .padding(.vertical, 4)
@@ -307,11 +307,11 @@ struct AppearanceSheet: View {
       HStack {
         VStack(alignment: .leading, spacing: 2) {
           Text(title).foregroundStyle(.primary)
-          if let hint { Text(hint).font(.caption).foregroundStyle(.secondary) }
+          if let hint { Text(hint).font(.app(.caption)).foregroundStyle(.secondary) }
         }
         Spacer()
         if selected {
-          Image(systemName: "checkmark").font(.body.weight(.semibold)).foregroundStyle(accent)
+          Image(systemName: "checkmark").font(.app(.body).weight(.semibold)).foregroundStyle(accent)
         }
       }
       .contentShape(Rectangle())
@@ -330,10 +330,10 @@ private struct StylePreview: View {
       AppBackground()
       VStack(alignment: .leading, spacing: 10) {
         HStack(spacing: 12) {
-          Image(systemName: "checkmark.circle.fill").font(.title3).foregroundStyle(accent)
+          Image(systemName: "checkmark.circle.fill").font(.app(.title3)).foregroundStyle(accent)
           VStack(alignment: .leading, spacing: 2) {
-            Text("阅读 20 分钟").font(.subheadline.weight(.semibold))
-            Text("每天 · 已完成 12 次").font(.caption).foregroundStyle(.secondary)
+            Text("阅读 20 分钟").font(.app(.subheadline).weight(.semibold))
+            Text("每天 · 已完成 12 次").font(.app(.caption)).foregroundStyle(.secondary)
           }
           Spacer()
         }
@@ -400,7 +400,7 @@ struct HomeCustomizeSheet: View {
     Toggle(isOn: Binding(get: { visible }, set: { store.setHomeModule(module, visible: $0) })) {
       VStack(alignment: .leading, spacing: 2) {
         Text(module.title)
-        Text(module.desc).font(.caption).foregroundStyle(.secondary)
+        Text(module.desc).font(.app(.caption)).foregroundStyle(.secondary)
       }
     }
   }
@@ -542,9 +542,9 @@ struct AboutSheet: View {
               .frame(width: 88, height: 88)
               .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
               .shadow(color: .black.opacity(0.12), radius: 10, y: 5)
-            Text("OneDay").font(.title2.bold())
-            Text("v\(AppInfo.version)").font(.subheadline).foregroundStyle(.secondary)
-            Text("每一天，都值得留下。").font(.system(.body, design: .serif)).padding(.top, 4)
+            Text("OneDay").font(.app(.title2).bold())
+            Text("v\(AppInfo.version)").font(.app(.subheadline)).foregroundStyle(.secondary)
+            Text("每一天，都值得留下。").font(.app(.body)).padding(.top, 4)
           }
           .frame(maxWidth: .infinity)
           .padding(.vertical, 10)
@@ -610,8 +610,8 @@ struct FontSheet: View {
               HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
                   HStack(spacing: 6) {
-                    Text(style.label).font(.headline)
-                    Text(style.hint).font(.caption).foregroundStyle(.secondary)
+                    Text(style.label).font(.app(.headline))
+                    Text(style.hint).font(.app(.caption)).foregroundStyle(.secondary)
                   }
                   Text("下午好。今天也认真生活了。")
                     .font(sample(style, size: 20, bold: true))
@@ -622,7 +622,7 @@ struct FontSheet: View {
                 .foregroundStyle(.primary)
                 Spacer(minLength: 0)
                 Image(systemName: store.settings.fontStyle == style ? "checkmark.circle.fill" : "circle")
-                  .font(.title3)
+                  .font(.app(.title3))
                   .foregroundStyle(store.settings.fontStyle == style ? accent : Color(uiColor: .tertiaryLabel))
               }
               .padding(.vertical, 6)
