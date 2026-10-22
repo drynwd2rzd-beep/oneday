@@ -21,6 +21,18 @@ final class OneDayUITests: XCTestCase {
     XCTAssertTrue(app.staticTexts["整理房间"].waitForExistence(timeout: 3), "undo brings it back")
   }
 
+  func testScrollingStillWorksOverSwipeRows() {
+    let app = launch(["-OneDayTab", "today"])
+    XCTAssertTrue(app.staticTexts["散步 30 分钟"].waitForExistence(timeout: 8))
+    let memory = app.staticTexts["那年今日"]
+    // Start the drag on a task row: it must scroll the page, not trigger the row's swipe.
+    let rowStart = app.staticTexts["散步 30 分钟"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+    rowStart.press(forDuration: 0.05, thenDragTo: rowStart.withOffset(CGVector(dx: 0, dy: -420)))
+    XCTAssertTrue(memory.waitForExistence(timeout: 3))
+    XCTAssertTrue(memory.isHittable, "page scrolled to the on-this-day module")
+    XCTAssertTrue(app.staticTexts["散步 30 分钟"].exists, "vertical drag did not delete the row")
+  }
+
   func testAddTask() {
     let app = launch(["-OneDayTab", "tasks"])
     app.buttons["添加事项"].tap()

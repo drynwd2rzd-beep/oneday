@@ -26,12 +26,14 @@ struct SwipeAction {
 }
 
 /// Full-swipe actions like Mail: drag past the threshold and let go to trigger.
-/// Built on a UIKit pan that only starts on horizontal movement, so vertical scrolling is untouched.
+/// The drag runs alongside the scroll view and only takes over once the finger clearly
+/// moves sideways, so vertical scrolling keeps working.
 private struct SwipeActionsModifier: ViewModifier {
   let leading: SwipeAction?
   let trailing: SwipeAction?
   @State private var offset: CGFloat = 0
   @State private var armed = false
+  @State private var axis: Axis?
 
   private let threshold: CGFloat = 88
 
@@ -44,32 +46,43 @@ private struct SwipeActionsModifier: ViewModifier {
       .background(alignment: .trailing) {
         if offset < 0, let trailing { actionBackground(trailing, width: -offset, alignment: .trailing) }
       }
-      .gesture(
-        HorizontalPanGesture(
-          onChange: { dx in
-            var x = dx
-            if x > 0 && leading == nil { x = 0 }
-            if x < 0 && trailing == nil { x = 0 }
-            // Rubber band past the threshold.
-            if abs(x) > threshold { x = (x > 0 ? 1 : -1) * (threshold + (abs(x) - threshold) * 0.35) }
-            offset = x
-            let nowArmed = abs(x) >= threshold
-            if nowArmed != armed {
-              armed = nowArmed
-              UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            }
-          },
-          onEnd: { dx, velocity in
-            let fire = armed || abs(velocity) > 900 && abs(dx) > 40
+      .simultaneousGesture(
+        DragGesture(minimumDistance: 14, coordinateSpace: .local)
+          .onChanged { value in
+            let dx = value.translation.width, dy = value.translation.height
+            if axis == nil { axis = abs(dx) > abs(dy) * 1.3 ? .horizontal : .vertical }
+            guard axis == .horizontal else { return }
+            update(dx)
+          }
+          .onEnded { value in
+            defer { axis = nil }
+            guard axis == .horizontal else { return }
+            let dx = value.translation.width
+            let speed = value.predictedEndTranslation.width - dx
+            let fire = armed || (abs(speed) > 120 && abs(dx) > 40)
             let action = dx > 0 ? leading : trailing
             withAnimation(.snappy) { offset = 0 }
             armed = false
             if fire { action?.action() }
-          }))
+          })
       .accessibilityActions {
         if let leading { Button(leading.title, action: leading.action) }
         if let trailing { Button(trailing.title, action: trailing.action) }
       }
+  }
+
+  private func update(_ dx: CGFloat) {
+    var x = dx
+    if x > 0 && leading == nil { x = 0 }
+    if x < 0 && trailing == nil { x = 0 }
+    // Rubber band past the threshold.
+    if abs(x) > threshold { x = (x > 0 ? 1 : -1) * (threshold + (abs(x) - threshold) * 0.35) }
+    offset = x
+    let nowArmed = abs(x) >= threshold
+    if nowArmed != armed {
+      armed = nowArmed
+      UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
   }
 
   private func actionBackground(_ action: SwipeAction, width: CGFloat, alignment: Alignment) -> some View {
@@ -91,48 +104,6 @@ private struct SwipeActionsModifier: ViewModifier {
 extension View {
   func swipeActions(leading: SwipeAction? = nil, trailing: SwipeAction? = nil) -> some View {
     modifier(SwipeActionsModifier(leading: leading, trailing: trailing))
-  }
-}
-
-private struct HorizontalPanGesture: UIGestureRecognizerRepresentable {
-  var onChange: (CGFloat) -> Void
-  var onEnd: (CGFloat, CGFloat) -> Void
-
-  func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
-
-  func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
-    let pan = UIPanGestureRecognizer()
-    pan.delegate = context.coordinator
-    return pan
-  }
-
-  func handleUIGestureRecognizerAction(_ recognizer: UIPanGestureRecognizer, context: Context) {
-    let dx = recognizer.translation(in: recognizer.view).x
-    switch recognizer.state {
-    case .changed:
-      onChange(dx)
-    case .ended, .cancelled, .failed:
-      onEnd(dx, recognizer.velocity(in: recognizer.view).x)
-    default:
-      break
-    }
-  }
-
-  final class Coordinator: NSObject, UIGestureRecognizerDelegate {
-    func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
-      guard let pan = recognizer as? UIPanGestureRecognizer else { return false }
-      let v = pan.velocity(in: pan.view)
-      return abs(v.x) > abs(v.y) * 1.4
-    }
-
-    /// Scroll views wait for this pan to fail (it fails at once on vertical movement),
-    /// otherwise their own pan wins the race and horizontal swipes never arrive.
-    func gestureRecognizer(
-      _ gestureRecognizer: UIGestureRecognizer,
-      shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
-    ) -> Bool {
-      otherGestureRecognizer.view is UIScrollView
-    }
   }
 }
 
