@@ -217,9 +217,11 @@ struct NoteEntry: Codable, Identifiable, Hashable {
   var latitude: Double?
   var longitude: Double?
   var weather: String?
+  /// 1 (很糟) … 5 (很好).
+  var mood: Int?
 
   enum CodingKeys: String, CodingKey {
-    case id, text, time, photos, tags, media, place, latitude, longitude, weather
+    case id, text, time, photos, tags, media, place, latitude, longitude, weather, mood
   }
 
   init(text: String, time: String, photos: [String], tags: [String]) {
@@ -252,6 +254,7 @@ struct NoteEntry: Codable, Identifiable, Hashable {
     latitude = c.get("latitude", as: Double.self)
     longitude = c.get("longitude", as: Double.self)
     weather = c.string("weather")
+    mood = c.get("mood", as: Int.self)
   }
 }
 
@@ -411,6 +414,7 @@ struct AppState: Codable {
         n.media = Array(n.media.filter { !$0.file.isEmpty }.prefix(6))
         n.tags = Array(n.tags.map { String($0.trimmed.prefix(12)) }.filter { !$0.isEmpty }.uniqued().prefix(8))
         if let place = n.place?.trimmed, !place.isEmpty { n.place = place } else { n.place = nil }
+        if let mood = n.mood { n.mood = min(max(mood, 1), 5) }
         return n.isEmpty ? nil : n
       }
       notes[day] = cleaned.isEmpty ? nil : cleaned

@@ -3,9 +3,9 @@ import SwiftUI
 
 struct ReviewView: View {
   @Environment(Store.self) private var store
-  @State private var showCalendar = false
   @State private var showSearch = false
   @State private var overviewMonth = DayKey.monthStart(Date())
+  @State private var calendarMonth = DayKey.monthStart(Date())
 
   var body: some View {
     NavigationStack(path: dayPath) {
@@ -20,8 +20,12 @@ struct ReviewView: View {
           switch store.reviewTab {
           case .timeline:
             TimelineList()
+          case .calendar:
+            JournalCalendar(month: $calendarMonth) { store.recap = MonthRef(month: $0) }
+          case .photos:
+            PhotoWall()
           case .overview:
-            OverviewPanel(month: $overviewMonth)
+            OverviewPanel(month: $overviewMonth) { store.recap = MonthRef(month: $0) }
           }
         }
         .padding(.horizontal, Spacing.page)
@@ -34,23 +38,17 @@ struct ReviewView: View {
         ReviewDayDetail(day: day)
       }
       .toolbar {
-        ToolbarItemGroup(placement: .topBarTrailing) {
+        ToolbarItem(placement: .topBarTrailing) {
           Button {
             showSearch = true
           } label: {
             Image(systemName: "magnifyingglass")
           }
           .accessibilityLabel("搜索记录")
-          Button {
-            showCalendar = true
-          } label: {
-            Image(systemName: "calendar")
-          }
-          .accessibilityLabel("选择回顾日期")
         }
       }
       .sheet(isPresented: $showSearch) { ReviewSearchSheet().oneDaySheet() }
-      .sheet(isPresented: $showCalendar) { ReviewCalendarSheet().oneDaySheet() }
+      .sheet(item: recapBinding) { RecapSheet(month: $0.month).oneDaySheet() }
     }
   }
 
@@ -60,6 +58,10 @@ struct ReviewView: View {
     Binding(
       get: { store.reviewDate.map { [$0] } ?? [] },
       set: { store.reviewDate = $0.last })
+  }
+
+  private var recapBinding: Binding<MonthRef?> {
+    Binding(get: { store.recap }, set: { store.recap = $0 })
   }
 
   private var tabBinding: Binding<ReviewTab> {
@@ -204,6 +206,7 @@ private struct TimelineRow: View {
           .lineLimit(3)
           .multilineTextAlignment(.leading)
         HStack(spacing: 10) {
+          MoodBadge(value: store.state.mood(on: day), font: .caption)
           if let place = first?.place {
             Label(place, systemImage: "location.fill").labelStyle(CompactLabelStyle()).lineLimit(1)
           }
@@ -251,6 +254,7 @@ private struct ReviewDayDetail: View {
   @State private var editing: NoteEditTarget?
   @State private var confirmDeleteAll = false
   @State private var preview: PhotoRef?
+  @State private var sharing = false
 
   var body: some View {
     let notes = store.state.notes[day] ?? []
@@ -303,6 +307,12 @@ private struct ReviewDayDetail: View {
       if !notes.isEmpty {
         ToolbarItem(placement: .topBarTrailing) {
           Menu {
+            Button {
+              sharing = true
+            } label: {
+              Label("分享这一天", systemImage: "square.and.arrow.up")
+            }
+            Divider()
             Button(role: .destructive) {
               confirmDeleteAll = true
             } label: {
@@ -317,6 +327,12 @@ private struct ReviewDayDetail: View {
     }
     .sheet(item: $editing) { NoteEditorSheet(day: day, entry: $0.entry).oneDaySheet() }
     .fullScreenCover(item: $preview) { PhotoLightbox(name: $0.name).oneDaySheet() }
+    .sheet(isPresented: $sharing) {
+      ShareCardSheet(title: DayKey.shortDate(day)) {
+        DayShareCard(day: day, notes: notes, accent: accent)
+      }
+      .oneDaySheet()
+    }
     .alert("删除 \(DayKey.fullDate(day)) 的全部记录？", isPresented: $confirmDeleteAll) {
       Button("删除", role: .destructive) { store.deleteNotes(on: day) }
       Button("取消", role: .cancel) {}
@@ -327,9 +343,16 @@ private struct ReviewDayDetail: View {
 
   private func entryView(_ note: NoteEntry, index: Int) -> some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text(note.time.isEmpty ? "记录 \(index + 1)" : note.time)
-        .font(.footnote.weight(.medium).monospacedDigit())
-        .foregroundStyle(.secondary)
+      HStack(spacing: 6) {
+        Text(note.time.isEmpty ? "记录 \(index + 1)" : note.time)
+          .font(.footnote.weight(.medium).monospacedDigit())
+          .foregroundStyle(.secondary)
+        if let mood = note.mood.flatMap(Mood.init(rawValue:)) {
+          Text("\(mood.emoji) \(mood.label)")
+            .font(.footnote)
+            .foregroundStyle(Color(hex: mood.hex))
+        }
+      }
       if !note.text.isEmpty {
         MarkdownText(text: note.text)
           .font(.journal(.body, size: 18))
@@ -420,12 +443,14 @@ private struct OverviewPanel: View {
   @Environment(Store.self) private var store
   @Environment(\.accent) private var accent
   @Binding var month: Date
+  var onRecap: (Date) -> Void
 
   var body: some View {
     let o = store.state.overview(month: month)
     let maxCount = max(1, o.items.map(\.count).max() ?? 1)
     VStack(spacing: Spacing.stack) {
       WeeklyReportCard()
+      MoodCard()
       HeatmapCard()
       StreaksCard()
 
@@ -447,6 +472,8 @@ private struct OverviewPanel: View {
         StatTile(title: "连续完成", value: "\(o.streak) 天")
         StatTile(title: "有记录", value: "\(o.noteDays) 天")
       }
+
+      RecapEntryCard(recap: store.state.recap(month: month)) { onRecap(month) }
 
       VStack(alignment: .leading, spacing: 14) {
         HStack {
@@ -679,46 +706,6 @@ private struct StatTile: View {
 }
 
 // MARK: - Sheets
-
-struct ReviewCalendarSheet: View {
-  @Environment(Store.self) private var store
-  @Environment(\.dismiss) private var dismiss
-  @Environment(\.accent) private var accent
-  @State private var month = DayKey.monthStart(Date())
-
-  var body: some View {
-    NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 14) {
-          Text("有圆点的日期留下过记录。")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-          CalendarMonthView(
-            month: $month,
-            selected: store.reviewDate,
-            marker: { store.state.hasNotes(on: $0) ? accent : nil },
-            onSelect: { key in
-              store.reviewTab = .timeline
-              store.reviewDate = key
-              dismiss()
-            }
-          )
-          .card()
-        }
-        .padding(20)
-      }
-      .navigationTitle("选择回顾日期")
-      .navigationBarTitleDisplayMode(.inline)
-      .toolbar {
-        ToolbarItem(placement: .confirmationAction) { Button("关闭") { dismiss() } }
-      }
-      .onAppear {
-        if let day = store.reviewDate { month = DayKey.monthStart(DayKey.date(day)) }
-      }
-    }
-    .presentationDetents([.fraction(0.7), .large])
-  }
-}
 
 struct ReviewSearchSheet: View {
   @Environment(Store.self) private var store

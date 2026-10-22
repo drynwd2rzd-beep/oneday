@@ -130,4 +130,53 @@ final class FeatureTests: XCTestCase {
     let parsed = try Persistence.parseBackup(Data(json.utf8))
     XCTAssertEqual(parsed.notes[today]?.first?.photos.count, 1)
   }
+
+  func testMoodAndRecap() throws {
+    var s = AppState()
+    var a = NoteEntry(text: "湖边散步", time: "19:00", photos: ["p1.jpg"], tags: ["日常"])
+    a.mood = 5
+    a.place = "西湖"
+    var b = NoteEntry(text: "加班", time: "22:00", photos: [], tags: ["日常", "工作"])
+    b.mood = 2
+    b.place = "西湖"
+    var c = NoteEntry(text: "这一天写得最长的一段话。", time: "21:00", photos: ["p2.jpg"], tags: [])
+    c.mood = 9  // out of range, clamped by normalize
+    s.notes = ["2026-10-20": [a, b], "2026-10-21": [c], "2026-09-30": [NoteEntry(text: "上个月", time: "", photos: [], tags: [])]]
+    var read = TaskItem(title: "阅读", day: "2026-09-01", repeatMode: .daily, reminder: nil)
+    for k in 1...4 { read.done["2026-10-0\(k)"] = true }
+    read.done["2026-10-10"] = true
+    s.tasks = [read]
+    s.normalize()
+
+    XCTAssertEqual(s.notes["2026-10-21"]?.first?.mood, 5)
+    XCTAssertEqual(try XCTUnwrap(s.mood(on: "2026-10-20")), 3.5, accuracy: 0.001)
+    XCTAssertNil(s.mood(on: "2026-10-19"))
+    XCTAssertEqual(Mood(average: 3.5), .good)
+    XCTAssertEqual(s.moodSeries(today: today, days: 30).map(\.day), ["2026-10-20", "2026-10-21"])
+
+    let recap = s.recap(month: DayKey.date("2026-10-15"))
+    XCTAssertEqual(recap.recordDays, 2)
+    XCTAssertEqual(recap.notes, 3)
+    XCTAssertEqual(recap.photos, ["p1.jpg", "p2.jpg"])
+    XCTAssertEqual(recap.topPlaces.first?.name, "西湖")
+    XCTAssertEqual(recap.topPlaces.first?.count, 2)
+    XCTAssertEqual(recap.topTags.first?.name, "日常")
+    XCTAssertEqual(recap.completions, 5)
+    XCTAssertEqual(recap.bestStreak?.title, "阅读")
+    XCTAssertEqual(recap.bestStreak?.days, 4)
+    XCTAssertEqual(recap.highlight?.day, "2026-10-21")
+    XCTAssertEqual(try XCTUnwrap(recap.moodAverage), 4, accuracy: 0.001)
+    XCTAssertTrue(s.recap(month: DayKey.date("2026-08-01")).isEmpty)
+    XCTAssertEqual(s.photoTimeline.map(\.photo), ["p2.jpg", "p1.jpg"])
+  }
+
+  func testMoodSurvivesBackupRoundTrip() throws {
+    var s = AppState()
+    var note = NoteEntry(text: "好天气", time: "09:00", photos: [], tags: [])
+    note.mood = 4
+    s.notes["2026-10-22"] = [note]
+    let data = try JSONEncoder().encode(s)
+    let back = try JSONDecoder().decode(AppState.self, from: data)
+    XCTAssertEqual(back.notes["2026-10-22"]?.first?.mood, 4)
+  }
 }

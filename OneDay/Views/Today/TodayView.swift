@@ -15,7 +15,9 @@ struct TodayView: View {
           }
           ForEach(store.settings.homeModules) { module in
             switch module {
-            case .hero: HeroModule()
+            case .hero:
+              HeroModule()
+              RecapBanner()
             case .tasks: TodayTasksModule()
             case .note: QuickCaptureModule()
             case .onThisDay: OnThisDayModule()
@@ -33,6 +35,57 @@ struct TodayView: View {
       .navigationTitle("一天")
       // The greeting is the page header; a second large title would compete with it.
       .toolbar(.hidden, for: .navigationBar)
+    }
+  }
+}
+
+/// In the first days of a month, offers last month's recap card.
+private struct RecapBanner: View {
+  @Environment(Store.self) private var store
+  @Environment(\.accent) private var accent
+  @AppStorage("recapBannerDismissed") private var dismissed = ""
+  @State private var showing = false
+
+  var body: some View {
+    let now = DayKey.date(store.today)
+    let lastMonth = DayKey.shiftMonth(now, by: -1)
+    let key = String(DayKey.of(lastMonth).prefix(7))
+    let dayOfMonth = DayKey.calendar.component(.day, from: now)
+    if dayOfMonth <= 3, dismissed != key, !store.state.recap(month: lastMonth).isEmpty {
+      HStack(spacing: 12) {
+        Button {
+          showing = true
+        } label: {
+          HStack(spacing: 12) {
+            Image(systemName: "sparkles.rectangle.stack")
+              .font(.title3)
+              .foregroundStyle(accent)
+            VStack(alignment: .leading, spacing: 2) {
+              Text("\(DayKey.calendar.component(.month, from: lastMonth))月回顾已经准备好了")
+                .font(.subheadline.weight(.semibold))
+              Text("看看上个月的自己")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+          }
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        Button {
+          withAnimation(.snappy) { dismissed = key }
+        } label: {
+          Image(systemName: "xmark")
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.tertiary)
+            .frame(width: 28, height: 28)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("不再显示")
+      }
+      .card(padding: 14)
+      .sheet(isPresented: $showing) { RecapSheet(month: lastMonth).oneDaySheet() }
     }
   }
 }
@@ -280,6 +333,8 @@ private struct QuickCaptureModule: View {
           .foregroundStyle(.secondary)
           .labelStyle(CompactLabelStyle())
         }
+
+        MoodPicker(selection: $draft.mood, compact: true)
 
         Divider()
         HStack(spacing: 8) {

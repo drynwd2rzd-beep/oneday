@@ -108,11 +108,28 @@ final class OneDayUITests: XCTestCase {
 
   func testTabsAndOverview() {
     let app = launch(["-OneDayTab", "review"])
-    XCTAssertTrue(app.buttons["完成概览"].waitForExistence(timeout: 8))
-    app.buttons["完成概览"].tap()
+    XCTAssertTrue(app.buttons["统计"].waitForExistence(timeout: 8))
+    app.buttons["统计"].tap()
     XCTAssertTrue(app.staticTexts["坚持"].waitForExistence(timeout: 5))
     app.tabBars.buttons["我的"].tap()
     let backupRow = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "备份与恢复")).firstMatch
     XCTAssertTrue(backupRow.waitForExistence(timeout: 5))
+  }
+
+  func testReviewCalendarAndPhotoWall() {
+    let app = launch(["-OneDayTab", "review"])
+    XCTAssertTrue(app.buttons["日历"].waitForExistence(timeout: 8))
+    app.buttons["日历"].tap()
+    let recapEntry = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "月回顾")).firstMatch
+    XCTAssertTrue(recapEntry.waitForExistence(timeout: 5), "calendar shows the month recap entry")
+    recapEntry.tap()
+    XCTAssertTrue(app.buttons["关闭"].waitForExistence(timeout: 5), "recap card opens")
+    app.buttons["关闭"].tap()
+
+    app.buttons["照片"].tap()
+    let photo = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "的照片")).firstMatch
+    XCTAssertTrue(photo.waitForExistence(timeout: 5), "photo wall lists photos")
+    photo.tap()
+    XCTAssertTrue(app.buttons["更多"].waitForExistence(timeout: 5), "tapping a photo opens its day")
   }
 }

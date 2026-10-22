@@ -7,7 +7,15 @@ enum AppTab: String, Hashable {
 
 enum ReviewTab: String, CaseIterable, Hashable {
   case timeline = "时间线"
-  case overview = "完成概览"
+  case calendar = "日历"
+  case photos = "照片"
+  case overview = "统计"
+}
+
+/// A month to show the recap card for.
+struct MonthRef: Identifiable, Hashable {
+  let month: Date
+  var id: Date { month }
 }
 
 /// Everything a new note can carry; built by the quick-capture card.
@@ -20,6 +28,7 @@ struct NoteDraft: Identifiable {
   var latitude: Double?
   var longitude: Double?
   var weather: String?
+  var mood: Int?
 
   var isEmpty: Bool { text.trimmed.isEmpty && photos.isEmpty && media.isEmpty }
 }
@@ -45,6 +54,7 @@ final class Store {
   var motivation: Motivation?
   var reviewDate: String?
   var reviewTab: ReviewTab = .timeline
+  var recap: MonthRef?
   var undoPrompt: UndoEntry?
 
   @ObservationIgnored private var undoStack: [UndoEntry] = []
@@ -209,6 +219,7 @@ final class Store {
     note.latitude = draft.latitude
     note.longitude = draft.longitude
     note.weather = draft.weather
+    note.mood = draft.mood
     checkpoint("留下记录")
     state.notes[today, default: []].append(note)
     save()
@@ -509,7 +520,13 @@ final class Store {
     if let tab = defaults.string(forKey: "OneDayTab"), let target = AppTab(rawValue: tab) {
       selectedTab = target
     }
-    if defaults.string(forKey: "OneDayReview") == "overview" { reviewTab = .overview }
+    switch defaults.string(forKey: "OneDayReview") {
+    case "overview": reviewTab = .overview
+    case "calendar": reviewTab = .calendar
+    case "photos": reviewTab = .photos
+    case "recap": recap = MonthRef(month: DayKey.monthStart(Date()))
+    default: break
+    }
     if defaults.string(forKey: "OneDayReview") == "day" { reviewDate = DayKey.add(days: -1, to: today) }
   }
   #endif
@@ -553,23 +570,36 @@ enum DemoData {
     lake.place = "杭州市 · 西湖区"
     lake.weather = "晴 23°"
     lake.media = [MediaItem(kind: .audio, file: "demo.m4a", duration: 42)]
-    lake.photos = [demoPhoto()].compactMap { $0 }
+    lake.photos = [demoPhoto(0)].compactMap { $0 }
+    lake.mood = 5
     s.notes[y] = [lake]
-    s.notes[t] = [NoteEntry(text: "今天把拖了很久的事情做完了。", time: "10:05", photos: [], tags: ["灵感"])]
+    var done = NoteEntry(text: "今天把拖了很久的事情做完了。", time: "10:05", photos: [], tags: ["灵感"])
+    done.mood = 4
+    s.notes[t] = [done]
     let lastYear = DayKey.of(DayKey.calendar.date(byAdding: .year, value: -1, to: Date()) ?? Date())
     s.notes[lastYear] = [NoteEntry(text: "第一次用 OneDay 记录。希望一年后的自己，过得更从容。", time: "22:10", photos: [], tags: ["心情"])]
     for k in stride(from: 3, through: 100, by: 4) {
-      s.notes[DayKey.add(days: -k, to: t)] = [NoteEntry(text: "普通但认真的一天。", time: "21:00", photos: [], tags: ["日常"])]
+      var note = NoteEntry(text: "普通但认真的一天。", time: "21:00", photos: [], tags: ["日常"])
+      note.mood = [3, 4, 2, 4, 5, 3][k % 6]
+      if k % 8 == 3 { note.photos = [demoPhoto(k / 8)].compactMap { $0 } }
+      s.notes[DayKey.add(days: -k, to: t)] = [note]
     }
     s.normalize()
     return s
   }
 
   /// A soft dusk-over-water picture so screenshots show photo-first cards.
-  private static func demoPhoto() -> String? {
+  private static func demoPhoto(_ variant: Int) -> String? {
     let size = CGSize(width: 1200, height: 800)
+    let skies: [(UIColor, UIColor)] = [
+      (UIColor(red: 0.98, green: 0.80, blue: 0.62, alpha: 1), UIColor(red: 0.62, green: 0.70, blue: 0.86, alpha: 1)),
+      (UIColor(red: 0.80, green: 0.88, blue: 0.96, alpha: 1), UIColor(red: 0.98, green: 0.93, blue: 0.82, alpha: 1)),
+      (UIColor(red: 0.95, green: 0.70, blue: 0.70, alpha: 1), UIColor(red: 0.55, green: 0.52, blue: 0.75, alpha: 1)),
+      (UIColor(red: 0.78, green: 0.90, blue: 0.80, alpha: 1), UIColor(red: 0.96, green: 0.90, blue: 0.70, alpha: 1)),
+    ]
+    let sky = skies[variant % skies.count]
     let image = UIGraphicsImageRenderer(size: size).image { ctx in
-      let colors = [UIColor(red: 0.98, green: 0.80, blue: 0.62, alpha: 1), UIColor(red: 0.62, green: 0.70, blue: 0.86, alpha: 1)]
+      let colors = [sky.0, sky.1]
       let gradient = CGGradient(colorsSpace: nil, colors: colors.map(\.cgColor) as CFArray, locations: [0, 1])!
       ctx.cgContext.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: size.height * 0.62), options: [])
       UIColor(red: 0.98, green: 0.88, blue: 0.70, alpha: 1).setFill()

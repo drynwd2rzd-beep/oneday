@@ -39,6 +39,11 @@ struct NoteEditorSheet: View {
           Text("内容")
         }
 
+        Section("心情") {
+          MoodPicker(selection: $note.mood)
+            .padding(.vertical, 2)
+        }
+
         Section {
           LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
             ForEach(note.photos, id: \.self) { photo in
