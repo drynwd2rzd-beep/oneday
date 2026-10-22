@@ -182,7 +182,7 @@ struct TaskRow: View {
         .font(.caption)
         .foregroundStyle(.secondary)
       }
-      Spacer(minLength: 8)
+      .frame(maxWidth: .infinity, alignment: .leading)
       Menu {
         Button {
           editingReminder = true
@@ -249,7 +249,7 @@ extension TaskRow {
       }
     }
     .lineLimit(1)
-    .fixedSize()
+    .minimumScaleFactor(0.85)
   }
 
   @ViewBuilder
