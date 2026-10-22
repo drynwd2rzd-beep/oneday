@@ -14,11 +14,8 @@ struct MoodPicker: View {
           withAnimation(.snappy) { selection = selected ? nil : mood.rawValue }
         } label: {
           VStack(spacing: 2) {
-            Text(mood.emoji)
-              .font(compact ? .title3 : .title2)
-              .grayscale(selection == nil || selected ? 0 : 0.9)
-              .opacity(selection == nil || selected ? 1 : 0.45)
-              .scaleEffect(selected ? 1.15 : 1)
+            MoodFace(level: mood.rawValue, size: compact ? 26 : 32, dimmed: selection != nil && !selected)
+              .scaleEffect(selected ? 1.12 : 1)
             if !compact {
               Text(mood.label)
                 .font(.app(.caption2))
@@ -42,15 +39,15 @@ struct MoodPicker: View {
   }
 }
 
-/// A small emoji for a note or day; nothing when no mood was given.
+/// A small mood face for a note or day; nothing when no mood was given.
 struct MoodBadge: View {
   let value: Double?
-  var font: Font = .footnote
+  var size: CGFloat = 16
 
   var body: some View {
     if let value, let mood = Mood(average: value) {
-      Text(mood.emoji)
-        .font(font)
+      MoodFace(level: mood.rawValue, size: size)
+        .accessibilityElement()
         .accessibilityLabel("心情\(mood.label)")
     }
   }

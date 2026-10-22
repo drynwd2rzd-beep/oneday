@@ -10,7 +10,7 @@ struct SectionHeader: View {
   var body: some View {
     HStack(alignment: .firstTextBaseline) {
       Text(title)
-        .font(.app(.title3).weight(.semibold))
+        .font(.app(.title3).weight(.bold))
         .accessibilityAddTraits(.isHeader)
       Spacer()
       if let actionTitle, let action {

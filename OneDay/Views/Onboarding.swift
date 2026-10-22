@@ -88,11 +88,12 @@ struct OnboardingView: View {
   private var welcome: some View {
     VStack(spacing: 28) {
       Spacer()
-      Image("Logo")
-        .resizable()
-        .frame(width: 104, height: 104)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
+      MascotView(mood: .happy, size: 128)
+        .phaseAnimator([false, true]) { view, up in
+          view.offset(y: up ? -6 : 0)
+        } animation: { _ in
+          .easeInOut(duration: 1.4)
+        }
         .accessibilityHidden(true)
       VStack(spacing: 8) {
         Text("一天").font(.app(.largeTitle).weight(.semibold))

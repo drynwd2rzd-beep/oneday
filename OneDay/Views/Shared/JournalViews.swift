@@ -3,21 +3,30 @@ import SwiftUI
 
 // MARK: - Empty states
 
-/// System empty-state layout, sized for use inside cards.
+/// Empty state with 小日: a calm face, a title and an optional hint, sized for use inside cards.
 struct EmptyState: View {
   let title: String
+  /// Kept for call sites; 小日 stands in for the symbol.
   let icon: String
   var message: String?
 
   var body: some View {
-    ContentUnavailableView {
-      Label(title, systemImage: icon)
-    } description: {
-      if let message { Text(message) }
+    VStack(spacing: 8) {
+      MascotView(mood: .calm, size: 56)
+        .padding(.bottom, 2)
+      Text(title)
+        .font(.app(.headline))
+        .multilineTextAlignment(.center)
+      if let message {
+        Text(message)
+          .font(.app(.subheadline))
+          .foregroundStyle(.secondary)
+          .multilineTextAlignment(.center)
+      }
     }
-    .font(.app(.subheadline))
-    .padding(.vertical, -12)
     .frame(maxWidth: .infinity)
+    .padding(.vertical, 4)
+    .accessibilityElement(children: .combine)
   }
 }
 
@@ -255,61 +264,40 @@ struct VideoPlayerScreen: View {
   }
 }
 
-// MARK: - Photo-first journal card
+// MARK: - Memories
 
-/// A journal card: the first photo large on top (when there is one), then the date and text in
-/// the journal typeface. Used by the timeline and "那年今日".
-struct MemoryCard: View {
-  @Environment(\.palette) private var palette
-  @Environment(\.visualStyle) private var style
+/// A memory set on the page like a quote: a warm bar, when it was, the words, its first photo.
+/// Used on 今天 where a card would be one box too many.
+struct MemoryQuote: View {
   let caption: String
   let notes: [NoteEntry]
-  var showsChevron = false
-
-  private var cover: String? { notes.lazy.compactMap(\.photos.first).first }
 
   var body: some View {
-    let first = notes.first
-    VStack(alignment: .leading, spacing: 0) {
-      if let cover, let image = MediaStore.image(cover) {
-        Color.clear
-          .frame(height: 180)
-          .overlay {
-            Image(uiImage: image).resizable().scaledToFill()
-          }
-          .clipped()
-          .accessibilityHidden(true)
-      }
-      VStack(alignment: .leading, spacing: 8) {
-        HStack(alignment: .firstTextBaseline) {
-          Text(caption)
-            .font(.app(.footnote).weight(.medium))
-            .foregroundStyle(.secondary)
-          Spacer(minLength: 8)
-          HStack(spacing: 6) {
-            if notes.contains(where: { $0.media.contains { $0.kind == .video } }) { Image(systemName: "video") }
-            if notes.contains(where: { $0.media.contains { $0.kind == .audio } }) { Image(systemName: "waveform") }
-            if notes.count > 1 { Text("\(notes.count) 条") }
-            if showsChevron { Image(systemName: "chevron.right").fontWeight(.semibold) }
-          }
-          .font(.app(.caption))
-          .foregroundStyle(.tertiary)
-        }
-        if let first {
+    let cover = notes.lazy.compactMap(\.photos.first).first
+    HStack(alignment: .top, spacing: 14) {
+      RoundedRectangle(cornerRadius: 2, style: .continuous)
+        .fill(Color.sun)
+        .frame(width: 4)
+      VStack(alignment: .leading, spacing: 6) {
+        Text(caption)
+          .font(.app(.footnote).weight(.medium))
+          .foregroundStyle(.secondary)
+        if let first = notes.first {
           Text(excerpt(first))
-            .font(.journal(.body, size: 17))
+            .font(.journal(.body, size: 18))
             .foregroundStyle(.primary)
-            .lineSpacing(4)
+            .lineSpacing(5)
             .lineLimit(4)
             .multilineTextAlignment(.leading)
-          NoteMetaLine(note: first)
         }
       }
-      .padding(Spacing.card)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      if let cover {
+        PhotoThumb(name: cover).frame(width: 64, height: 64)
+      }
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .surface(cornerRadius: style == .flat ? Radius.flatCard : Radius.card)
-    .clipShape(RoundedRectangle(cornerRadius: style == .flat ? Radius.flatCard : Radius.card, style: .continuous))
+    .fixedSize(horizontal: false, vertical: true)
+    .padding(.vertical, 4)
     .contentShape(Rectangle())
   }
 

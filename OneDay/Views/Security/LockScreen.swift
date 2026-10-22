@@ -169,7 +169,7 @@ struct LockScreen: View {
         .frame(width: 64, height: 64)
         .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
       VStack(spacing: 6) {
-        Text(lock.kind == .digits6 ? "输入密码" : "输入密码解锁").font(.app(.title3).weight(.semibold))
+        Text(lock.kind == .digits6 ? "输入密码" : "输入密码解锁").font(.app(.title3).weight(.bold))
         Text(statusText)
           .font(.app(.subheadline))
           .foregroundStyle(lock.failedAttempts > 0 ? Color.red : .secondary)
@@ -239,7 +239,7 @@ struct PasscodeSetupSheet: View {
         .pickerStyle(.segmented)
         .disabled(first != nil)
         VStack(spacing: 6) {
-          Text(first == nil ? "设置新密码" : "再输入一次").font(.app(.title3).weight(.semibold))
+          Text(first == nil ? "设置新密码" : "再输入一次").font(.app(.title3).weight(.bold))
           Text(mismatch ? "两次输入不一致，请重新设置" : kind == .digits6 ? "输入 6 位数字" : "至少 4 位，可包含字母和数字")
             .font(.app(.subheadline))
             .foregroundStyle(mismatch ? Color.red : .secondary)
@@ -288,7 +288,7 @@ struct PasscodeVerifySheet: View {
     NavigationStack {
       VStack(spacing: 22) {
         Text(errors > 0 ? "密码错误，请重试" : "输入当前密码")
-          .font(.app(.title3).weight(.semibold))
+          .font(.app(.title3).weight(.bold))
           .foregroundStyle(errors > 0 ? Color.red : .primary)
         PasscodeEntry(kind: AppLock.shared.kind, onSubmit: { code in
           if AppLock.shared.verify(code) {

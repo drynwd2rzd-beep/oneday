@@ -122,7 +122,7 @@ struct WidgetGallerySheet: View {
 
   private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
     VStack(alignment: .leading, spacing: Spacing.title) {
-      Text(title).font(.app(.title3).weight(.semibold)).accessibilityAddTraits(.isHeader)
+      Text(title).font(.app(.title3).weight(.bold)).accessibilityAddTraits(.isHeader)
       content()
     }
   }

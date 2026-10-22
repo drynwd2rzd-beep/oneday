@@ -181,7 +181,7 @@ private struct DaySummaryLine: View {
       if summary.notes > 0 {
         Label("\(summary.notes) 条记录", systemImage: "text.quote")
       }
-      MoodBadge(value: summary.mood, font: .caption)
+      MoodBadge(value: summary.mood, size: 15)
       if summary.total == 0 && summary.notes == 0 {
         Text("这一天没有事项和记录")
       }
@@ -446,7 +446,7 @@ struct WeekReflectionSheet: View {
           if !week.plans.isEmpty { WeekPlansCard(week: week) }
 
           Text("复盘")
-            .font(.app(.title3).weight(.semibold))
+            .font(.app(.title3).weight(.bold))
             .accessibilityAddTraits(.isHeader)
             .padding(.top, Spacing.section - Spacing.stack)
           question("本周收获", prompt: "这周最值得记住的事、进步和收获", text: $draft.gains)
@@ -590,10 +590,14 @@ private struct WeekDaysCard: View {
         .frame(height: 64)
       HStack(spacing: 6) {
         ForEach(Array(week.moods.enumerated()), id: \.offset) { _, mood in
-          Text(mood.flatMap(Mood.init(average:))?.emoji ?? "·")
-            .font(.app(.callout))
-            .foregroundStyle(.tertiary)
-            .frame(maxWidth: .infinity)
+          Group {
+            if let face = mood.flatMap(Mood.init(average:)) {
+              MoodFace(level: face.rawValue, size: 20)
+            } else {
+              Circle().fill(Color.secondary.opacity(0.2)).frame(width: 5, height: 5)
+            }
+          }
+          .frame(maxWidth: .infinity, minHeight: 20)
         }
       }
       .accessibilityHidden(true)

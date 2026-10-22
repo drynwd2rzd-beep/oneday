@@ -165,9 +165,8 @@ private struct PlanCard: View {
     case .archived: return "已归档"
     case .active:
       if !progress.tasks.isEmpty {
-        var text = "近 7 天 \(progress.lastWeek) 次 · 累计 \(progress.total) 次"
-        if progress.streak > 0 { text += " · 连续 \(progress.streak) 天" }
-        return text
+        if progress.streak > 1 { return "近 7 天 \(progress.lastWeek) 次 · 连续 \(progress.streak) 天" }
+        return "近 7 天 \(progress.lastWeek) 次"
       }
       return plan.desc.isEmpty ? "长按可以关联每天的事项" : plan.desc
     }
@@ -275,7 +274,7 @@ struct PlanEditorSheet: View {
         Section {
           HStack(spacing: 12) {
             Image(systemName: icon ?? "scope")
-              .font(.app(.title3).weight(.semibold))
+              .font(.app(.title3).weight(.bold))
               .foregroundStyle(.white)
               .frame(width: 44, height: 44)
               .background(tint, in: RoundedRectangle(cornerRadius: 12, style: .continuous))

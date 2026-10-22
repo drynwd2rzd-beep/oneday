@@ -182,10 +182,17 @@ struct MotivationSheet: View {
 
   var body: some View {
     VStack(spacing: 18) {
-      Image(systemName: "sparkles")
-        .font(.app(size: 46, weight: .semibold))
-        .foregroundStyle(accent)
-        .symbolEffect(.bounce, value: appeared)
+      MascotView(mood: .party, size: 120)
+        .keyframeAnimator(initialValue: CGFloat(0), trigger: appeared) { view, hop in
+          view.offset(y: hop)
+        } keyframes: { _ in
+          KeyframeTrack {
+            SpringKeyframe(-24, duration: 0.22, spring: .snappy)
+            SpringKeyframe(0, duration: 0.45, spring: .bouncy)
+            SpringKeyframe(-12, duration: 0.2, spring: .snappy)
+            SpringKeyframe(0, duration: 0.4, spring: .bouncy)
+          }
+        }
       Text("今天做得很好。")
         .font(.app(.title2).bold())
       Text("“\(motivation.text)”")

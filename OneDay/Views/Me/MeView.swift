@@ -22,7 +22,7 @@ struct MeView: View {
             HStack(spacing: 14) {
               AvatarView(name: s.avatar, size: 60)
               VStack(alignment: .leading, spacing: 3) {
-                Text(s.name).font(.app(.title3).weight(.semibold)).foregroundStyle(.primary)
+                Text(s.name).font(.app(.title3).weight(.bold)).foregroundStyle(.primary)
                 Text(s.signature).font(.app(.subheadline)).foregroundStyle(.secondary).lineLimit(2)
               }
               Spacer(minLength: 8)

@@ -256,7 +256,7 @@ private struct TimelineRow: View {
           .lineLimit(3)
           .multilineTextAlignment(.leading)
         HStack(spacing: 10) {
-          MoodBadge(value: store.state.mood(on: day), font: .caption)
+          MoodBadge(value: store.state.mood(on: day), size: 15)
           if let place = first?.place {
             Label(place, systemImage: "location.fill").labelStyle(CompactLabelStyle()).lineLimit(1)
           }
@@ -403,9 +403,12 @@ private struct ReviewDayDetail: View {
           .font(.app(.footnote).weight(.medium).monospacedDigit())
           .foregroundStyle(.secondary)
         if let mood = note.mood.flatMap(Mood.init(rawValue:)) {
-          Text("\(mood.emoji) \(mood.label)")
-            .font(.app(.footnote))
-            .foregroundStyle(Color(hex: mood.hex))
+          HStack(spacing: 4) {
+            MoodFace(level: mood.rawValue, size: 15)
+            Text(mood.label)
+          }
+          .font(.app(.footnote))
+          .foregroundStyle(.secondary)
         }
       }
       if !note.text.isEmpty {
@@ -535,14 +538,15 @@ private struct TotalsCard: View {
       number("\(state.recordDates.count)", "有记录", unit: "天")
       number("\(best)", "最长连续", unit: "天")
     }
-    .card()
+    .padding(.horizontal, 4)
+    .padding(.vertical, 6)
   }
 
   private func number(_ value: String, _ label: String, unit: String) -> some View {
     VStack(alignment: .leading, spacing: 4) {
       HStack(alignment: .lastTextBaseline, spacing: 2) {
         Text(value)
-          .font(.app(size: 28, weight: .bold))
+          .font(.app(size: 34, weight: .bold))
           .contentTransition(.numericText())
           .lineLimit(1)
           .minimumScaleFactor(0.6)
@@ -740,13 +744,13 @@ private struct StreaksCard: View {
       } else {
         ForEach(streaks) { s in
           HStack(spacing: 12) {
-            Image(systemName: s.current >= 7 ? "flame.fill" : "flame")
-              .foregroundStyle(s.current > 0 ? accent : Color.secondary)
+            Image(systemName: "flame.fill")
+              .foregroundStyle(s.current > 0 ? Color.sun : Color.secondary.opacity(0.4))
               .frame(width: 22)
-            VStack(alignment: .leading, spacing: 3) {
-              Text(s.title).lineLimit(1)
-              Text("最长 \(s.best) 天 · 近 30 天完成率 \(Int((s.rate30 * 100).rounded()))%")
-                .font(.app(.caption))
+            VStack(alignment: .leading, spacing: 2) {
+              Text(s.title).font(.app(.body)).lineLimit(1)
+              Text("最长 \(s.best) 天")
+                .font(.app(.footnote))
                 .foregroundStyle(.secondary)
             }
             Spacer()

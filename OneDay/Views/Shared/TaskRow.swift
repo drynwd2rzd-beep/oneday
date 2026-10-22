@@ -33,11 +33,8 @@ struct TaskRow: View {
           .font(.app(.body))
           .strikethrough(done, color: .secondary)
           .foregroundStyle(done ? .secondary : .primary)
-        if task.repeatMode == .daily || task.reminder != nil || plan != nil {
+        if task.reminder != nil || plan != nil {
           HStack(spacing: 10) {
-            if task.repeatMode == .daily {
-              Image(systemName: "repeat").accessibilityLabel("每天")
-            }
             if let reminder = task.reminder {
               Label(DayKey.clock(minutes: reminder), systemImage: "bell")
                 .labelStyle(CompactLabelStyle())

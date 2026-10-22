@@ -14,11 +14,15 @@ enum MascotMood: String, CaseIterable {
   case sleepy
 
   static func of(_ snapshot: WidgetSnapshot, at date: Date) -> MascotMood {
-    if snapshot.allDone { return .party }
+    of(done: snapshot.doneCount, total: snapshot.total, at: date)
+  }
+
+  static func of(done: Int, total: Int, at date: Date) -> MascotMood {
+    if total > 0 && done == total { return .party }
     let hour = SharedDay.calendar.component(.hour, from: date)
     if hour >= 22 || hour < 5 { return .sleepy }
-    if snapshot.total == 0 { return .calm }
-    return snapshot.doneCount == 0 ? .cheer : .happy
+    if total == 0 { return .calm }
+    return done == 0 ? .cheer : .happy
   }
 
   /// What 小日 says.

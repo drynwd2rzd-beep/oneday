@@ -284,7 +284,11 @@ private struct LargeCute: View {
         }
         if snapshot.wroteToday {
           Sticker(theme: theme) {
-            Text(snapshot.mood.map(Self.face) ?? "📝").font(.system(size: 18))
+            if let mood = snapshot.mood {
+              MoodFace(level: mood, size: 20)
+            } else {
+              Image(systemName: "text.quote").foregroundStyle(theme.accent)
+            }
             Text("写了记录").font(.cute(13, .heavy))
             Text("今天").font(.cute(10, .semibold)).foregroundStyle(theme.soft)
           }
@@ -311,10 +315,6 @@ private struct LargeCute: View {
     case 18..<22: "晚上好"
     default: "夜深了"
     }
-  }
-
-  static func face(_ mood: Int) -> String {
-    ["😞", "🙁", "😐", "🙂", "😄"][min(max(mood, 1), 5) - 1]
   }
 }
 

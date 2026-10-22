@@ -159,26 +159,104 @@ private struct RecapBanner: View {
   }
 }
 
+/// Greeting on the left, today's ring with 小日 on the right: the first thing you see.
 private struct HeroModule: View {
   @Environment(Store.self) private var store
+  @Environment(\.dynamicTypeSize) private var typeSize
 
   var body: some View {
     let now = Date()
-    VStack(alignment: .leading, spacing: 6) {
-      Text("\(DayKey.shortDate(store.today)) \(DayKey.weekday(store.today))")
-        .font(.app(.footnote).weight(.medium))
-        .foregroundStyle(.secondary)
-      Text(OneDayText.greeting(now))
-        .font(.journal(.largeTitle, size: 34, bold: true))
-      Text(OneDayText.quote(for: now, mode: store.settings.quoteMode))
-        .font(.journal(.subheadline, size: 15))
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(.top, 2)
+    let list = store.state.tasks(on: store.today)
+    let done = list.filter { $0.isDone(on: store.today) }.count
+    let layout = typeSize.isAccessibilitySize
+      ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.section))
+      : AnyLayout(HStackLayout(alignment: .center, spacing: Spacing.inner))
+    layout {
+      VStack(alignment: .leading, spacing: 6) {
+        Text("\(DayKey.shortDate(store.today)) \(DayKey.weekday(store.today))")
+          .font(.app(.subheadline).weight(.medium))
+          .foregroundStyle(.secondary)
+        Text(OneDayText.greeting(now))
+          .font(.journal(.largeTitle, size: 34, bold: true))
+        Text(OneDayText.quote(for: now, mode: store.settings.quoteMode))
+          .font(.journal(.subheadline, size: 15))
+          .foregroundStyle(.secondary)
+          .lineLimit(3)
+          .fixedSize(horizontal: false, vertical: true)
+          .padding(.top, 2)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .accessibilityElement(children: .combine)
+      TodayRing(done: done, total: list.count, mood: MascotMood.of(done: done, total: list.count, at: now))
+        .frame(width: 124, height: 124)
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
     .padding(.top, 20)
-    .accessibilityElement(children: .combine)
+  }
+}
+
+/// Today's progress as a ring around 小日, whose face follows it. 小日 hops when a task is
+/// ticked and breathes gently the rest of the time.
+struct TodayRing: View {
+  @Environment(\.accent) private var accent
+  @Environment(\.palette) private var palette
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+  let done: Int
+  let total: Int
+  let mood: MascotMood
+
+  private var progress: Double { total == 0 ? 0 : Double(done) / Double(total) }
+
+  var body: some View {
+    GeometryReader { geo in
+      let side = min(geo.size.width, geo.size.height)
+      let line = side * 0.075
+      ZStack {
+        Circle().stroke(accent.opacity(0.13), lineWidth: line)
+        Circle()
+          .trim(from: 0, to: progress)
+          .stroke(
+            AngularGradient(colors: [accent.opacity(0.75), accent], center: .center, startAngle: .degrees(0), endAngle: .degrees(360 * max(progress, 0.01))),
+            style: StrokeStyle(lineWidth: line, lineCap: .round))
+          .rotationEffect(.degrees(-90))
+          .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
+        mascot(side: side)
+        Text(total == 0 ? "自由的一天" : "\(done)/\(total)")
+          .font(.app(.footnote).weight(.semibold).monospacedDigit())
+          .contentTransition(.numericText())
+          .animation(.snappy, value: done)
+          .padding(.horizontal, 9)
+          .padding(.vertical, 3)
+          .background(palette.surface, in: Capsule())
+          .overlay(Capsule().stroke(accent.opacity(0.15), lineWidth: 1))
+          .offset(y: side * 0.36)
+      }
+      .frame(width: side, height: side)
+    }
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(total == 0 ? "今天没有事项" : "今天完成 \(done) 件，共 \(total) 件")
+  }
+
+  @ViewBuilder
+  private func mascot(side: CGFloat) -> some View {
+    let base = MascotView(mood: mood, size: side * 0.6).offset(y: -side * 0.04)
+    if reduceMotion {
+      base
+    } else {
+      base
+        .keyframeAnimator(initialValue: CGFloat(0), trigger: done) { view, hop in
+          view.offset(y: hop)
+        } keyframes: { _ in
+          KeyframeTrack {
+            SpringKeyframe(-side * 0.08, duration: 0.18, spring: .snappy)
+            SpringKeyframe(0, duration: 0.35, spring: .bouncy)
+          }
+        }
+        .phaseAnimator([false, true]) { view, breathe in
+          view.scaleEffect(breathe ? 1.03 : 1, anchor: .bottom)
+        } animation: { _ in
+          .easeInOut(duration: 1.8)
+        }
+    }
   }
 }
 
@@ -190,19 +268,11 @@ private struct TodayTasksModule: View {
     let day = store.today
     let list = store.state.tasks(on: day)
     let open = list.filter { !$0.isDone(on: day) }
-    let done = list.count - open.count
     VStack(alignment: .leading, spacing: Spacing.title) {
       HStack(alignment: .firstTextBaseline, spacing: 8) {
         Text("今天")
-          .font(.app(.title3).weight(.semibold))
+          .font(.app(.title3).weight(.bold))
           .accessibilityAddTraits(.isHeader)
-        if !list.isEmpty {
-          Text("\(done)/\(list.count)")
-            .font(.app(.subheadline).monospacedDigit())
-            .foregroundStyle(.secondary)
-            .contentTransition(.numericText())
-            .accessibilityLabel("已完成 \(done) 件，共 \(list.count) 件")
-        }
         Spacer()
         Button {
           store.selectedTab = .tasks
@@ -216,14 +286,6 @@ private struct TodayTasksModule: View {
         }
       }
       VStack(alignment: .leading, spacing: 0) {
-        if !list.isEmpty {
-          ProgressView(value: Double(done), total: Double(list.count))
-            .tint(accent)
-            .padding(.top, 12)
-            .padding(.bottom, open.isEmpty ? 0 : 4)
-            .animation(.snappy, value: done)
-            .accessibilityHidden(true)
-        }
         if open.isEmpty {
           EmptyState(
             title: list.isEmpty ? "今天没有待办" : "今天的事项都完成了",
@@ -276,7 +338,7 @@ private struct OnThisDayModule: View {
             store.reviewDate = memory.day
             store.selectedTab = .review
           } label: {
-            MemoryCard(
+            MemoryQuote(
               caption: "\(memory.yearsAgo) 年前 · \(DayKey.fullDate(memory.day))",
               notes: memory.notes)
           }
@@ -373,7 +435,7 @@ private struct QuickCaptureModule: View {
       // must not close it, or picked photos have nowhere to go.
       HStack(alignment: .firstTextBaseline) {
         Text("值得留下")
-          .font(.app(.title3).weight(.semibold))
+          .font(.app(.title3).weight(.bold))
           .accessibilityAddTraits(.isHeader)
         Spacer()
         if draft.isEmpty && !loading {

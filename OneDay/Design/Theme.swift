@@ -112,6 +112,9 @@ extension Font.TextStyle {
 // MARK: - Colors
 
 extension Color {
+  /// 小日's warm yellow: a small highlight next to the accent (streaks, memories, celebrations).
+  static let sun = Color(hex: "#f2b33d")
+
   init(hex: String) {
     var s = hex.trimmed
     if s.hasPrefix("#") { s.removeFirst() }
@@ -156,7 +159,7 @@ struct Palette {
       return Palette(bg: Color(hex: "#f0f1f1"), surface: Color(hex: "#fbfbfa"), line: Color(hex: "#dedfdd"), isDark: false, isMeteor: false)
     default:
       // Warm paper.
-      return Palette(bg: Color(hex: "#f4f0e8"), surface: Color(hex: "#fffcf6"), line: Color(hex: "#e6e0d4"), isDark: false, isMeteor: false)
+      return Palette(bg: Color(hex: "#f7f4ee"), surface: Color(hex: "#fffefb"), line: Color(hex: "#ebe5da"), isDark: false, isMeteor: false)
     }
   }
 }

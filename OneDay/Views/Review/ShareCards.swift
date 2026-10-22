@@ -39,7 +39,7 @@ struct RecapCard: View {
       if let avg = recap.moodAverage, let mood = Mood(average: avg) {
         VStack(alignment: .leading, spacing: 8) {
           HStack(spacing: 6) {
-            Text(mood.emoji)
+            MoodFace(level: mood.rawValue, size: 20)
             Text("这个月心情大多\(mood.label)")
           }
           .font(.journal(.body, size: 16))
@@ -186,7 +186,7 @@ struct DayShareCard: View {
         }
         Spacer()
         if let mood = notes.compactMap(\.mood).first.flatMap(Mood.init(rawValue:)) {
-          Text(mood.emoji).font(.system(size: 30))
+          MoodFace(level: mood.rawValue, size: 30)
         }
       }
 

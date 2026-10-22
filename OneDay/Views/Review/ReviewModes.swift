@@ -82,7 +82,7 @@ struct JournalCalendar: View {
       .overlay(alignment: .bottom) {
         if photo == nil {
           if let mood = store.state.mood(on: day), let face = Mood(average: mood) {
-            Text(face.emoji).font(.app(.callout)).padding(.bottom, 4)
+            MoodFace(level: face.rawValue, size: 18).padding(.bottom, 5)
           } else if !notes.isEmpty {
             Circle().fill(accent).frame(width: 5, height: 5).padding(.bottom, 8)
           }
@@ -272,7 +272,7 @@ struct MoodCard: View {
           AxisMarks(position: .leading, values: [1.0, 3.0, 5.0]) { value in
             AxisGridLine().foregroundStyle(Color.secondary.opacity(0.15))
             AxisValueLabel {
-              Text(value.as(Double.self).flatMap(Mood.init(average:))?.emoji ?? "")
+              MoodFace(level: Int((value.as(Double.self) ?? 3).rounded()), size: 14)
             }
           }
         }
@@ -287,7 +287,7 @@ struct MoodCard: View {
         HStack(spacing: 0) {
           ForEach(Mood.allCases) { mood in
             VStack(spacing: 4) {
-              Text(mood.emoji).font(.app(.title3))
+              MoodFace(level: mood.rawValue, size: 24)
               Text("\(counts[mood] ?? 0) 天")
                 .font(.app(.caption2).monospacedDigit())
                 .foregroundStyle(.secondary)
