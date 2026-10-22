@@ -7,8 +7,8 @@ options:
 settings:
   base:
     # Shared by the app and the widget, which must carry the same version.
-    MARKETING_VERSION: "1.3.2"
-    CURRENT_PROJECT_VERSION: "12"
+    MARKETING_VERSION: "1.4.0"
+    CURRENT_PROJECT_VERSION: "13"
 targets:
   OneDay:
     type: application

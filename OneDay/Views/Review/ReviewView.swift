@@ -15,7 +15,6 @@ struct ReviewView: View {
             ForEach(ReviewTab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
           }
           .pickerStyle(.segmented)
-          .padding(.bottom, 4)
 
           switch store.reviewTab {
           case .timeline:
@@ -24,8 +23,6 @@ struct ReviewView: View {
             case .calendar: JournalCalendar(month: $calendarMonth) { store.recap = MonthRef(month: $0) }
             case .photos: PhotoWall()
             }
-          case .reflect:
-            ReflectionPanel()
           case .overview:
             OverviewPanel(month: $overviewMonth) { store.recap = MonthRef(month: $0) }
           }
@@ -64,18 +61,6 @@ struct ReviewView: View {
         }
       }
       .sheet(isPresented: $showSearch) { ReviewSearchSheet().oneDaySheet() }
-      .sheet(item: recapBinding) { RecapSheet(month: $0.month).oneDaySheet() }
-      .sheet(item: reflectionBinding) { target in
-        Group {
-          switch target {
-          case .day(let day):
-            DayReflectionSheet(day: day, note: store.state.reflectionNote(on: day))
-          case .week(let week):
-            WeekReflectionSheet(start: week, reflection: store.state.weekReflections[week])
-          }
-        }
-        .oneDaySheet()
-      }
     }
   }
 
@@ -89,14 +74,6 @@ struct ReviewView: View {
 
   private var recordsModeBinding: Binding<RecordsMode> {
     Binding(get: { store.recordsMode }, set: { store.recordsMode = $0 })
-  }
-
-  private var reflectionBinding: Binding<ReflectionTarget?> {
-    Binding(get: { store.reflection }, set: { store.reflection = $0 })
-  }
-
-  private var recapBinding: Binding<MonthRef?> {
-    Binding(get: { store.recap }, set: { store.recap = $0 })
   }
 
   private var tabBinding: Binding<ReviewTab> {
@@ -126,23 +103,43 @@ private struct TimelineList: View {
       EmptyState(title: "时间线还是空的", icon: "book", message: "留下第一条记录后，这里会慢慢长出属于你的时间线。")
         .card()
     } else {
-      LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-        ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
-          Section {
-            ForEach(Array(group.days.enumerated()), id: \.element) { position, day in
-              NavigationLink(value: day) {
-                TimelineRow(day: day, isLast: position == group.days.count - 1)
+      let weeks = Self.weekPlacement(groups, written: store.state.weekReflections)
+      VStack(alignment: .leading, spacing: Spacing.stack) {
+        if store.state.weekReflections[DayKey.weekStart(store.today)] == nil {
+          ThisWeekEntry()
+        }
+        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+          ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
+            Section {
+              ForEach(Array(group.days.enumerated()), id: \.element) { position, day in
+                if let week = weeks[day] {
+                  WeekTimelineRow(start: week)
+                }
+                NavigationLink(value: day) {
+                  TimelineRow(day: day, isLast: position == group.days.count - 1)
+                }
+                .buttonStyle(.plain)
               }
-              .buttonStyle(.plain)
+            } header: {
+              MonthHeader(
+                key: group.key, count: group.days.count,
+                showsYear: index == 0 || groups[index - 1].key.prefix(4) != group.key.prefix(4))
             }
-          } header: {
-            MonthHeader(
-              key: group.key, count: group.days.count,
-              showsYear: index == 0 || groups[index - 1].key.prefix(4) != group.key.prefix(4))
           }
         }
       }
     }
+  }
+
+  /// Each written weekly review goes just above the newest recorded day of its week.
+  private static func weekPlacement(_ groups: [MonthGroup], written: [String: WeekReflection]) -> [String: String] {
+    var placed = Set<String>()
+    var out: [String: String] = [:]
+    for day in groups.flatMap(\.days) {
+      let week = DayKey.weekStart(day)
+      if written[week] != nil, placed.insert(week).inserted { out[day] = week }
+    }
+    return out
   }
 
   private static func group(_ dates: [String]) -> [MonthGroup] {
@@ -156,6 +153,24 @@ private struct TimelineList: View {
       }
     }
     return groups
+  }
+}
+
+/// A weekly review in the timeline: the card sits in the card column, the axis runs past it.
+private struct WeekTimelineRow: View {
+  @Environment(\.palette) private var palette
+  let start: String
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 12) {
+      Rectangle()
+        .fill(palette.line)
+        .frame(width: 1)
+        .frame(width: 44)
+        .frame(maxHeight: .infinity)
+      WeekNoteCard(start: start)
+        .padding(.bottom, Spacing.stack)
+    }
   }
 }
 
@@ -257,7 +272,7 @@ private struct TimelineRow: View {
           .accessibilityHidden(true)
       }
     }
-    .card(padding: 14)
+    .card()
   }
 
   private func excerpt(_ notes: [NoteEntry]) -> String {
@@ -433,7 +448,7 @@ private struct ReviewDayDetail: View {
       }
     }
     .swipeActions(
-      leading: SwipeAction(title: "编辑", icon: "pencil", tint: .blue) { edit(note) },
+      leading: SwipeAction(title: "编辑", icon: "pencil", tint: accent) { edit(note) },
       trailing: SwipeAction(title: "删除", icon: "trash", tint: .red) {
         withAnimation(.snappy) { store.deleteNote(day: day, id: note.id) }
       })
@@ -552,7 +567,7 @@ private struct MonthCard: View {
     let recap = store.state.recap(month: month)
     let maxCount = max(1, o.items.map(\.count).max() ?? 1)
     let isCurrent = DayKey.monthStart(month) >= DayKey.monthStart(Date())
-    VStack(alignment: .leading, spacing: 14) {
+    VStack(alignment: .leading, spacing: Spacing.inner) {
       HStack {
         shiftButton("chevron.left", label: "上个月", by: -1)
         Spacer()
@@ -711,7 +726,7 @@ private struct StreaksCard: View {
 
   var body: some View {
     let streaks = store.state.taskStreaks(today: store.today)
-    VStack(alignment: .leading, spacing: 14) {
+    VStack(alignment: .leading, spacing: Spacing.inner) {
       VStack(alignment: .leading, spacing: 3) {
         Text("每日打卡").font(.app(.headline))
         Text("设为「每天」重复的事项，连续完成了几天")

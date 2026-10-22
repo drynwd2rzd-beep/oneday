@@ -507,27 +507,39 @@ private final class CenteringScrollView: UIScrollView {
 // MARK: - Settings rows
 
 /// A row in the style of the Settings app: tinted icon tile, title, current value, chevron.
-struct SettingRow: View {
+/// Icon, title and value of a settings row; every icon uses the accent so the list stays calm.
+struct SettingLabel: View {
   @Environment(\.accent) private var accent
   let icon: String
   let title: String
   var value: String?
-  var tint: Color?
+
+  var body: some View {
+    HStack(spacing: 12) {
+      Image(systemName: icon)
+        .font(.app(.subheadline).weight(.semibold))
+        .foregroundStyle(.white)
+        .frame(width: 29, height: 29)
+        .background(accent, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+      Text(title).foregroundStyle(.primary)
+      Spacer(minLength: 8)
+      if let value {
+        Text(value).foregroundStyle(.secondary).lineLimit(1)
+      }
+    }
+  }
+}
+
+struct SettingRow: View {
+  let icon: String
+  let title: String
+  var value: String?
   let action: () -> Void
 
   var body: some View {
     Button(action: action) {
       HStack(spacing: 12) {
-        Image(systemName: icon)
-          .font(.app(.subheadline).weight(.semibold))
-          .foregroundStyle(.white)
-          .frame(width: 29, height: 29)
-          .background(tint ?? accent, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-        Text(title).foregroundStyle(.primary)
-        Spacer(minLength: 8)
-        if let value {
-          Text(value).foregroundStyle(.secondary).lineLimit(1)
-        }
+        SettingLabel(icon: icon, title: title, value: value)
         Image(systemName: "chevron.right")
           .font(.app(.footnote).weight(.semibold))
           .foregroundStyle(.tertiary)

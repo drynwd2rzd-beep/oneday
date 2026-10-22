@@ -39,7 +39,7 @@ struct JournalCalendar: View {
           }
         }
       }
-      .card(padding: 12)
+      .card()
       .simultaneousGesture(
         DragGesture(minimumDistance: 30).onEnded { value in
           guard abs(value.translation.width) > abs(value.translation.height) else { return }
@@ -248,7 +248,7 @@ struct MoodCard: View {
   var body: some View {
     let series = store.state.moodSeries(today: store.today, days: 30)
     let counts = Dictionary(grouping: series, by: { Mood(average: $0.value) ?? .okay }).mapValues(\.count)
-    VStack(alignment: .leading, spacing: 14) {
+    VStack(alignment: .leading, spacing: Spacing.inner) {
       HStack(alignment: .firstTextBaseline) {
         Text("心情").font(.app(.headline))
         Spacer()

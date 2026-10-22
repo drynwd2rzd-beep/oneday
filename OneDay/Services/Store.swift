@@ -5,9 +5,13 @@ enum AppTab: String, Hashable {
   case today, tasks, plans, review, me
 }
 
+enum TasksSection: String, CaseIterable, Hashable {
+  case tasks = "事项"
+  case plans = "计划"
+}
+
 enum ReviewTab: String, CaseIterable, Hashable {
   case timeline = "记录"
-  case reflect = "复盘"
   case overview = "统计"
 }
 
@@ -99,13 +103,22 @@ final class Store {
 
   var state: AppState
   var today = DayKey.today
-  var selectedTab: AppTab = .today
+  var selectedTab: AppTab = .today {
+    // 计划 lives inside 事项 since 1.4; old links (notifications, launch arguments) still work.
+    didSet {
+      if selectedTab == .plans {
+        tasksSection = .plans
+        selectedTab = .tasks
+      }
+    }
+  }
   var toastMessage: String?
   /// Label of the action the visible toast can undo.
   var toastUndoLabel: String?
   var motivation: Motivation?
   var reviewDate: String?
   var reviewTab: ReviewTab = .timeline
+  var tasksSection: TasksSection = .tasks
   var recordsMode: RecordsMode = RecordsMode(rawValue: UserDefaults.standard.string(forKey: "recordsMode") ?? "") ?? .list {
     didSet { UserDefaults.standard.set(recordsMode.rawValue, forKey: "recordsMode") }
   }
@@ -113,6 +126,8 @@ final class Store {
   var reflection: ReflectionTarget?
   /// The font the screens were last built with (see `applyFontStyle`).
   var appliedFontStyle: FontStyle = .system
+  /// Screenshots: show the evening and weekly 复盘 cards whatever the time.
+  var forceReflectionPrompts = false
   /// Set by a quick action or widget link; the screen that handles it clears it.
   var pendingCapture = false
   var pendingAddTask = false
@@ -194,9 +209,6 @@ final class Store {
       selectedTab = .tasks
       pendingAddTask = true
     case .reflect:
-      selectedTab = .review
-      reviewTab = .reflect
-      reviewDate = nil
       reflection = .day(today)
     }
   }
@@ -693,15 +705,14 @@ final class Store {
       selectedTab = target
     }
     if defaults.bool(forKey: "OneDayDemo") { recordsMode = .list }
+    if defaults.bool(forKey: "OneDayEvening") { forceReflectionPrompts = true }
     switch defaults.string(forKey: "OneDayReview") {
     case "overview": reviewTab = .overview
     case "calendar": recordsMode = .calendar
     case "photos": recordsMode = .photos
     case "list": recordsMode = .list
-    case "reflect": reviewTab = .reflect
-    case "week":
-      reviewTab = .reflect
-      reflection = .week(DayKey.weekStart(today))
+    case "reflect": reflection = .day(today)
+    case "week": reflection = .week(DayKey.weekStart(today))
     case "recap": recap = MonthRef(month: DayKey.monthStart(Date()))
     default: break
     }

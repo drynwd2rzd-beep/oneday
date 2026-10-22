@@ -132,7 +132,6 @@ extension Color {
     return String(format: "#%02x%02x%02x", c(r), c(g), c(b))
   }
 
-  static let partialDone = Color(hex: "#D7A43C")
 }
 
 /// Background and surface colors, ported from the web version's CSS variables.

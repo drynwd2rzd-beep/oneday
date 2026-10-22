@@ -337,7 +337,7 @@ private struct StylePreview: View {
           }
           Spacer()
         }
-        .card(padding: 14)
+        .card()
         GlassGroup {
           HStack {
             Button("添加照片") {}.oneDayButton()

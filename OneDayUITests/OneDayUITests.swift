@@ -162,9 +162,10 @@ final class OneDayUITests: XCTestCase {
   }
 
   func testDailyAndWeeklyReflection() {
-    let app = launch(["-OneDayTab", "review", "-OneDayReview", "reflect"])
+    // 复盘 lives on 今天 in the evening (forced here), and the weekly review on Sunday/Monday.
+    let app = launch(["-OneDayTab", "today", "-OneDayEvening", "YES"])
     let today = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "今日复盘")).firstMatch
-    XCTAssertTrue(today.waitForExistence(timeout: 8))
+    XCTAssertTrue(today.waitForExistence(timeout: 10))
     today.tap()
     let field = app.descendants(matching: .any).matching(identifier: "reflection-text").firstMatch
     XCTAssertTrue(field.waitForExistence(timeout: 15))
@@ -175,10 +176,19 @@ final class OneDayUITests: XCTestCase {
     XCTAssertTrue(saved.waitForExistence(timeout: 15), "the card shows what was written")
 
     let week = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "本周复盘")).firstMatch
+    XCTAssertTrue(week.waitForExistence(timeout: 10))
     week.tap()
     XCTAssertTrue(app.staticTexts["本周收获"].waitForExistence(timeout: 15), "weekly review asks its questions")
-    XCTAssertTrue(app.staticTexts["打卡"].exists || app.staticTexts["每一天"].exists)
     app.buttons["取消"].tap()
+  }
+
+  func testPlansLiveInTasks() {
+    let app = launch(["-OneDayTab", "tasks"])
+    XCTAssertEqual(app.tabBars.buttons.count, 4, "今天 / 事项 / 回顾 / 我的")
+    let plans = app.buttons["计划"]
+    XCTAssertTrue(plans.waitForExistence(timeout: 8))
+    plans.tap()
+    XCTAssertTrue(app.staticTexts["成为更强大的人"].waitForExistence(timeout: 8))
   }
 
   func testCaptureLinkOpensEditor() {

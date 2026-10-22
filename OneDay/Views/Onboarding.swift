@@ -136,7 +136,7 @@ struct OnboardingView: View {
             .contentShape(Rectangle())
           }
           .buttonStyle(.plain)
-          .card(padding: 14)
+          .card()
           .accessibilityAddTraits(store.settings.cardStyle == style ? .isSelected : [])
         }
       }
@@ -203,7 +203,7 @@ struct OnboardingView: View {
     }
     .buttonStyle(.plain)
     .disabled(done)
-    .card(padding: 14)
+    .card()
   }
 
   private func finish() {

@@ -12,7 +12,8 @@ enum PlanEditTarget: Identifiable {
   }
 }
 
-struct PlansView: View {
+/// The plans list, shown in 事项 → 计划 (the parent provides the scroll view and title).
+struct PlansContent: View {
   @Environment(Store.self) private var store
   @State private var editing: PlanEditTarget?
   @State private var reordering = false
@@ -25,60 +26,52 @@ struct PlansView: View {
     let paused = store.state.plans.filter { $0.status == .paused }
     let done = store.state.plans.filter { $0.status == .done }
     let archived = store.state.plans.filter { $0.status == .archived }
-    NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: Spacing.stack) {
-          if active.isEmpty {
-            EmptyState(title: "还没有进行中的计划", icon: "scope", message: "先写下真正重要的方向。").card()
-          } else {
-            ForEach(active) { plan in
-              PlanCard(plan: plan) { editing = .edit(plan) }
-            }
-          }
+    VStack(alignment: .leading, spacing: Spacing.stack) {
+      if active.isEmpty {
+        EmptyState(title: "还没有进行中的计划", icon: "scope", message: "先写下真正重要的方向。").card()
+      } else {
+        ForEach(active) { plan in
+          PlanCard(plan: plan) { editing = .edit(plan) }
+        }
+      }
 
-          if !paused.isEmpty {
-            CollapsibleSection(title: "已暂停", count: paused.count, isOpen: $showPaused) {
-              ForEach(paused) { plan in PlanCard(plan: plan) { editing = .edit(plan) } }
-            }
-          }
-          if !done.isEmpty {
-            CollapsibleSection(title: "已完成", count: done.count, isOpen: $showDone) {
-              ForEach(done) { plan in PlanCard(plan: plan) { editing = .edit(plan) } }
-            }
-          }
-          if !archived.isEmpty {
-            CollapsibleSection(title: "已归档", count: archived.count, isOpen: $showArchived) {
-              ForEach(archived) { plan in PlanCard(plan: plan) { editing = .edit(plan) } }
-            }
-          }
-        }
-        .padding(.horizontal, Spacing.page)
-        .padding(.bottom, Spacing.section)
-        .animation(.snappy, value: store.state.plans)
-      }
-      .background { AppBackground() }
-      .navigationTitle("计划")
-      .toolbar {
-        ToolbarItemGroup(placement: .topBarTrailing) {
-          if active.count > 1 {
-            Button {
-              reordering = true
-            } label: {
-              Image(systemName: "arrow.up.arrow.down")
-            }
-            .accessibilityLabel("调整顺序")
-          }
-          Button {
-            editing = .new
-          } label: {
-            Image(systemName: "plus")
-          }
-          .accessibilityLabel("新的计划")
+      if !paused.isEmpty {
+        CollapsibleSection(title: "已暂停", count: paused.count, isOpen: $showPaused) {
+          ForEach(paused) { plan in PlanCard(plan: plan) { editing = .edit(plan) } }
         }
       }
-      .sheet(item: $editing) { PlanEditorSheet(target: $0).oneDaySheet() }
-      .sheet(isPresented: $reordering) { PlanReorderSheet().oneDaySheet() }
+      if !done.isEmpty {
+        CollapsibleSection(title: "已完成", count: done.count, isOpen: $showDone) {
+          ForEach(done) { plan in PlanCard(plan: plan) { editing = .edit(plan) } }
+        }
+      }
+      if !archived.isEmpty {
+        CollapsibleSection(title: "已归档", count: archived.count, isOpen: $showArchived) {
+          ForEach(archived) { plan in PlanCard(plan: plan) { editing = .edit(plan) } }
+        }
+      }
     }
+    .animation(.snappy, value: store.state.plans)
+    .toolbar {
+      ToolbarItemGroup(placement: .topBarTrailing) {
+        if active.count > 1 {
+          Button {
+            reordering = true
+          } label: {
+            Image(systemName: "arrow.up.arrow.down")
+          }
+          .accessibilityLabel("调整顺序")
+        }
+        Button {
+          editing = .new
+        } label: {
+          Image(systemName: "plus")
+        }
+        .accessibilityLabel("新的计划")
+      }
+    }
+    .sheet(item: $editing) { PlanEditorSheet(target: $0).oneDaySheet() }
+    .sheet(isPresented: $reordering) { PlanReorderSheet().oneDaySheet() }
   }
 }
 

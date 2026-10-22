@@ -107,9 +107,6 @@ struct RootView: View {
       TasksView()
         .tabItem { Label("事项", systemImage: "checklist") }
         .tag(AppTab.tasks)
-      PlansView()
-        .tabItem { Label("计划", systemImage: "flag") }
-        .tag(AppTab.plans)
       ReviewView()
         .tabItem { Label("回顾", systemImage: "book") }
         .tag(AppTab.review)
@@ -128,6 +125,19 @@ struct RootView: View {
     .environment(\.accent, store.accentColor)
     .overlay(alignment: .top) { ToastView() }
     .sheet(item: $store.motivation) { MotivationSheet(motivation: $0).oneDaySheet() }
+    // 复盘 and the month recap open from 今天, 回顾 and quick actions alike.
+    .sheet(item: $store.reflection) { target in
+      Group {
+        switch target {
+        case .day(let day):
+          DayReflectionSheet(day: day, note: store.state.reflectionNote(on: day))
+        case .week(let week):
+          WeekReflectionSheet(start: week, reflection: store.state.weekReflections[week])
+        }
+      }
+      .oneDaySheet()
+    }
+    .sheet(item: $store.recap) { RecapSheet(month: $0.month).oneDaySheet() }
     .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
       store.refreshDay()
     }

@@ -1,55 +1,126 @@
 import SwiftUI
 
-// MARK: - 回顾 → 复盘
+// MARK: - 今天 → 复盘
 
-/// Today's reflection, this week's review, then earlier weeks.
-struct ReflectionPanel: View {
+/// The evening 复盘 on 今天: from 20:00 (or once written), yesterday's in the morning if it was
+/// skipped, and the weekly review on Sunday and Monday until it is written.
+struct TodayReflectionModule: View {
   @Environment(Store.self) private var store
   @Environment(\.accent) private var accent
 
   var body: some View {
     let today = store.today
+    let force = store.forceReflectionPrompts
+    let hour = DayKey.calendar.component(.hour, from: Date())
+    let weekday = DayKey.calendar.component(.weekday, from: DayKey.date(today))  // 1 = Sunday
     let yesterday = DayKey.add(days: -1, to: today)
-    let past = store.state.pastReflectionWeeks(today: today)
-    VStack(alignment: .leading, spacing: Spacing.stack) {
-      DayReflectionCard(day: today)
-      if store.state.reflectionNote(on: yesterday) == nil && hasActivity(yesterday) {
-        Button {
-          store.reflection = .day(yesterday)
-        } label: {
-          HStack(spacing: 6) {
-            Image(systemName: "clock.arrow.circlepath")
-            Text("补写昨天的复盘")
-            Spacer()
-            Image(systemName: "chevron.right").font(.app(.caption).weight(.semibold)).foregroundStyle(.tertiary)
+    let showToday = force || hour >= 20 || store.state.reflectionNote(on: today) != nil
+    let showYesterday = !force && hour < 12 && store.state.reflectionNote(on: yesterday) == nil && hasActivity(yesterday)
+    let week = weekday == 2 ? DayKey.add(days: -7, to: DayKey.weekStart(today)) : DayKey.weekStart(today)
+    let showWeek = (force || weekday == 1 || weekday == 2)
+      && store.state.weekReflections[week] == nil
+      && store.state.weekSummary(start: week, today: today).hasActivity
+    if showToday || showYesterday || showWeek {
+      VStack(alignment: .leading, spacing: Spacing.title) {
+        SectionHeader(title: "复盘")
+        VStack(spacing: Spacing.stack) {
+          if showYesterday {
+            Button {
+              store.reflection = .day(yesterday)
+            } label: {
+              HStack(spacing: 10) {
+                Image(systemName: "clock.arrow.circlepath").foregroundStyle(accent)
+                Text("补写昨天的复盘").foregroundStyle(.primary)
+                Spacer()
+                Image(systemName: "chevron.right").font(.app(.footnote).weight(.semibold)).foregroundStyle(.tertiary)
+              }
+              .font(.app(.body))
+              .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .card()
           }
-          .font(.app(.subheadline))
-          .foregroundStyle(accent)
-          .contentShape(Rectangle())
+          if showToday { DayReflectionCard(day: today) }
+          if showWeek { WeekReflectionCard(start: week) }
         }
-        .buttonStyle(.plain)
-        .card(padding: 14)
-      }
-      WeekReflectionCard(start: DayKey.weekStart(today))
-
-      if !past.isEmpty {
-        Text("往期复盘")
-          .font(.app(.title3).weight(.semibold))
-          .accessibilityAddTraits(.isHeader)
-          .padding(.top, Spacing.section - Spacing.stack)
-        LazyVStack(spacing: 0) {
-          ForEach(Array(past.enumerated()), id: \.element) { index, week in
-            if index > 0 { Divider() }
-            PastWeekRow(start: week)
-          }
-        }
-        .listCard()
       }
     }
   }
 
   private func hasActivity(_ day: String) -> Bool {
     !store.state.moments(on: day).isEmpty || store.state.tasks.contains { $0.isDone(on: day) }
+  }
+}
+
+// MARK: - 回顾 → 记录
+
+/// One line at the top of the timeline to write this week's review any day.
+struct ThisWeekEntry: View {
+  @Environment(Store.self) private var store
+  @Environment(\.accent) private var accent
+
+  var body: some View {
+    let start = DayKey.weekStart(store.today)
+    let week = store.state.weekSummary(start: start, today: store.today)
+    Button {
+      store.reflection = .week(start)
+    } label: {
+      HStack(spacing: 10) {
+        Image(systemName: "calendar.badge.clock").foregroundStyle(accent)
+        VStack(alignment: .leading, spacing: 2) {
+          Text("本周复盘").font(.app(.body)).foregroundStyle(.primary)
+          Text("\(DayKey.weekRange(start)) · 完成 \(week.completions) 次")
+            .font(.app(.caption))
+            .foregroundStyle(.secondary)
+        }
+        Spacer()
+        Image(systemName: "chevron.right").font(.app(.footnote).weight(.semibold)).foregroundStyle(.tertiary)
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .card()
+  }
+}
+
+/// A written weekly review as it appears in the timeline, above that week's days.
+struct WeekNoteCard: View {
+  @Environment(Store.self) private var store
+  @Environment(\.accent) private var accent
+  let start: String
+
+  var body: some View {
+    let reflection = store.state.weekReflections[start]
+    Button {
+      store.reflection = .week(start)
+    } label: {
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 6) {
+          Label("一周复盘", systemImage: "calendar.badge.clock")
+            .font(.app(.footnote).weight(.semibold))
+            .foregroundStyle(accent)
+          Text(DayKey.weekRange(start)).font(.app(.footnote)).foregroundStyle(.secondary)
+          Spacer()
+          Image(systemName: "chevron.right").font(.app(.footnote).weight(.semibold)).foregroundStyle(.tertiary)
+        }
+        Text(summary(reflection))
+          .font(.journal(.body, size: 17))
+          .foregroundStyle(.primary)
+          .lineLimit(3)
+          .multilineTextAlignment(.leading)
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .card()
+  }
+
+  private func summary(_ r: WeekReflection?) -> String {
+    guard let r else { return "" }
+    if !r.gains.isEmpty { return r.gains }
+    if !r.problems.isEmpty { return r.problems }
+    return "下周重点：" + r.nextItems.joined(separator: "、")
   }
 }
 
@@ -133,7 +204,7 @@ private struct WeekReflectionCard: View {
     Button {
       store.reflection = .week(start)
     } label: {
-      VStack(alignment: .leading, spacing: 14) {
+      VStack(alignment: .leading, spacing: Spacing.inner) {
         HStack(alignment: .firstTextBaseline) {
           Text("本周复盘").font(.app(.headline))
           Text(DayKey.weekRange(start)).font(.app(.caption)).foregroundStyle(.secondary)
@@ -208,54 +279,6 @@ private struct WeekBars: View {
     }
     .accessibilityElement(children: .ignore)
     .accessibilityLabel("本周每天完成次数：" + week.dayDone.map(String.init).joined(separator: "、"))
-  }
-}
-
-private struct PastWeekRow: View {
-  @Environment(Store.self) private var store
-  @Environment(\.accent) private var accent
-  let start: String
-
-  var body: some View {
-    let week = store.state.weekSummary(start: start, today: store.today)
-    let done = store.state.weekReflections[start] != nil
-    Button {
-      store.reflection = .week(start)
-    } label: {
-      HStack(spacing: 12) {
-        VStack(alignment: .leading, spacing: 3) {
-          Text(DayKey.weekRange(start) + yearSuffix)
-            .font(.app(.body))
-          Text(detail(week))
-            .font(.app(.caption))
-            .foregroundStyle(.secondary)
-        }
-        Spacer(minLength: 8)
-        if done {
-          Label("已复盘", systemImage: "checkmark.seal.fill")
-            .labelStyle(CompactLabelStyle())
-            .font(.app(.caption).weight(.medium))
-            .foregroundStyle(accent)
-        }
-        Image(systemName: "chevron.right")
-          .font(.app(.footnote).weight(.semibold))
-          .foregroundStyle(.tertiary)
-      }
-      .padding(.vertical, 12)
-      .contentShape(Rectangle())
-    }
-    .buttonStyle(.plain)
-  }
-
-  private var yearSuffix: String {
-    start.prefix(4) == store.today.prefix(4) ? "" : "，\(start.prefix(4))"
-  }
-
-  private func detail(_ week: WeekSummary) -> String {
-    var parts = ["完成 \(week.completions) 次"]
-    if week.noteDays > 0 { parts.append("记录 \(week.noteDays) 天") }
-    if !week.reflectionDays.isEmpty { parts.append("每日复盘 \(week.reflectionDays.count) 天") }
-    return parts.joined(separator: " · ")
   }
 }
 
@@ -561,7 +584,7 @@ private struct WeekDaysCard: View {
   let onDay: (String) -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 14) {
+    VStack(alignment: .leading, spacing: Spacing.inner) {
       Text("每一天").font(.app(.headline))
       WeekBars(week: week, today: today)
         .frame(height: 64)

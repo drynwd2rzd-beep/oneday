@@ -23,11 +23,17 @@ struct TodayView: View {
               HeroModule()
               RecapBanner()
             case .tasks: TodayTasksModule()
-            case .note: QuickCaptureModule(openSignal: captureSignal).id("capture")
+            case .note:
+              QuickCaptureModule(openSignal: captureSignal).id("capture")
+              // The day's flow: do, leave a note, then look back.
+              TodayReflectionModule()
             case .onThisDay: OnThisDayModule()
             case .progress: EmptyView()
             case .plans: HomePlansModule()
             }
+          }
+          if !store.settings.homeModules.contains(.note) {
+            TodayReflectionModule()
           }
         }
         .padding(.horizontal, Spacing.page)
@@ -147,7 +153,7 @@ private struct RecapBanner: View {
         .buttonStyle(.plain)
         .accessibilityLabel("不再显示")
       }
-      .card(padding: 14)
+      .card()
       .sheet(isPresented: $showing) { RecapSheet(month: lastMonth).oneDaySheet() }
     }
   }

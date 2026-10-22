@@ -1,31 +1,35 @@
 import SwiftUI
 
+/// 事项: the tasks of a day (today by default, any day from the calendar) and the plans they
+/// belong to.
 struct TasksView: View {
   @Environment(Store.self) private var store
   @Environment(\.accent) private var accent
 
-  private enum Panel: String, CaseIterable { case today = "今日", calendar = "日历" }
   private enum Filter: Hashable { case all, active, done }
 
-  @State private var panel: Panel = .today
   @State private var filter: Filter = .all
   @State private var selected = DayKey.today
   @State private var month = DayKey.monthStart(Date())
+  @State private var showCalendar = false
   @State private var showAdd = false
 
   var body: some View {
+    @Bindable var store = store
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: Spacing.stack) {
-          Picker("视图", selection: $panel.animation(.snappy)) {
-            ForEach(Panel.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+          Picker("分类", selection: $store.tasksSection.animation(.snappy)) {
+            ForEach(TasksSection.allCases, id: \.self) { Text($0.rawValue).tag($0) }
           }
           .pickerStyle(.segmented)
 
-          if panel == .today {
+          switch store.tasksSection {
+          case .tasks:
+            if showCalendar { calendarCard }
             dayPanel
-          } else {
-            calendarPanel
+          case .plans:
+            PlansContent()
           }
         }
         .padding(.horizontal, Spacing.page)
@@ -34,25 +38,60 @@ struct TasksView: View {
       .background { AppBackground() }
       .navigationTitle("事项")
       .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
-          Button {
-            showAdd = true
-          } label: {
-            Image(systemName: "plus")
+        if store.tasksSection == .tasks {
+          ToolbarItemGroup(placement: .topBarTrailing) {
+            Button {
+              withAnimation(.snappy) { showCalendar.toggle() }
+            } label: {
+              Image(systemName: showCalendar ? "calendar.badge.checkmark" : "calendar")
+            }
+            .accessibilityLabel(showCalendar ? "收起日历" : "按日期查看")
+            Button {
+              showAdd = true
+            } label: {
+              Image(systemName: "plus")
+            }
+            .accessibilityLabel("添加事项")
           }
-          .accessibilityLabel("添加事项")
         }
       }
       .sheet(isPresented: $showAdd) { AddTaskSheet(day: selected).oneDaySheet() }
       .onChange(of: store.pendingAddTask, initial: true) { _, pending in
         guard pending else { return }
         store.pendingAddTask = false
+        store.tasksSection = .tasks
         showAdd = true
       }
       .onChange(of: store.today) { old, new in
         if selected == old { selected = new }
       }
     }
+  }
+
+  /// Month grid; a dot shows whether that day's tasks were all or partly done.
+  private var calendarCard: some View {
+    VStack(alignment: .leading, spacing: Spacing.inner) {
+      CalendarMonthView(
+        month: $month,
+        selected: selected,
+        marker: { key -> Color? in
+          switch store.state.dayStatus(key) {
+          case .all: return accent
+          case .partial: return accent.opacity(0.4)
+          case .none: return nil
+          }
+        },
+        onSelect: { key in withAnimation(.snappy) { selected = key } }
+      )
+      HStack(spacing: 14) {
+        Label("全部完成", systemImage: "circle.fill").foregroundStyle(accent)
+        Label("部分完成", systemImage: "circle.fill").foregroundStyle(accent.opacity(0.4))
+      }
+      .font(.app(.caption))
+      .labelStyle(LegendLabelStyle())
+    }
+    .card()
+    .transition(.opacity.combined(with: .move(edge: .top)))
   }
 
   private var dayPanel: some View {
@@ -94,45 +133,6 @@ struct TasksView: View {
       }
     }
     .card()
-  }
-
-  private var calendarPanel: some View {
-    let list = store.state.tasks(on: selected)
-    return VStack(alignment: .leading, spacing: Spacing.stack) {
-      CalendarMonthView(
-        month: $month,
-        selected: selected,
-        marker: { key -> Color? in
-          switch store.state.dayStatus(key) {
-          case .all: return accent
-          case .partial: return Color.partialDone
-          case .none: return nil
-          }
-        },
-        onSelect: { key in withAnimation(.snappy) { selected = key } }
-      )
-      .card()
-
-      HStack(spacing: 14) {
-        Label("全部完成", systemImage: "circle.fill").foregroundStyle(accent)
-        Label("部分完成", systemImage: "circle.fill").foregroundStyle(Color.partialDone)
-      }
-      .font(.app(.caption))
-      .labelStyle(LegendLabelStyle())
-
-      Text("\(DayKey.fullDate(selected)) \(DayKey.weekday(selected))")
-        .font(.app(.title3).bold())
-
-      VStack(alignment: .leading, spacing: 0) {
-        if list.isEmpty {
-          EmptyState(title: "这一天没有事项", icon: "calendar")
-        } else {
-          TaskList(tasks: list, day: selected)
-        }
-      }
-      .padding(.vertical, list.isEmpty ? Spacing.card - 4 : 0)
-      .listCard()
-    }
   }
 }
 

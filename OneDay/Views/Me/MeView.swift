@@ -37,32 +37,29 @@ struct MeView: View {
         }
 
         Section {
-          SettingRow(icon: "circle.lefthalf.filled", title: "外观与主题", value: themeLabel(s)) { sheet = .theme }
-          SettingRow(icon: "square.on.square", title: "显示偏好", value: s.cardStyle.label, tint: .teal) { sheet = .appearance }
-          SettingRow(icon: "textformat", title: "字体", value: s.fontStyle.label, tint: .purple) { sheet = .font }
-          SettingRow(icon: "textformat.size", title: "界面大小", value: s.uiSize.label, tint: .blue) { sheet = .uiSize }
-          SettingRow(icon: "square.grid.2x2", title: "首页自定义", tint: .orange) { sheet = .home }
-          SettingRow(icon: "rectangle.3.group", title: "桌面小组件", tint: .yellow) { sheet = .widgets }
+          NavigationLink {
+            PersonalizeView()
+          } label: {
+            SettingLabel(icon: "paintpalette.fill", title: "个性化", value: "\(themeLabel(s)) · \(s.fontStyle.label)")
+          }
         }
 
-        Section {
+        Section("提醒与数据") {
           SettingRow(
             icon: "bell.badge.fill", title: "通知提醒",
-            value: s.notifications.enabled && notifications.isAuthorized ? "已开启" : "未开启", tint: .red
+            value: s.notifications.enabled && notifications.isAuthorized ? "已开启" : "未开启"
           ) { sheet = .notifications }
-          SettingRow(
-            icon: "lock.fill", title: "隐私与安全",
-            value: AppLock.shared.isEnabled ? "已开启" : "未开启", tint: .indigo
-          ) { sheet = .security }
-          SettingRow(
-            icon: "externaldrive.fill", title: "备份与恢复",
-            value: BackupManager.shared.hasFolder ? "自动" : "未设置", tint: .blue
-          ) { sheet = .backup }
+          SettingRow(icon: "lock.fill", title: "隐私与安全", value: AppLock.shared.isEnabled ? "已开启" : "未开启") {
+            sheet = .security
+          }
+          SettingRow(icon: "externaldrive.fill", title: "备份与恢复", value: BackupManager.shared.hasFolder ? "自动" : "未设置") {
+            sheet = .backup
+          }
         }
 
         Section {
-          SettingRow(icon: "stethoscope", title: "诊断信息", tint: .gray) { sheet = .diagnostics }
-          SettingRow(icon: "info", title: "关于 OneDay", value: "v\(AppInfo.version)", tint: .gray) { sheet = .about }
+          SettingRow(icon: "stethoscope", title: "诊断信息") { sheet = .diagnostics }
+          SettingRow(icon: "info", title: "关于 OneDay", value: "v\(AppInfo.version)") { sheet = .about }
         } footer: {
           Text("不是为了记录而记录，而是为了更好地生活。")
             .font(.journal(.footnote, size: 13))
@@ -80,29 +77,66 @@ struct MeView: View {
       }
       #endif
       .sheet(item: $sheet) { which in
-        Group {
-          switch which {
-          case .profile: ProfileSheet()
-          case .theme: ThemeSheet()
-          case .uiSize: UISizeSheet()
-          case .appearance: AppearanceSheet()
-          case .font: FontSheet()
-          case .home: HomeCustomizeSheet()
-          case .widgets: WidgetGallerySheet()
-          case .notifications: NotificationSettingsSheet()
-          case .security: SecuritySheet()
-          case .backup: BackupSheet()
-          case .diagnostics: DiagnosticsSheet()
-          case .about: AboutSheet()
-          }
-        }
-        .oneDaySheet()
+        MeSheetContent(which: which)
       }
     }
   }
 
   private func themeLabel(_ s: Settings) -> String {
     s.bgTone == .meteor ? "流星夜" : s.theme.label
+  }
+}
+
+/// The page behind each row of 我的 and 个性化.
+private struct MeSheetContent: View {
+  let which: MeSheet
+
+  var body: some View {
+    Group {
+      switch which {
+      case .profile: ProfileSheet()
+      case .theme: ThemeSheet()
+      case .uiSize: UISizeSheet()
+      case .appearance: AppearanceSheet()
+      case .font: FontSheet()
+      case .home: HomeCustomizeSheet()
+      case .widgets: WidgetGallerySheet()
+      case .notifications: NotificationSettingsSheet()
+      case .security: SecuritySheet()
+      case .backup: BackupSheet()
+      case .diagnostics: DiagnosticsSheet()
+      case .about: AboutSheet()
+      }
+    }
+    .oneDaySheet()
+  }
+}
+
+/// 我的 → 个性化: everything about how OneDay looks, on one page.
+private struct PersonalizeView: View {
+  @Environment(Store.self) private var store
+  @State private var sheet: MeSheet?
+
+  var body: some View {
+    let s = store.settings
+    List {
+      Section {
+        SettingRow(icon: "circle.lefthalf.filled", title: "主题", value: s.bgTone == .meteor ? "流星夜" : s.theme.label) { sheet = .theme }
+        SettingRow(icon: "square.on.square", title: "界面风格", value: s.cardStyle.label) { sheet = .appearance }
+        SettingRow(icon: "textformat", title: "字体", value: s.fontStyle.label) { sheet = .font }
+        SettingRow(icon: "textformat.size", title: "界面大小", value: s.uiSize.label) { sheet = .uiSize }
+      }
+      Section {
+        SettingRow(icon: "square.grid.2x2", title: "首页模块") { sheet = .home }
+        SettingRow(icon: "rectangle.3.group", title: "桌面小组件") { sheet = .widgets }
+      }
+    }
+    .listStyle(.insetGrouped)
+    .scrollContentBackground(.hidden)
+    .background { AppBackground() }
+    .navigationTitle("个性化")
+    .navigationBarTitleDisplayMode(.inline)
+    .sheet(item: $sheet) { MeSheetContent(which: $0) }
   }
 }
 
