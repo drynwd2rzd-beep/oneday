@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: macos-26
-    timeout-minutes: 60
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
 
@@ -25,7 +25,6 @@ jobs:
 
       - name: Build unsigned device app
         run: |
-          set -o pipefail
           xcodebuild \
             -project OneDay.xcodeproj \
             -scheme OneDay \
@@ -50,33 +49,63 @@ jobs:
           name: OneDay-unsigned-ipa
           path: OneDay-unsigned.ipa
 
+      - name: Pick simulator
+        run: |
+          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone (17|16)( Pro)? \(" | head -1 | sed -E 's/^ *([^(]+) \(.*/\1/' | xargs)
+          echo "DEVICE=$DEVICE" >> "$GITHUB_ENV"
+          echo "Using $DEVICE"
+
+      - name: Unit and UI tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project OneDay.xcodeproj -scheme OneDay \
+            -destination "platform=iOS Simulator,name=$DEVICE" \
+            -derivedDataPath build/sim \
+            -resultBundlePath TestResults.xcresult > test.log 2>&1 && STATUS=0 || STATUS=$?
+          grep -E "Test Case .* (passed|failed)|error:|Executed [0-9]+ test" test.log | tail -60
+          exit $STATUS
+
       - name: Screenshots in the simulator
+        if: always()
         continue-on-error: true
         run: |
           set -x
-          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone (17|16)( Pro)? \(" | head -1 | sed -E 's/^ *([^(]+) \(.*/\1/' | xargs)
-          echo "Using $DEVICE"
-          xcodebuild -project OneDay.xcodeproj -scheme OneDay -configuration Debug \
-            -sdk iphonesimulator -destination "platform=iOS Simulator,name=$DEVICE" \
-            -derivedDataPath build/sim build -quiet > build-sim.log 2>&1 || { grep -E "error:" build-sim.log; exit 1; }
           APP=build/sim/Build/Products/Debug-iphonesimulator/OneDay.app
+          if [ ! -d "$APP" ]; then
+            xcodebuild -project OneDay.xcodeproj -scheme OneDay -configuration Debug \
+              -sdk iphonesimulator -destination "platform=iOS Simulator,name=$DEVICE" \
+              -derivedDataPath build/sim build -quiet > build-sim.log 2>&1 || { grep -E "error:" build-sim.log; exit 1; }
+          fi
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" "$APP"
+          xcrun simctl status_bar "$DEVICE" override --time 9:41 --batteryLevel 100 --cellularBars 4 || true
           mkdir -p shots
           shoot() {
+            name=$1; shift
             xcrun simctl terminate "$DEVICE" com.oneday.app || true
-            xcrun simctl launch "$DEVICE" com.oneday.app -OneDayDemo YES -OneDayTab "$1" -OneDayStyle "$2" -OneDayTone "$3"
-            sleep 4
-            xcrun simctl io "$DEVICE" screenshot "shots/$4.png"
+            xcrun simctl launch "$DEVICE" com.oneday.app "$@"
+            sleep 5
+            xcrun simctl io "$DEVICE" screenshot "shots/$name.png"
           }
           xcrun simctl ui "$DEVICE" appearance light
-          for tab in today tasks plans review me; do shoot $tab glass warm "glass-$tab"; done
-          shoot today soft warm classic-today
-          shoot tasks flat cool flat-tasks
+          for tab in today tasks plans review me; do
+            shoot "glass-$tab" -OneDayDemo YES -OneDayTab $tab -OneDayStyle glass -OneDayTone warm
+          done
+          shoot glass-review-day -OneDayDemo YES -OneDayTab review -OneDayReview day
+          shoot glass-review-stats -OneDayDemo YES -OneDayTab review -OneDayReview overview
+          shoot classic-today -OneDayDemo YES -OneDayTab today -OneDayStyle soft
+          shoot flat-tasks -OneDayDemo YES -OneDayTab tasks -OneDayStyle flat -OneDayTone cool
+          shoot onboarding -OneDayDemo YES -OneDayOnboarding YES
+          shoot lock -OneDayDemo NO -OneDayLockPreview YES
+          xcrun simctl ui "$DEVICE" content_size accessibility-large
+          shoot large-text-today -OneDayDemo YES -OneDayTab today
+          xcrun simctl ui "$DEVICE" content_size large
           xcrun simctl ui "$DEVICE" appearance dark
-          shoot today glass warm dark-today
-          shoot today glass meteor meteor-today
+          shoot dark-today -OneDayDemo YES -OneDayTab today -OneDayStyle glass -OneDayTone warm
+          shoot dark-stats -OneDayDemo YES -OneDayTab review -OneDayReview overview
+          shoot meteor-today -OneDayDemo YES -OneDayTab today -OneDayTone meteor
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -86,4 +115,5 @@ jobs:
             shots/
             build-device.log
             build-sim.log
+            test.log
           if-no-files-found: ignore

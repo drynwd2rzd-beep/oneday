@@ -8,6 +8,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
   ) -> Bool {
     // The delegate must be set before launch finishes so taps on notifications reach the app.
     NotificationManager.shared.activate()
+    Diagnostics.shared.start()
+    _ = AppLock.shared
     return true
   }
 }
@@ -26,12 +28,34 @@ struct OneDayApp: App {
         .tint(store.accentColor)
         .modifier(UISizeModifier(size: store.settings.uiSize))
     }
-    .onChange(of: scenePhase) { _, phase in
+    .onChange(of: scenePhase, initial: true) { _, phase in
       switch phase {
-      case .active: store.sceneDidBecomeActive()
-      case .background: store.flush()
-      default: break
+      case .active:
+        store.sceneDidBecomeActive()
+        AppLock.shared.sceneDidBecomeActive()
+      case .inactive:
+        AppLock.shared.sceneWillResignActive()
+      case .background:
+        store.flush()
+        AppLock.shared.sceneDidEnterBackground()
+        AudioPlayback.shared.stop()
+        BackgroundRefresh.schedule()
+        backupInBackground()
+      @unknown default:
+        break
       }
+    }
+    .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) {
+      await BackgroundRefresh.run()
+    }
+  }
+
+  /// Gives the folder backup a little time to finish after the app leaves the screen.
+  private func backupInBackground() {
+    let task = UIApplication.shared.beginBackgroundTask(withName: "OneDayBackup")
+    Task {
+      await BackupManager.shared.backupIfDue(store.state)
+      UIApplication.shared.endBackgroundTask(task)
     }
   }
 }
@@ -39,6 +63,7 @@ struct OneDayApp: App {
 struct RootView: View {
   @Environment(Store.self) private var store
   @Environment(\.colorScheme) private var colorScheme
+  @State private var showOnboarding = false
 
   var body: some View {
     @Bindable var store = store
@@ -70,6 +95,22 @@ struct RootView: View {
     }
     .onChange(of: store.selectedTab) { _, _ in Haptics.tap() }
     .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in store.promptUndo() }
+    .overlay {
+      // Keeps content hidden under the lock window, including during launch.
+      if AppLock.shared.isLocked {
+        Color(uiColor: .systemBackground).ignoresSafeArea()
+      }
+    }
+    .fullScreenCover(isPresented: $showOnboarding) { OnboardingView() }
+    .onAppear {
+      if store.hasAnyData { Onboarding.finish() }
+      showOnboarding = !Onboarding.isDone
+      #if DEBUG
+      let defaults = UserDefaults.standard
+      if defaults.bool(forKey: "OneDayDemo") { showOnboarding = false }
+      if defaults.bool(forKey: "OneDayOnboarding") { showOnboarding = true }
+      #endif
+    }
     .alert(
       "撤销「\(store.undoPrompt?.label ?? "")」？",
       isPresented: Binding(get: { store.undoPrompt != nil }, set: { if !$0 { store.undoPrompt = nil } })

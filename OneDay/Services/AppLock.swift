@@ -59,6 +59,14 @@ final class AppLock {
       kind = PasscodeKind(rawValue: stored.kind) ?? .digits6
       isLocked = true
     }
+    #if DEBUG
+    if UserDefaults.standard.bool(forKey: "OneDayLockPreview") {
+      setPasscode("123456", kind: .digits6)
+      isLocked = true
+    } else if UserDefaults.standard.bool(forKey: "OneDayDemo") {
+      removePasscode()
+    }
+    #endif
   }
 
   // MARK: Biometrics

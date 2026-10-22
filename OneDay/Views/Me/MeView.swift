@@ -1,7 +1,7 @@
 import SwiftUI
 
 private enum MeSheet: String, Identifiable {
-  case profile, theme, uiSize, appearance, home, notifications, data, about
+  case profile, theme, uiSize, appearance, home, notifications, security, backup, diagnostics, about
   var id: String { rawValue }
 }
 
@@ -43,28 +43,40 @@ struct MeView: View {
           }
           .card(tint: accent.opacity(0.12))
 
-          Text("通用")
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .padding(.leading, 4)
-            .padding(.top, 4)
-
+          groupTitle("个性化")
           VStack(spacing: 0) {
             SettingRow(icon: "circle.lefthalf.filled", title: "外观与主题", desc: "模式与强调色", value: themeLabel(s)) { sheet = .theme }
             rowDivider
-            SettingRow(icon: "textformat.size", title: "界面大小", desc: "调整文字、卡片和整体布局", value: s.uiSize.label) { sheet = .uiSize }
+            SettingRow(icon: "square.on.square.intersection.dashed", title: "显示偏好", desc: "液态玻璃或经典样式、背景", value: s.cardStyle.label) { sheet = .appearance }
             rowDivider
-            SettingRow(icon: "square.on.square.intersection.dashed", title: "显示偏好", desc: "液态玻璃或经典样式、背景", value: "\(s.cardStyle.label) · \(s.bgTone.label)") { sheet = .appearance }
+            SettingRow(icon: "textformat.size", title: "界面大小", desc: "文字与整体布局", value: s.uiSize.label) { sheet = .uiSize }
             rowDivider
-            SettingRow(icon: "square.grid.2x2", title: "首页自定义", desc: "调整首页模块与显示顺序") { sheet = .home }
-            rowDivider
+            SettingRow(icon: "square.grid.2x2", title: "首页自定义", desc: "模块与显示顺序") { sheet = .home }
+          }
+          .card(padding: 8)
+
+          groupTitle("提醒、隐私与数据")
+          VStack(spacing: 0) {
             SettingRow(
               icon: "bell.badge", title: "通知提醒", desc: "早晨计划、晚间未完成与记录提醒",
-              value: s.notifications.enabled && notifications.isAuthorized ? "已开启" : "未开启",
-              tint: .red
+              value: s.notifications.enabled && notifications.isAuthorized ? "已开启" : "未开启", tint: .red
             ) { sheet = .notifications }
             rowDivider
-            SettingRow(icon: "arrow.up.arrow.down", title: "数据管理", desc: "导出、导入与恢复初始设置", tint: .blue) { sheet = .data }
+            SettingRow(
+              icon: "lock.shield", title: "隐私与安全", desc: "密码锁与\(AppLock.shared.biometryName)",
+              value: AppLock.shared.isEnabled ? "已开启" : "未开启", tint: .indigo
+            ) { sheet = .security }
+            rowDivider
+            SettingRow(
+              icon: "externaldrive.badge.icloud", title: "备份与恢复", desc: "自动备份、导出与导入",
+              value: BackupManager.shared.hasFolder ? "自动" : "未设置", tint: .blue
+            ) { sheet = .backup }
+          }
+          .card(padding: 8)
+
+          groupTitle("其他")
+          VStack(spacing: 0) {
+            SettingRow(icon: "stethoscope", title: "诊断信息", desc: "数据统计与崩溃报告", tint: .teal) { sheet = .diagnostics }
             rowDivider
             SettingRow(icon: "info.circle", title: "关于 OneDay", desc: "版本信息与使用说明", value: "v\(AppInfo.version)", tint: .gray) { sheet = .about }
           }
@@ -77,8 +89,8 @@ struct MeView: View {
             .frame(maxWidth: .infinity)
             .padding(.top, 10)
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 28)
+        .padding(.horizontal, Spacing.page)
+        .padding(.bottom, Spacing.section)
       }
       .background { AppBackground() }
       .navigationTitle("我的")
@@ -90,11 +102,22 @@ struct MeView: View {
         case .appearance: AppearanceSheet()
         case .home: HomeCustomizeSheet()
         case .notifications: NotificationSettingsSheet()
-        case .data: DataSheet()
+        case .security: SecuritySheet()
+        case .backup: BackupSheet()
+        case .diagnostics: DiagnosticsSheet()
         case .about: AboutSheet()
         }
       }
     }
+  }
+
+  private func groupTitle(_ text: String) -> some View {
+    Text(text)
+      .font(.footnote.weight(.semibold))
+      .foregroundStyle(.secondary)
+      .padding(.leading, 4)
+      .padding(.top, 6)
+      .accessibilityAddTraits(.isHeader)
   }
 
   private var rowDivider: some View {
@@ -109,5 +132,9 @@ struct MeView: View {
 enum AppInfo {
   static var version: String {
     Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+  }
+
+  static var build: String {
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
   }
 }

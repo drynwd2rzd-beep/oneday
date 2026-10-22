@@ -134,6 +134,12 @@ enum MediaStore {
     return (name, url(name))
   }
 
+  static var totalSizeText: String {
+    let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey])) ?? []
+    let bytes = files.reduce(0) { $0 + ((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
+    return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+  }
+
   static func delete(_ name: String) {
     guard exists(name) else { return }
     cache.removeObject(forKey: name as NSString)
