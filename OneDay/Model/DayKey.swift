@@ -16,6 +16,14 @@ enum DayKey {
     return String(format: "%04d-%02d-%02d", c.year ?? 1970, c.month ?? 1, c.day ?? 1)
   }
 
+  /// A well-formed `yyyy-MM-dd` key for a real date.
+  static func isValid(_ key: String) -> Bool {
+    guard key.count == 10 else { return false }
+    let parts = key.split(separator: "-", omittingEmptySubsequences: false)
+    guard parts.count == 3, parts.allSatisfy({ $0.allSatisfy(\.isNumber) }) else { return false }
+    return of(date(key)) == key
+  }
+
   static func date(_ key: String) -> Date {
     let parts = key.split(separator: "-").compactMap { Int($0) }
     guard parts.count == 3 else { return Date() }

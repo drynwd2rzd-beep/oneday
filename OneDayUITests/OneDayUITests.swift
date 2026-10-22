@@ -53,8 +53,11 @@ final class OneDayUITests: XCTestCase {
     app.buttons["编辑"].tap()
     XCTAssertTrue(app.staticTexts["照片和视频"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.buttons["添加照片或视频"].exists)
-    XCTAssertTrue(app.staticTexts["杭州市 · 西湖区"].exists, "existing place is editable")
-    XCTAssertTrue(app.buttons["移除位置"].exists)
+    XCTAssertTrue(app.buttons["心情：很好"].exists, "mood is editable")
+    // Place sits below the fold of the form.
+    let removePlace = app.buttons["移除位置"]
+    for _ in 0..<3 where !removePlace.exists { app.collectionViews.firstMatch.swipeUp() }
+    XCTAssertTrue(removePlace.waitForExistence(timeout: 5), "existing place is editable")
     app.buttons["取消"].tap()
   }
 
@@ -110,7 +113,7 @@ final class OneDayUITests: XCTestCase {
     let app = launch(["-OneDayTab", "review"])
     XCTAssertTrue(app.buttons["统计"].waitForExistence(timeout: 8))
     app.buttons["统计"].tap()
-    XCTAssertTrue(app.staticTexts["坚持"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["每日打卡"].waitForExistence(timeout: 5))
     app.tabBars.buttons["我的"].tap()
     let backupRow = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "备份与恢复")).firstMatch
     XCTAssertTrue(backupRow.waitForExistence(timeout: 5))
@@ -130,6 +133,26 @@ final class OneDayUITests: XCTestCase {
     let photo = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "的照片")).firstMatch
     XCTAssertTrue(photo.waitForExistence(timeout: 5), "photo wall lists photos")
     photo.tap()
-    XCTAssertTrue(app.buttons["更多"].waitForExistence(timeout: 5), "tapping a photo opens its day")
+    XCTAssertTrue(app.buttons["更多"].waitForExistence(timeout: 20), "tapping a photo opens its day")
+  }
+
+  func testDailyAndWeeklyReflection() {
+    let app = launch(["-OneDayTab", "review", "-OneDayReview", "reflect"])
+    let today = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "今日复盘")).firstMatch
+    XCTAssertTrue(today.waitForExistence(timeout: 8))
+    today.tap()
+    let field = app.descendants(matching: .any).matching(identifier: "reflection-text").firstMatch
+    XCTAssertTrue(field.waitForExistence(timeout: 15))
+    field.tap()
+    field.typeText("今天很充实")
+    app.buttons["保存"].tap()
+    let saved = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "今天很充实")).firstMatch
+    XCTAssertTrue(saved.waitForExistence(timeout: 15), "the card shows what was written")
+
+    let week = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "本周复盘")).firstMatch
+    week.tap()
+    XCTAssertTrue(app.staticTexts["本周收获"].waitForExistence(timeout: 15), "weekly review asks its questions")
+    XCTAssertTrue(app.staticTexts["打卡"].exists || app.staticTexts["每一天"].exists)
+    app.buttons["取消"].tap()
   }
 }

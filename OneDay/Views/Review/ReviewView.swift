@@ -24,6 +24,8 @@ struct ReviewView: View {
             JournalCalendar(month: $calendarMonth) { store.recap = MonthRef(month: $0) }
           case .photos:
             PhotoWall()
+          case .reflect:
+            ReflectionPanel()
           case .overview:
             OverviewPanel(month: $overviewMonth) { store.recap = MonthRef(month: $0) }
           }
@@ -49,6 +51,17 @@ struct ReviewView: View {
       }
       .sheet(isPresented: $showSearch) { ReviewSearchSheet().oneDaySheet() }
       .sheet(item: recapBinding) { RecapSheet(month: $0.month).oneDaySheet() }
+      .sheet(item: reflectionBinding) { target in
+        Group {
+          switch target {
+          case .day(let day):
+            DayReflectionSheet(day: day, text: store.state.dayReflections[day]?.text ?? "")
+          case .week(let week):
+            WeekReflectionSheet(start: week, reflection: store.state.weekReflections[week])
+          }
+        }
+        .oneDaySheet()
+      }
     }
   }
 
@@ -58,6 +71,10 @@ struct ReviewView: View {
     Binding(
       get: { store.reviewDate.map { [$0] } ?? [] },
       set: { store.reviewDate = $0.last })
+  }
+
+  private var reflectionBinding: Binding<ReflectionTarget?> {
+    Binding(get: { store.reflection }, set: { store.reflection = $0 })
   }
 
   private var recapBinding: Binding<MonthRef?> {
@@ -279,6 +296,8 @@ private struct ReviewDayDetail: View {
           }
         }
 
+        DayReflectionNote(day: day)
+
         if !tasks.isEmpty {
           VStack(alignment: .leading, spacing: 10) {
             Text("那一天的事项").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
@@ -311,6 +330,11 @@ private struct ReviewDayDetail: View {
               sharing = true
             } label: {
               Label("分享这一天", systemImage: "square.and.arrow.up")
+            }
+            Button {
+              store.reflection = .day(day)
+            } label: {
+              Label(store.state.dayReflections[day] == nil ? "写这天的复盘" : "修改这天的复盘", systemImage: "moon.stars")
             }
             Divider()
             Button(role: .destructive) {
@@ -660,7 +684,12 @@ private struct StreaksCard: View {
   var body: some View {
     let streaks = store.state.taskStreaks(today: store.today)
     VStack(alignment: .leading, spacing: 14) {
-      Text("坚持").font(.headline)
+      VStack(alignment: .leading, spacing: 3) {
+        Text("每日打卡").font(.headline)
+        Text("设为「每天」重复的事项，连续完成了几天")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
       if streaks.isEmpty {
         Text("添加「每天循环」的事项后，这里会显示连续完成的天数。")
           .font(.subheadline)
@@ -678,6 +707,7 @@ private struct StreaksCard: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
+            Text("连续").font(.caption).foregroundStyle(.secondary)
             Text("\(s.current)")
               .font(.system(.title3, design: .rounded, weight: .bold))
               .foregroundStyle(s.current > 0 ? accent : .secondary)

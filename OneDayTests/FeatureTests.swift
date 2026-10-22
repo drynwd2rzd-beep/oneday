@@ -179,4 +179,81 @@ final class FeatureTests: XCTestCase {
     let back = try JSONDecoder().decode(AppState.self, from: data)
     XCTAssertEqual(back.notes["2026-10-22"]?.first?.mood, 4)
   }
+
+  func testWeekSummaryAndReflections() {
+    var s = AppState()
+    // 2026-10-19 is a Monday; today (22nd) is Thursday.
+    var read = TaskItem(title: "阅读", day: "2026-10-01", repeatMode: .daily, reminder: nil)
+    for day in ["2026-10-19", "2026-10-20", "2026-10-22", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-16"] {
+      read.done[day] = true
+    }
+    var once = TaskItem(title: "体检", day: "2026-10-21", repeatMode: .once, reminder: nil)
+    once.done["2026-10-21"] = true
+    var plan = Plan(title: "身体", desc: "")
+    plan.id = "p1"
+    read.planId = "p1"
+    s.tasks = [read, once]
+    s.plans = [plan]
+    s.notes["2026-10-20"] = [NoteEntry(text: "记录", time: "", photos: [], tags: [])]
+    s.dayReflections["2026-10-21"] = DayReflection(text: "  还行  ")
+    s.dayReflections["2026-10-23"] = DayReflection(text: "   ")
+    s.dayReflections["bad-key"] = DayReflection(text: "x")
+    s.weekReflections["2026-10-15"] = WeekReflection(gains: "读完一本书", problems: "", next: "")
+    s.normalize()
+
+    XCTAssertEqual(s.dayReflections["2026-10-21"]?.text, "还行")
+    XCTAssertNil(s.dayReflections["2026-10-23"], "blank reflections are dropped")
+    XCTAssertNil(s.dayReflections["bad-key"])
+    XCTAssertNotNil(s.weekReflections["2026-10-12"], "weekly reflections are keyed by Monday")
+
+    let week = s.weekSummary(start: "2026-10-22", today: today)
+    XCTAssertEqual(week.start, "2026-10-19")
+    XCTAssertEqual(week.end, "2026-10-25")
+    XCTAssertTrue(week.isCurrent)
+    XCTAssertEqual(week.completions, 4)
+    XCTAssertEqual(week.lastWeekCompletions, 3, "Mon–Thu of last week only")
+    XCTAssertEqual(week.dayDone, [1, 1, 1, 1, 0, 0, 0])
+    XCTAssertEqual(week.noteDays, 1)
+    XCTAssertEqual(week.reflectionDays, ["2026-10-21"])
+    XCTAssertEqual(week.tasks.first { $0.title == "阅读" }?.marks, [true, true, false, true, nil, nil, nil])
+    XCTAssertEqual(week.tasks.first { $0.title == "体检" }?.marks, [nil, nil, true, nil, nil, nil, nil])
+    XCTAssertEqual(try XCTUnwrap(week.rate), 4.0 / 5.0, accuracy: 0.001)
+    XCTAssertEqual(week.plans.first?.completions, 3)
+
+    let last = s.weekSummary(start: "2026-10-12", today: today)
+    XCTAssertFalse(last.isCurrent)
+    XCTAssertEqual(last.completions, 4)
+    XCTAssertEqual(s.pastReflectionWeeks(today: today), ["2026-10-12"])
+    XCTAssertEqual(DayKey.weekRange("2026-10-19"), "10月19日 – 25日")
+    XCTAssertEqual(DayKey.weekRange("2026-09-28"), "9月28日 – 10月4日")
+  }
+
+  func testNextWeekFocusItems() {
+    let r = WeekReflection(gains: "", problems: "", next: "1. 11 点前睡觉\n- 周末去游泳\n\n• 读完《置身事内》\n周末去游泳\n2026 计划")
+    XCTAssertEqual(r.nextItems, ["11 点前睡觉", "周末去游泳", "读完《置身事内》", "2026 计划"])
+  }
+
+  @MainActor
+  func testReflectionsPersistInDatabase() throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("reflect-\(UUID().uuidString).sqlite")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let db = try Database(url: url)
+    var s = AppState()
+    s.dayReflections["2026-10-22"] = DayReflection(text: "今天不错")
+    s.weekReflections["2026-10-19"] = WeekReflection(gains: "收获", problems: "", next: "早睡")
+    try db.apply(Database.diff(from: nil, to: s))
+    var loaded = try XCTUnwrap(try db.load())
+    XCTAssertEqual(loaded.dayReflections["2026-10-22"]?.text, "今天不错")
+    XCTAssertEqual(loaded.weekReflections["2026-10-19"]?.next, "早睡")
+
+    var edited = loaded
+    edited.dayReflections["2026-10-22"] = nil
+    edited.weekReflections["2026-10-19"]?.gains = "新的收获"
+    let changes = Database.diff(from: loaded, to: edited)
+    XCTAssertEqual(changes.rowCount, 2, "one delete and one update")
+    try db.apply(changes)
+    loaded = try XCTUnwrap(try db.load())
+    XCTAssertNil(loaded.dayReflections["2026-10-22"])
+    XCTAssertEqual(loaded.weekReflections["2026-10-19"]?.gains, "新的收获")
+  }
 }

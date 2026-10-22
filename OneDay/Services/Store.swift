@@ -9,7 +9,21 @@ enum ReviewTab: String, CaseIterable, Hashable {
   case timeline = "时间线"
   case calendar = "日历"
   case photos = "照片"
+  case reflect = "复盘"
   case overview = "统计"
+}
+
+/// Which reflection sheet is open in 回顾 → 复盘.
+enum ReflectionTarget: Identifiable, Hashable {
+  case day(String)
+  case week(String)
+
+  var id: String {
+    switch self {
+    case .day(let day): "d:" + day
+    case .week(let week): "w:" + week
+    }
+  }
 }
 
 /// A month to show the recap card for.
@@ -55,6 +69,7 @@ final class Store {
   var reviewDate: String?
   var reviewTab: ReviewTab = .timeline
   var recap: MonthRef?
+  var reflection: ReflectionTarget?
   var undoPrompt: UndoEntry?
 
   @ObservationIgnored private var undoStack: [UndoEntry] = []
@@ -243,6 +258,53 @@ final class Store {
     save()
     toast("记录已更新", undoable: "编辑记录")
     return true
+  }
+
+  // MARK: Reflections
+
+  /// Saves (or, when empty, removes) a day's reflection.
+  func saveDayReflection(day: String, text: String) {
+    let clean = text.trimmed
+    guard clean != (state.dayReflections[day]?.text ?? "") else { return }
+    checkpoint("每日复盘")
+    state.dayReflections[day] = clean.isEmpty ? nil : DayReflection(text: clean)
+    save()
+    toast(clean.isEmpty ? "已删除这天的复盘" : "复盘已保存", undoable: "每日复盘")
+  }
+
+  func saveWeekReflection(week: String, _ reflection: WeekReflection) {
+    let key = DayKey.weekStart(week)
+    var r = reflection
+    r.gains = r.gains.trimmed
+    r.problems = r.problems.trimmed
+    r.next = r.next.trimmed
+    let old = state.weekReflections[key]
+    let unchanged = r.gains == (old?.gains ?? "") && r.problems == (old?.problems ?? "") && r.next == (old?.next ?? "")
+    guard !unchanged else { return }
+    checkpoint("一周复盘")
+    r.updatedAt = Date().timeIntervalSince1970
+    state.weekReflections[key] = r.isEmpty ? nil : r
+    save()
+    toast(r.isEmpty ? "已删除这周的复盘" : "复盘已保存", undoable: "一周复盘")
+  }
+
+  /// Turns "下周重点" into one-off tasks on `day`, skipping ones that already exist there.
+  @discardableResult
+  func addFocusTasks(_ titles: [String], on day: String, planId: String?) -> Int {
+    let existing = Set(state.tasks(on: day).map(\.title))
+    let fresh = titles.map(\.trimmed).filter { !$0.isEmpty && !existing.contains($0) }.uniqued()
+    guard !fresh.isEmpty else {
+      toast("这些事项已经在 \(DayKey.shortDate(day)) 了")
+      return 0
+    }
+    checkpoint("加入下周重点")
+    for title in fresh {
+      state.tasks.append(TaskItem(title: title, day: day, repeatMode: .once, reminder: nil, planId: planId))
+    }
+    save()
+    Haptics.success()
+    toast("已加入 \(fresh.count) 件事项到 \(DayKey.shortDate(day))", undoable: "加入下周重点")
+    return fresh.count
   }
 
   func deleteNote(day: String, id: String) {
@@ -524,6 +586,10 @@ final class Store {
     case "overview": reviewTab = .overview
     case "calendar": reviewTab = .calendar
     case "photos": reviewTab = .photos
+    case "reflect": reviewTab = .reflect
+    case "week":
+      reviewTab = .reflect
+      reflection = .week(DayKey.weekStart(today))
     case "recap": recap = MonthRef(month: DayKey.monthStart(Date()))
     default: break
     }
@@ -584,6 +650,13 @@ enum DemoData {
       if k % 8 == 3 { note.photos = [demoPhoto(k / 8)].compactMap { $0 } }
       s.notes[DayKey.add(days: -k, to: t)] = [note]
     }
+    s.dayReflections[y] = DayReflection(text: "效率不错，上午把最难的事先做了。晚上散步时想明白了一件事：慢一点也没关系。")
+    s.dayReflections[DayKey.add(days: -2, to: t)] = DayReflection(text: "被临时的事情打断了好几次，明天先把手机放远一点。")
+    s.dayReflections[DayKey.add(days: -4, to: t)] = DayReflection(text: "早睡早起，状态很好。")
+    let lastWeek = DayKey.add(days: -7, to: DayKey.weekStart(t))
+    s.weekReflections[lastWeek] = WeekReflection(
+      gains: "坚持每天阅读，读完了一本书。", problems: "周三周四熬夜，第二天没精神。", next: "11 点前睡觉\n周末去游泳")
+    s.dayReflections[DayKey.add(days: 2, to: lastWeek)] = DayReflection(text: "开会太多，自己的事几乎没推进。")
     s.normalize()
     return s
   }

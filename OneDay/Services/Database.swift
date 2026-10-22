@@ -33,6 +33,7 @@ final class Database {
       CREATE TABLE IF NOT EXISTS plans (id TEXT PRIMARY KEY, sort INTEGER NOT NULL, json TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, day TEXT NOT NULL, sort INTEGER NOT NULL, json TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS notes_day ON notes(day);
+      CREATE TABLE IF NOT EXISTS reflections (id TEXT PRIMARY KEY, json TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
       """)
     try setMeta("schema", String(Self.schemaVersion))
@@ -59,6 +60,16 @@ final class Database {
         state.notes[day, default: []].append(note)
       }
     }
+    // Ids are "d:<day>" for daily and "w:<monday>" for weekly reflections.
+    try query("SELECT id, json FROM reflections") { stmt in
+      let id = String(cString: sqlite3_column_text(stmt, 0))
+      let key = String(id.dropFirst(2))
+      if id.hasPrefix("d:"), let r = try? decoder.decode(DayReflection.self, from: column(stmt, 1)) {
+        state.dayReflections[key] = r
+      } else if id.hasPrefix("w:"), let r = try? decoder.decode(WeekReflection.self, from: column(stmt, 1)) {
+        state.weekReflections[key] = r
+      }
+    }
     return state
   }
 
@@ -79,16 +90,22 @@ final class Database {
     var deletedPlans: [String] = []
     var notes: [(day: String, sort: Int, item: NoteEntry)] = []
     var deletedNotes: [String] = []
+    var dayReflections: [(day: String, item: DayReflection)] = []
+    var weekReflections: [(week: String, item: WeekReflection)] = []
+    var deletedReflections: [String] = []
     var settings: Settings?
 
     var isEmpty: Bool {
       !replaceAll && tasks.isEmpty && deletedTasks.isEmpty && plans.isEmpty && deletedPlans.isEmpty
-        && notes.isEmpty && deletedNotes.isEmpty && settings == nil
+        && notes.isEmpty && deletedNotes.isEmpty && reflectionCount == 0 && settings == nil
     }
 
     var rowCount: Int {
       tasks.count + deletedTasks.count + plans.count + deletedPlans.count + notes.count + deletedNotes.count
+        + reflectionCount
     }
+
+    private var reflectionCount: Int { dayReflections.count + weekReflections.count + deletedReflections.count }
   }
 
   static func diff(from old: AppState?, to new: AppState) -> Changes {
@@ -100,6 +117,8 @@ final class Database {
       for (day, list) in new.notes {
         for (i, note) in list.enumerated() { changes.notes.append((day, i, note)) }
       }
+      changes.dayReflections = new.dayReflections.map { ($0.key, $0.value) }
+      changes.weekReflections = new.weekReflections.map { ($0.key, $0.value) }
       changes.settings = new.settings
       return changes
     }
@@ -134,6 +153,11 @@ final class Database {
     }
     changes.deletedNotes = oldNotes.keys.filter { !newNoteIds.contains($0) }
 
+    changes.dayReflections = new.dayReflections.filter { old.dayReflections[$0.key] != $0.value }.map { ($0.key, $0.value) }
+    changes.weekReflections = new.weekReflections.filter { old.weekReflections[$0.key] != $0.value }.map { ($0.key, $0.value) }
+    changes.deletedReflections = old.dayReflections.keys.filter { new.dayReflections[$0] == nil }.map { "d:" + $0 }
+      + old.weekReflections.keys.filter { new.weekReflections[$0] == nil }.map { "w:" + $0 }
+
     if old.settings != new.settings { changes.settings = new.settings }
     return changes
   }
@@ -143,7 +167,7 @@ final class Database {
     try exec("BEGIN IMMEDIATE")
     do {
       if changes.replaceAll {
-        try exec("DELETE FROM tasks; DELETE FROM plans; DELETE FROM notes;")
+        try exec("DELETE FROM tasks; DELETE FROM plans; DELETE FROM notes; DELETE FROM reflections;")
       }
       try withStatement("DELETE FROM tasks WHERE id = ?") { stmt in
         for id in changes.deletedTasks { try run(stmt, [id]) }
@@ -162,6 +186,13 @@ final class Database {
       }
       try withStatement("INSERT OR REPLACE INTO notes (id, day, sort, json) VALUES (?, ?, ?, ?)") { stmt in
         for (day, sort, note) in changes.notes { try run(stmt, [note.id, day, sort, try json(note)]) }
+      }
+      try withStatement("DELETE FROM reflections WHERE id = ?") { stmt in
+        for id in changes.deletedReflections { try run(stmt, [id]) }
+      }
+      try withStatement("INSERT OR REPLACE INTO reflections (id, json) VALUES (?, ?)") { stmt in
+        for (day, item) in changes.dayReflections { try run(stmt, ["d:" + day, try json(item)]) }
+        for (week, item) in changes.weekReflections { try run(stmt, ["w:" + week, try json(item)]) }
       }
       if let settings = changes.settings { try setMeta("settings", try json(settings)) }
       try exec("COMMIT")

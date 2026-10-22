@@ -98,6 +98,8 @@ jobs:
           shoot glass-review-calendar -OneDayDemo YES -OneDayTab review -OneDayReview calendar
           shoot glass-review-photos -OneDayDemo YES -OneDayTab review -OneDayReview photos
           shoot glass-review-recap -OneDayDemo YES -OneDayTab review -OneDayReview recap
+          shoot glass-review-reflect -OneDayDemo YES -OneDayTab review -OneDayReview reflect
+          shoot glass-review-week -OneDayDemo YES -OneDayTab review -OneDayReview week
           shoot classic-today -OneDayDemo YES -OneDayTab today -OneDayStyle soft
           shoot flat-tasks -OneDayDemo YES -OneDayTab tasks -OneDayStyle flat -OneDayTone cool
           shoot onboarding -OneDayDemo YES -OneDayOnboarding YES

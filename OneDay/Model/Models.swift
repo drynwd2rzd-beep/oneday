@@ -383,6 +383,10 @@ struct AppState: Codable {
   var notes: [String: [NoteEntry]] = [:]
   var plans: [Plan] = []
   var settings = Settings()
+  /// 每日复盘 by day.
+  var dayReflections: [String: DayReflection] = [:]
+  /// 一周复盘 by the week's Monday.
+  var weekReflections: [String: WeekReflection] = [:]
 
   init() {}
 
@@ -392,6 +396,8 @@ struct AppState: Codable {
     notes = (c.get("notes", as: [String: NoteList].self) ?? [:]).mapValues(\.items)
     plans = c.get("plans", as: LenientArray<Plan>.self)?.items ?? []
     settings = c.get("settings", as: Settings.self) ?? Settings()
+    dayReflections = c.get("dayReflections", as: [String: DayReflection].self) ?? [:]
+    weekReflections = c.get("weekReflections", as: [String: WeekReflection].self) ?? [:]
   }
 
   /// Mirrors the web version's `normalize()` so imported and edited data stay valid.
@@ -428,6 +434,22 @@ struct AppState: Codable {
       if p.status != .done { p.doneAt = nil }
       return p
     }
+    var days: [String: DayReflection] = [:]
+    for (day, r) in dayReflections where DayKey.isValid(day) {
+      var r = r
+      r.text = r.text.trimmed
+      if !r.text.isEmpty { days[day] = r }
+    }
+    dayReflections = days
+    var weeks: [String: WeekReflection] = [:]
+    for (key, r) in weekReflections where DayKey.isValid(key) {
+      var r = r
+      r.gains = r.gains.trimmed
+      r.problems = r.problems.trimmed
+      r.next = r.next.trimmed
+      if !r.isEmpty { weeks[DayKey.weekStart(key)] = r }
+    }
+    weekReflections = weeks
     // A task can only point at a plan that still exists.
     let planIds = Set(plans.map(\.id))
     for i in tasks.indices {
