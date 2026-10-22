@@ -120,6 +120,24 @@ extension AppState {
     }
   }
 
+  /// Completions this week so far vs the same weekdays of last week (a fair comparison mid-week).
+  func weekToDate(today: String) -> (thisWeek: Int, lastWeek: Int) {
+    let start = DayKey.weekStart(today)
+    let lastStart = DayKey.add(days: -7, to: start)
+    var this = 0, last = 0
+    var offset = 0
+    while DayKey.add(days: offset, to: start) <= today && offset < 7 {
+      let day = DayKey.add(days: offset, to: start)
+      let prev = DayKey.add(days: offset, to: lastStart)
+      for task in tasks {
+        if task.isDone(on: day) { this += 1 }
+        if task.isDone(on: prev) { last += 1 }
+      }
+      offset += 1
+    }
+    return (this, last)
+  }
+
   /// Notes written on this month/day in earlier years, newest first.
   func onThisDay(today: String) -> [Memory] {
     let suffix = String(today.dropFirst(4)) // "-MM-dd"

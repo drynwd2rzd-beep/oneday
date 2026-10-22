@@ -36,6 +36,12 @@ final class FeatureTests: XCTestCase {
     XCTAssertTrue(grid.last?[4].isFuture ?? false)
     let weeks = s.weeklyStats(today: today, weeks: 8)
     XCTAssertEqual(weeks.last?.completions, 3)
+    // Thursday: compare Mon–Thu with last Mon–Thu, not with all of last week.
+    s.tasks[0].done["2026-10-14"] = true  // last Wednesday, counts
+    s.tasks[0].done["2026-10-17"] = true  // last Saturday, does not
+    let wtd = s.weekToDate(today: today)
+    XCTAssertEqual(wtd.thisWeek, 3)
+    XCTAssertEqual(wtd.lastWeek, 1)
   }
 
   func testOnThisDay() {

@@ -124,6 +124,15 @@ private struct HorizontalPanGesture: UIGestureRecognizerRepresentable {
       let v = pan.velocity(in: pan.view)
       return abs(v.x) > abs(v.y) * 1.4
     }
+
+    /// Scroll views wait for this pan to fail (it fails at once on vertical movement),
+    /// otherwise their own pan wins the race and horizontal swipes never arrive.
+    func gestureRecognizer(
+      _ gestureRecognizer: UIGestureRecognizer,
+      shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+      otherGestureRecognizer.view is UIScrollView
+    }
   }
 }
 

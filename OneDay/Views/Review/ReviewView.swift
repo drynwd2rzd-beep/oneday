@@ -521,8 +521,7 @@ private struct WeeklyReportCard: View {
 
   var body: some View {
     let weeks = store.state.weeklyStats(today: store.today, weeks: 8)
-    let this = weeks.last?.completions ?? 0
-    let last = weeks.dropLast().last?.completions ?? 0
+    let (this, last) = store.state.weekToDate(today: store.today)
     let diff = this - last
     VStack(alignment: .leading, spacing: 14) {
       HStack(alignment: .firstTextBaseline) {
@@ -537,7 +536,7 @@ private struct WeeklyReportCard: View {
         Text("次完成").foregroundStyle(.secondary)
         Spacer()
         VStack(alignment: .trailing, spacing: 2) {
-          Text(diff == 0 ? "和上周持平" : diff > 0 ? "比上周多 \(diff) 次" : "比上周少 \(-diff) 次")
+          Text(diff == 0 ? "和上周同期持平" : diff > 0 ? "比上周同期多 \(diff) 次" : "比上周同期少 \(-diff) 次")
             .font(.subheadline.weight(.medium))
             .foregroundStyle(diff >= 0 ? accent : .secondary)
           Text("留下记录 \(weeks.last?.noteDays ?? 0) 天")
