@@ -77,29 +77,162 @@ struct ReviewView: View {
 private struct TimelineList: View {
   @Environment(Store.self) private var store
 
+  private struct MonthGroup: Identifiable {
+    let key: String  // "2026-10"
+    var days: [String]
+    var id: String { key }
+  }
+
   var body: some View {
-    let dates = store.state.recordDates
-    if dates.isEmpty {
+    let groups = Self.group(store.state.recordDates)
+    if groups.isEmpty {
       EmptyState(title: "时间线还是空的", icon: "book", message: "留下第一条记录后，这里会慢慢长出属于你的时间线。")
         .card()
     } else {
-      LazyVStack(alignment: .leading, spacing: Spacing.stack) {
-        ForEach(Array(dates.enumerated()), id: \.element) { index, day in
-          if index == 0 || DayKey.monthLabel(ofKey: dates[index - 1]) != DayKey.monthLabel(ofKey: day) {
-            Text(DayKey.monthLabel(ofKey: day))
-              .font(.journal(.title3, size: 20, bold: true))
-              .padding(.top, index == 0 ? 0 : Spacing.section - Spacing.stack)
-              .accessibilityAddTraits(.isHeader)
+      LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+        ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
+          Section {
+            ForEach(Array(group.days.enumerated()), id: \.element) { position, day in
+              NavigationLink(value: day) {
+                TimelineRow(day: day, isLast: position == group.days.count - 1)
+              }
+              .buttonStyle(.plain)
+            }
+          } header: {
+            MonthHeader(
+              key: group.key, count: group.days.count,
+              showsYear: index == 0 || groups[index - 1].key.prefix(4) != group.key.prefix(4))
           }
-          NavigationLink(value: day) {
-            MemoryCard(
-              caption: "\(DayKey.shortDate(day)) \(DayKey.weekday(day))",
-              notes: store.state.notes[day] ?? [])
-          }
-          .buttonStyle(.plain)
         }
       }
     }
+  }
+
+  private static func group(_ dates: [String]) -> [MonthGroup] {
+    var groups: [MonthGroup] = []
+    for day in dates {
+      let key = String(day.prefix(7))
+      if groups.last?.key == key {
+        groups[groups.count - 1].days.append(day)
+      } else {
+        groups.append(MonthGroup(key: key, days: [day]))
+      }
+    }
+    return groups
+  }
+}
+
+/// Stays pinned while scrolling so you always know which month you are in.
+private struct MonthHeader: View {
+  @Environment(\.palette) private var palette
+  let key: String
+  let count: Int
+  let showsYear: Bool
+
+  var body: some View {
+    let year = Int(key.prefix(4)) ?? 0
+    let month = Int(key.suffix(2)) ?? 0
+    HStack(alignment: .firstTextBaseline, spacing: 8) {
+      Text("\(month)月")
+        .font(.journal(.title2, size: 24, bold: true))
+      Text(subtitle(year: year))
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+      Spacer()
+    }
+    .padding(.vertical, 10)
+    .background(palette.bg.opacity(0.96))
+    .accessibilityAddTraits(.isHeader)
+  }
+
+  private func subtitle(year: Int) -> String {
+    let thisYear = Int(DayKey.today.prefix(4)) ?? year
+    if showsYear || year != thisYear { return "\(String(year)) · \(count) 天有记录" }
+    return "\(count) 天有记录"
+  }
+}
+
+/// Date block on the left joined by a thin line; a fixed-shape card on the right.
+private struct TimelineRow: View {
+  @Environment(Store.self) private var store
+  @Environment(\.accent) private var accent
+  @Environment(\.palette) private var palette
+  let day: String
+  let isLast: Bool
+
+  var body: some View {
+    let notes = store.state.notes[day] ?? []
+    HStack(alignment: .top, spacing: 12) {
+      VStack(spacing: 6) {
+        VStack(spacing: 0) {
+          Text("\(DayKey.calendar.component(.day, from: DayKey.date(day)))")
+            .font(.journal(.title, size: 26, bold: true))
+            .foregroundStyle(day == store.today ? accent : .primary)
+          Text(relativeLabel)
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(day == store.today ? accent : .secondary)
+        }
+        .frame(width: 44)
+        Rectangle()
+          .fill(isLast ? Color.clear : palette.line)
+          .frame(width: 1)
+          .frame(maxHeight: .infinity)
+      }
+      card(notes)
+        .padding(.bottom, Spacing.stack)
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("\(DayKey.fullDate(day)) \(DayKey.weekday(day))，\(excerpt(notes))")
+    .accessibilityHint("打开这一天")
+  }
+
+  private var relativeLabel: String {
+    if day == store.today { return "今天" }
+    if day == DayKey.add(days: -1, to: store.today) { return "昨天" }
+    return DayKey.weekday(day).replacingOccurrences(of: "星期", with: "周")
+  }
+
+  private func card(_ notes: [NoteEntry]) -> some View {
+    let cover = notes.lazy.compactMap(\.photos.first).first
+    let first = notes.first
+    return HStack(alignment: .top, spacing: 12) {
+      VStack(alignment: .leading, spacing: 8) {
+        Text(excerpt(notes))
+          .font(.journal(.body, size: 17))
+          .foregroundStyle(.primary)
+          .lineSpacing(3)
+          .lineLimit(3)
+          .multilineTextAlignment(.leading)
+        HStack(spacing: 10) {
+          if let place = first?.place {
+            Label(place, systemImage: "location.fill").labelStyle(CompactLabelStyle()).lineLimit(1)
+          }
+          if let weather = first?.weather {
+            Image(systemName: LocationWeather.symbol(for: weather))
+          }
+          if notes.contains(where: { $0.media.contains { $0.kind == .audio } }) { Image(systemName: "waveform") }
+          if notes.contains(where: { $0.media.contains { $0.kind == .video } }) { Image(systemName: "video") }
+          if notes.count > 1 { Text("\(notes.count) 条") }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      if let cover {
+        PhotoThumb(name: cover)
+          .frame(width: 64, height: 64)
+          .accessibilityHidden(true)
+      }
+    }
+    .card(padding: 14)
+  }
+
+  private func excerpt(_ notes: [NoteEntry]) -> String {
+    guard let first = notes.first else { return "" }
+    if !first.text.isEmpty { return MarkdownText.plain(first.text).replacingOccurrences(of: "\n", with: " ") }
+    if !first.photos.isEmpty { return "留下了照片" }
+    if first.media.contains(where: { $0.kind == .video }) { return "留下了视频" }
+    return "留下了一段语音"
   }
 }
 
