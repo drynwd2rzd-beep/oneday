@@ -147,6 +147,7 @@ struct AddTaskSheet: View {
   @State private var repeatMode: RepeatMode = .once
   @State private var remind = false
   @State private var time = DayKey.dateToday(minutes: 9 * 60)
+  @State private var planId: String?
   @FocusState private var focused: Bool
 
   var body: some View {
@@ -164,6 +165,20 @@ struct AddTaskSheet: View {
             Text("每天循环").tag(RepeatMode.daily)
           }
           .pickerStyle(.segmented)
+        }
+        if !store.state.activePlans.isEmpty {
+          Section {
+            Picker(selection: $planId) {
+              Text("不属于计划").tag(String?.none)
+              ForEach(store.state.activePlans) { plan in
+                Label(plan.title, systemImage: plan.symbol).tag(Optional(plan.id))
+              }
+            } label: {
+              Label("所属计划", systemImage: "scope")
+            }
+          } footer: {
+            Text("完成这件事会计入计划的进度。")
+          }
         }
         Section {
           Toggle(isOn: $remind.animation()) {
@@ -193,7 +208,7 @@ struct AddTaskSheet: View {
 
   private func save() {
     guard !title.trimmed.isEmpty else { return }
-    store.addTask(title: title, repeatMode: repeatMode, day: day, reminder: remind ? DayKey.minutes(of: time) : nil)
+    store.addTask(title: title, repeatMode: repeatMode, day: day, reminder: remind ? DayKey.minutes(of: time) : nil, planId: planId)
     if remind { Task { await ensureNotificationsOn(store) } }
     dismiss()
   }

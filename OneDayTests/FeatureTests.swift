@@ -44,6 +44,33 @@ final class FeatureTests: XCTestCase {
     XCTAssertEqual(wtd.lastWeek, 1)
   }
 
+  func testPlanProgressAndLinks() {
+    var s = AppState()
+    var plan = Plan(title: "身体", desc: "")
+    plan.pinned = true
+    let other = Plan(title: "读书", desc: "")
+    s.plans = [other, plan]
+    var walk = TaskItem(title: "散步", day: "2026-10-01", repeatMode: .daily, reminder: nil, planId: plan.id)
+    for k in 0...6 { walk.done[DayKey.add(days: -k, to: "2026-10-21")] = true }
+    s.tasks = [walk, TaskItem(title: "孤儿", day: today, repeatMode: .once, reminder: nil, planId: "missing")]
+    s.normalize()
+    XCTAssertNil(s.tasks[1].planId, "links to deleted plans are cleared")
+    XCTAssertEqual(s.activePlans.first?.title, "身体", "pinned first")
+    let progress = s.progress(of: plan, today: today)
+    XCTAssertEqual(progress.total, 7)
+    XCTAssertEqual(progress.lastWeek, 6)
+    XCTAssertEqual(progress.streak, 7)
+  }
+
+  func testPausedPlanDecodesAndDoneDate() throws {
+    let json = #"{"plans":[{"id":"x","title":"吉他","status":"paused","doneAt":"2026-01-01"},{"id":"y","title":"马拉松","status":"done","doneAt":"2026-09-22"}]}"#
+    var s = try JSONDecoder().decode(AppState.self, from: Data(json.utf8))
+    s.normalize()
+    XCTAssertEqual(s.plans[0].status, .paused)
+    XCTAssertNil(s.plans[0].doneAt, "only done plans keep a completion date")
+    XCTAssertEqual(s.plans[1].doneAt, "2026-09-22")
+  }
+
   func testOnThisDay() {
     var s = AppState()
     s.notes["2025-10-22"] = [NoteEntry(text: "去年", time: "", photos: [], tags: [])]

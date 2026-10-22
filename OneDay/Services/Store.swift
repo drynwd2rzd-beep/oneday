@@ -144,14 +144,22 @@ final class Store {
 
   // MARK: Tasks
 
-  func addTask(title: String, repeatMode: RepeatMode, day: String, reminder: Int?) {
+  func addTask(title: String, repeatMode: RepeatMode, day: String, reminder: Int?, planId: String? = nil) {
     let t = title.trimmed
     guard !t.isEmpty else { return toast("先写下要做什么") }
     checkpoint("添加事项")
-    state.tasks.append(TaskItem(title: t, day: day, repeatMode: repeatMode, reminder: reminder))
+    state.tasks.append(TaskItem(title: t, day: day, repeatMode: repeatMode, reminder: reminder, planId: planId))
     save()
     Haptics.tap()
     toast("已添加")
+  }
+
+  func setPlan(_ planId: String?, for taskId: String) {
+    guard let i = state.tasks.firstIndex(where: { $0.id == taskId }) else { return }
+    checkpoint("更改所属计划")
+    state.tasks[i].planId = planId
+    save()
+    toast(planId.flatMap { state.plan($0)?.title }.map { "已归入「\($0)」" } ?? "已移出计划", undoable: "更改所属计划")
   }
 
   func setReminder(_ minutes: Int?, for id: String) {
@@ -304,30 +312,62 @@ final class Store {
 
   // MARK: Plans
 
-  func savePlan(id: String?, title: String, desc: String) {
+  /// Creates or updates a plan and sets which tasks belong to it.
+  func savePlan(id: String?, title: String, desc: String, color: String?, icon: String?, linkedTasks: Set<String>) {
     let t = title.trimmed
     guard !t.isEmpty else { return toast("计划需要一个名字") }
+    checkpoint(id == nil ? "添加计划" : "编辑计划")
+    let planId: String
     if let id, let i = state.plans.firstIndex(where: { $0.id == id }) {
-      checkpoint("编辑计划")
       state.plans[i].title = t
       state.plans[i].desc = desc.trimmed
-      save()
-      toast("计划已更新", undoable: "编辑计划")
+      state.plans[i].color = color
+      state.plans[i].icon = icon
+      planId = id
     } else {
-      checkpoint("添加计划")
-      state.plans.append(Plan(title: t, desc: desc.trimmed))
-      save()
-      toast("已添加计划")
+      var plan = Plan(title: t, desc: desc.trimmed)
+      plan.color = color
+      plan.icon = icon
+      state.plans.append(plan)
+      planId = plan.id
     }
+    for i in state.tasks.indices {
+      if linkedTasks.contains(state.tasks[i].id) {
+        state.tasks[i].planId = planId
+      } else if state.tasks[i].planId == planId {
+        state.tasks[i].planId = nil
+      }
+    }
+    save()
+    toast(id == nil ? "已添加计划" : "计划已更新", undoable: id == nil ? nil : "编辑计划")
   }
 
   func setPlanStatus(_ id: String, _ status: PlanStatus) {
     guard let i = state.plans.firstIndex(where: { $0.id == id }) else { return }
     checkpoint("更新计划状态")
     state.plans[i].status = status
+    state.plans[i].doneAt = status == .done ? today : nil
+    if status != .active { state.plans[i].pinned = false }
+    save()
+    if status == .done { Haptics.success() } else { Haptics.tap() }
+    toast("计划已标记为「\(status.label)」", undoable: "更新计划状态")
+  }
+
+  func togglePin(_ id: String) {
+    guard let i = state.plans.firstIndex(where: { $0.id == id }) else { return }
+    state.plans[i].pinned.toggle()
     save()
     Haptics.tap()
-    toast("计划已标记为「\(status.label)」", undoable: "更新计划状态")
+    toast(state.plans[i].pinned ? "已置顶" : "已取消置顶")
+  }
+
+  /// Reorders active plans to `ids`; other plans keep their positions after them.
+  func reorderActivePlans(_ ids: [String]) {
+    let byId = Dictionary(uniqueKeysWithValues: state.plans.map { ($0.id, $0) })
+    let ordered = ids.compactMap { byId[$0] }
+    let rest = state.plans.filter { !ids.contains($0.id) }
+    state.plans = ordered + rest
+    save()
   }
 
   func deletePlan(_ id: String) {
@@ -336,7 +376,7 @@ final class Store {
     state.plans.removeAll { $0.id == id }
     save()
     Haptics.tap()
-    toast("已删除「\(plan.title)」", undoable: "删除计划")
+    toast("已删除「\(plan.title)」，相关事项保留", undoable: "删除计划")
   }
 
   // MARK: Profile & appearance
@@ -492,7 +532,23 @@ enum DemoData {
     }
     read.done[t] = true
     s.tasks = [read, walk, water, TaskItem(title: "整理房间", day: t, repeatMode: .once, reminder: nil)]
-    s.plans = [Plan(title: "成为更强大的人", desc: "每周运动三次，持续读书。"), Plan(title: "学会游泳", desc: "")]
+    var strong = Plan(title: "成为更强大的人", desc: "每周运动三次，持续读书。")
+    strong.color = "#287052"
+    strong.icon = "figure.run"
+    strong.pinned = true
+    var swim = Plan(title: "学会游泳", desc: "报班，先学会换气。")
+    swim.color = "#386b98"
+    swim.icon = "leaf"
+    var guitar = Plan(title: "学吉他", desc: "")
+    guitar.icon = "music.note"
+    guitar.color = "#d77b48"
+    guitar.status = .paused
+    var marathon = Plan(title: "跑完半程马拉松", desc: "")
+    marathon.status = .done
+    marathon.doneAt = DayKey.add(days: -30, to: t)
+    s.plans = [strong, swim, guitar, marathon]
+    s.tasks[0].planId = strong.id
+    s.tasks[1].planId = strong.id
     var lake = NoteEntry(text: "傍晚的风很舒服，绕着湖走了**一圈**。", time: "19:20", photos: [], tags: ["日常", "心情"])
     lake.place = "杭州市 · 西湖区"
     lake.weather = "晴 23°"

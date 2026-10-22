@@ -10,6 +10,17 @@ struct TaskStreak: Identifiable {
   let rate30: Double
 }
 
+/// How the tasks linked to a plan are going.
+struct PlanProgress {
+  let tasks: [TaskItem]
+  /// All completions of the linked tasks.
+  let total: Int
+  /// Completions in the last 7 days (including today).
+  let lastWeek: Int
+  /// Longest current streak among the linked daily tasks.
+  let streak: Int
+}
+
 struct HeatCell: Identifiable {
   var id: String { day }
   let day: String
@@ -118,6 +129,20 @@ extension AppState {
       let c = DayKey.calendar.dateComponents([.month, .day], from: DayKey.date(start))
       return WeekStat(start: start, label: "\(c.month ?? 0)/\(c.day ?? 0)", completions: completions, noteDays: noteDays)
     }
+  }
+
+  func progress(of plan: Plan, today: String) -> PlanProgress {
+    let linked = tasks.filter { $0.planId == plan.id }
+    let since = DayKey.add(days: -6, to: today)
+    var total = 0, lastWeek = 0, streak = 0
+    for task in linked {
+      for (day, done) in task.done where done {
+        total += 1
+        if day >= since && day <= today { lastWeek += 1 }
+      }
+      if task.repeatMode == .daily { streak = max(streak, self.streak(for: task, today: today).current) }
+    }
+    return PlanProgress(tasks: linked, total: total, lastWeek: lastWeek, streak: streak)
   }
 
   /// Completions this week so far vs the same weekdays of last week (a fair comparison mid-week).

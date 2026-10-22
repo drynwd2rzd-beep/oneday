@@ -172,7 +172,13 @@ struct TaskRow: View {
           Text("\(task.repeatMode.label) · 已完成 \(task.completionCount) 次")
           if let reminder = task.reminder {
             Label(DayKey.clock(minutes: reminder), systemImage: "bell.fill")
-              .labelStyle(.titleAndIcon)
+              .labelStyle(CompactLabelStyle())
+          }
+          if let plan = store.state.plan(task.planId) {
+            Label(plan.title, systemImage: plan.symbol)
+              .labelStyle(CompactLabelStyle())
+              .foregroundStyle(plan.color.map { Color(hex: $0) } ?? accent)
+              .lineLimit(1)
           }
         }
         .font(.caption)
@@ -184,6 +190,18 @@ struct TaskRow: View {
           editingReminder = true
         } label: {
           Label(task.reminder == nil ? "设置提醒" : "修改提醒", systemImage: "bell")
+        }
+        if !store.state.activePlans.isEmpty || task.planId != nil {
+          Menu {
+            Picker("所属计划", selection: Binding(get: { task.planId }, set: { store.setPlan($0, for: task.id) })) {
+              Text("不属于计划").tag(String?.none)
+              ForEach(store.state.activePlans) { plan in
+                Label(plan.title, systemImage: plan.symbol).tag(Optional(plan.id))
+              }
+            }
+          } label: {
+            Label("归入计划", systemImage: "scope")
+          }
         }
         if task.reminder != nil {
           Button {

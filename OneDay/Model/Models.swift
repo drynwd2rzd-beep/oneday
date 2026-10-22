@@ -9,11 +9,12 @@ enum RepeatMode: String, Codable, CaseIterable, Hashable {
 }
 
 enum PlanStatus: String, Codable, CaseIterable, Hashable {
-  case active, done, archived
+  case active, paused, done, archived
 
   var label: String {
     switch self {
     case .active: "进行中"
+    case .paused: "已暂停"
     case .done: "已完成"
     case .archived: "已归档"
     }
@@ -22,6 +23,7 @@ enum PlanStatus: String, Codable, CaseIterable, Hashable {
   var line: String {
     switch self {
     case .active: "正在前进"
+    case .paused: "先停一停，随时可以继续"
     case .done: "已经完成"
     case .archived: "暂时归档"
     }
@@ -148,13 +150,15 @@ struct TaskItem: Codable, Identifiable, Hashable {
   var done: [String: Bool]
   /// Reminder time in minutes after midnight.
   var reminder: Int?
+  /// The plan this task moves forward, if any.
+  var planId: String?
 
   enum CodingKeys: String, CodingKey {
-    case id, title, date, created, done, reminder
+    case id, title, date, created, done, reminder, planId
     case repeatMode = "repeat"
   }
 
-  init(title: String, day: String, repeatMode: RepeatMode, reminder: Int?) {
+  init(title: String, day: String, repeatMode: RepeatMode, reminder: Int?, planId: String? = nil) {
     id = UUID().uuidString
     self.title = title
     date = day
@@ -162,6 +166,7 @@ struct TaskItem: Codable, Identifiable, Hashable {
     self.repeatMode = repeatMode
     done = [:]
     self.reminder = reminder
+    self.planId = planId
   }
 
   init(from decoder: Decoder) throws {
@@ -174,6 +179,7 @@ struct TaskItem: Codable, Identifiable, Hashable {
     repeatMode = c.get("repeat", as: RepeatMode.self) ?? .once
     done = c.get("done", as: [String: Bool].self) ?? [:]
     reminder = c.get("reminder", as: Int.self)
+    planId = c.string("planId")
   }
 
   func occurs(on day: String) -> Bool {
@@ -248,11 +254,22 @@ struct NoteEntry: Codable, Identifiable, Hashable {
 }
 
 struct Plan: Codable, Identifiable, Hashable {
+  static let colors = ["#287052", "#386b98", "#8057b8", "#c75c88", "#d77b48", "#c9a227", "#3a8f8f", "#68717a"]
+  static let icons = [
+    "scope", "flag", "star", "heart", "leaf", "book", "figure.run", "dumbbell",
+    "brain.head.profile", "graduationcap", "briefcase", "house", "airplane", "music.note", "paintbrush", "dollarsign.circle",
+  ]
+
   var id: String
   var title: String
   var desc: String
   var status: PlanStatus
   var created: String
+  var color: String?
+  var icon: String?
+  var pinned = false
+  /// Day the plan was marked done.
+  var doneAt: String?
 
   init(title: String, desc: String) {
     id = UUID().uuidString
@@ -269,7 +286,13 @@ struct Plan: Codable, Identifiable, Hashable {
     desc = c.string("desc", "description") ?? ""
     status = c.get("status", as: PlanStatus.self) ?? .active
     created = c.string("created") ?? DayKey.today
+    color = c.string("color")
+    icon = c.string("icon")
+    pinned = c.get("pinned", as: Bool.self) ?? false
+    doneAt = c.string("doneAt")
   }
+
+  var symbol: String { icon.flatMap { Plan.icons.contains($0) ? $0 : nil } ?? "scope" }
 }
 
 // MARK: - Settings
@@ -395,7 +418,14 @@ struct AppState: Codable {
       p.title = p.title.trimmed
       guard !p.title.isEmpty else { return nil }
       p.id = Self.safeId(p.id, seen: &seen)
+      if let c = p.color, !HexColor.isValid(c) { p.color = nil }
+      if p.status != .done { p.doneAt = nil }
       return p
+    }
+    // A task can only point at a plan that still exists.
+    let planIds = Set(plans.map(\.id))
+    for i in tasks.indices {
+      if let id = tasks[i].planId, !planIds.contains(id) { tasks[i].planId = nil }
     }
     var s = settings
     s.name = String(s.name.trimmed.prefix(20))
@@ -469,7 +499,16 @@ extension AppState {
     settings.customTags.contains(tag) && !Self.defaultTags.contains(tag)
   }
 
-  var activePlans: [Plan] { plans.filter { $0.status == .active } }
+  /// Active plans, pinned first, otherwise in the user's order.
+  var activePlans: [Plan] {
+    let active = plans.filter { $0.status == .active }
+    return active.filter(\.pinned) + active.filter { !$0.pinned }
+  }
+
+  func plan(_ id: String?) -> Plan? {
+    guard let id else { return nil }
+    return plans.first { $0.id == id }
+  }
 
   var referencedPhotos: Set<String> {
     var names = Set<String>()

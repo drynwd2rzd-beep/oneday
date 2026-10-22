@@ -128,14 +128,7 @@ private struct HomePlansModule: View {
         } else {
           ForEach(Array(plans.enumerated()), id: \.element.id) { index, plan in
             if index > 0 { Divider().padding(.vertical, 10) }
-            VStack(alignment: .leading, spacing: 3) {
-              Text(plan.title).font(.body.weight(.semibold))
-              Text(plan.desc.isEmpty ? "正在前进。" : plan.desc)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            HomePlanRow(plan: plan)
           }
         }
       }
@@ -528,5 +521,40 @@ private struct ListOrCard: ViewModifier {
   @ViewBuilder
   func body(content: Content) -> some View {
     if isList { content.listCard() } else { content.card() }
+  }
+}
+
+private struct HomePlanRow: View {
+  @Environment(Store.self) private var store
+  @Environment(\.accent) private var accent
+  let plan: Plan
+
+  var body: some View {
+    let progress = store.state.progress(of: plan, today: store.today)
+    let tint = plan.color.map { Color(hex: $0) } ?? accent
+    HStack(spacing: 12) {
+      Image(systemName: plan.symbol)
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(.white)
+        .frame(width: 30, height: 30)
+        .background(tint, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+      VStack(alignment: .leading, spacing: 2) {
+        Text(plan.title).font(.body.weight(.semibold))
+        Text(subtitle(progress))
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+      }
+      Spacer(minLength: 0)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .combine)
+  }
+
+  private func subtitle(_ progress: PlanProgress) -> String {
+    if progress.tasks.isEmpty { return plan.desc.isEmpty ? "正在前进。" : plan.desc }
+    var text = "近 7 天完成 \(progress.lastWeek) 次"
+    if progress.streak > 0 { text += " · 连续 \(progress.streak) 天" }
+    return text
   }
 }
