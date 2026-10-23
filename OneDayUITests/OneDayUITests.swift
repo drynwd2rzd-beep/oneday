@@ -147,10 +147,7 @@ final class OneDayUITests: XCTestCase {
 
   func testReviewCalendarAndPhotoWall() {
     let app = launch(["-OneDayTab", "review"])
-    let mode = app.buttons["显示方式"]
-    XCTAssertTrue(mode.waitForExistence(timeout: 8))
-    mode.tap()
-    XCTAssertTrue(app.buttons["日历"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.buttons["日历"].waitForExistence(timeout: 8), "layouts are plain choices at the top")
     app.buttons["日历"].tap()
     let recapEntry = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "月回顾")).firstMatch
     XCTAssertTrue(recapEntry.waitForExistence(timeout: 5), "calendar shows the month recap entry")
@@ -158,7 +155,6 @@ final class OneDayUITests: XCTestCase {
     XCTAssertTrue(app.buttons["关闭"].waitForExistence(timeout: 5), "recap card opens")
     app.buttons["关闭"].tap()
 
-    app.buttons["显示方式"].tap()
     XCTAssertTrue(app.buttons["照片"].waitForExistence(timeout: 5))
     app.buttons["照片"].tap()
     let photo = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "的照片")).firstMatch
@@ -211,7 +207,7 @@ final class OneDayUITests: XCTestCase {
 
   func testGrowthPageOpensFromRing() {
     let app = launch(["-OneDayTab", "today"])
-    let ring = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "今天完成")).firstMatch
+    let ring = app.buttons["小日"]
     XCTAssertTrue(ring.waitForExistence(timeout: 10))
     ring.tap()
     XCTAssertFalse(app.staticTexts["小日的成长"].waitForExistence(timeout: 2), "a tap only makes 小日 react")

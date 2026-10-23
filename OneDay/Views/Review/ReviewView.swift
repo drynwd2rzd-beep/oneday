@@ -11,8 +11,9 @@ struct ReviewView: View {
     NavigationStack(path: dayPath) {
       ScrollView {
         VStack(alignment: .leading, spacing: Spacing.stack) {
-          Picker("回顾", selection: tabBinding) {
-            ForEach(ReviewTab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+          // Four plain choices, all in sight: no hidden display menu.
+          Picker("回顾", selection: sectionBinding) {
+            ForEach(ReviewSection.allCases, id: \.self) { Text($0.rawValue).tag($0) }
           }
           .pickerStyle(.segmented)
 
@@ -39,19 +40,6 @@ struct ReviewView: View {
       }
       .toolbar {
         ToolbarItemGroup(placement: .topBarTrailing) {
-          if store.reviewTab == .timeline {
-            Menu {
-              Picker("显示方式", selection: recordsModeBinding) {
-                ForEach(RecordsMode.allCases, id: \.self) { mode in
-                  Label(mode.label, systemImage: mode.icon).tag(mode)
-                }
-              }
-            } label: {
-              Image(systemName: store.recordsMode.icon)
-            }
-            .accessibilityLabel("显示方式")
-            .accessibilityValue(store.recordsMode.label)
-          }
           Button {
             showSearch = true
           } label: {
@@ -72,18 +60,35 @@ struct ReviewView: View {
       set: { store.reviewDate = $0.last })
   }
 
-  private var recordsModeBinding: Binding<RecordsMode> {
-    Binding(get: { store.recordsMode }, set: { store.recordsMode = $0 })
-  }
-
-  private var tabBinding: Binding<ReviewTab> {
+  /// The tab and the records layout, chosen together.
+  private var sectionBinding: Binding<ReviewSection> {
     Binding(
-      get: { store.reviewTab },
-      set: { tab in
-        store.reviewTab = tab
+      get: {
+        guard store.reviewTab == .timeline else { return .stats }
+        switch store.recordsMode {
+        case .list: return .diary
+        case .calendar: return .calendar
+        case .photos: return .photos
+        }
+      },
+      set: { section in
         store.reviewDate = nil
+        switch section {
+        case .diary: store.reviewTab = .timeline; store.recordsMode = .list
+        case .calendar: store.reviewTab = .timeline; store.recordsMode = .calendar
+        case .photos: store.reviewTab = .timeline; store.recordsMode = .photos
+        case .stats: store.reviewTab = .overview
+        }
       })
   }
+}
+
+/// What 回顾 shows.
+private enum ReviewSection: String, CaseIterable {
+  case diary = "日记"
+  case calendar = "日历"
+  case photos = "照片"
+  case stats = "统计"
 }
 
 // MARK: - Timeline
@@ -526,6 +531,7 @@ private struct OverviewPanel: View {
   var body: some View {
     VStack(spacing: Spacing.stack) {
       TotalsCard()
+      StarJarCard()
       HeatmapCard()
       StreaksCard()
       if store.state.moodSeries(today: store.today, days: 30).count >= 2 {

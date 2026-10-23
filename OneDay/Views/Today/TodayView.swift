@@ -159,7 +159,7 @@ private struct RecapBanner: View {
   }
 }
 
-/// Greeting on the left, today's ring with 小日 on the right: the first thing you see.
+/// The greeting, then 小日's little world: the first thing you see.
 private struct HeroModule: View {
   @Environment(Store.self) private var store
   @Environment(\.dynamicTypeSize) private var typeSize
@@ -171,19 +171,24 @@ private struct HeroModule: View {
   /// What 小日 says for a moment after a tap.
   @State private var pokeLine: MascotLine?
   @State private var excited = false
+  @State private var openPostcard: Postcard?
+  @State private var showPostcards = false
 
   var body: some View {
-    let now = Date()
-    let list = store.state.tasks(on: store.today)
-    let done = list.filter { $0.isDone(on: store.today) }.count
-    let growth = store.state.growth(today: store.today)
-    let line = pokeLine ?? (bubbleTick >= 0 ? MascotSpeech.line(state: store.state, today: store.today, growth: growth, now: now) : nil)
-    let layout = typeSize.isAccessibilitySize
-      ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.section))
-      : AnyLayout(HStackLayout(alignment: .center, spacing: Spacing.inner))
-    layout {
+    let now = Self.now
+    let today = store.today
+    let list = store.state.tasks(on: today)
+    let done = list.filter { $0.isDone(on: today) }.count
+    let growth = store.state.growth(today: today)
+    let postcards = store.state.postcards(today: today)
+    let newPostcard = MascotSpeech.unseenPostcard(postcards)
+    let line = pokeLine ?? (bubbleTick >= 0 ? MascotSpeech.line(state: store.state, today: today, growth: growth, postcards: postcards, now: now) : nil)
+    let look = MascotLook(
+      mood: excited ? .party : growth.droopy && done == 0 ? .sleepy : MascotMood.of(done: done, total: list.count, at: now),
+      stage: growth.stage.rawValue, outfit: store.mascotOutfit, droopy: growth.droopy && !excited, plant: store.mascotPlant)
+    VStack(alignment: .leading, spacing: 14) {
       VStack(alignment: .leading, spacing: 6) {
-        Text("\(DayKey.shortDate(store.today)) \(DayKey.weekday(store.today))")
+        Text("\(DayKey.shortDate(today)) \(DayKey.weekday(today))")
           .font(.app(.subheadline).weight(.medium))
           .foregroundStyle(.secondary)
         Text(OneDayText.greeting(now))
@@ -193,50 +198,81 @@ private struct HeroModule: View {
           .foregroundStyle(.secondary)
           .lineLimit(3)
           .fixedSize(horizontal: false, vertical: true)
-          .padding(.top, 2)
-        if let line {
-          MascotBubble(line: line) {
-            if line.opensGrowth {
-              showGrowth = true
-            } else {
-              MascotSpeech.dismiss(line, today: store.today)
-              withAnimation(.snappy) { bubbleTick += 1 }
-            }
-          } onMood: { level in
-            store.setDayMood(level, on: store.today)
-            withAnimation(.snappy) { bubbleTick += 1 }
-          }
-          .padding(.top, 8)
-          .transition(.scale(scale: 0.8, anchor: .trailing).combined(with: .opacity))
-        }
       }
-      .frame(maxWidth: .infinity, alignment: .leading)
-      // Tap: 小日 reacts. Long press: its growth page.
-      TodayRing(
-        done: done, total: list.count,
-        mood: excited ? .party : growth.droopy && done == 0 ? .sleepy : MascotMood.of(done: done, total: list.count, at: now),
-        stage: growth.stage.rawValue, outfit: store.mascotOutfit, droopy: growth.droopy && !excited,
-        plant: store.mascotPlant, pokes: pokes)
-        .frame(width: 128, height: 128)
-        .contentShape(Circle())
-        .onTapGesture { poke(droopy: growth.droopy) }
-        .onLongPressGesture(minimumDuration: 0.4) {
+      // Tap 小日: it reacts. Long press: its growth page. The mailbox: postcards.
+      WorldScene(
+        now: now, done: done, total: list.count, look: look, pokes: pokes,
+        festival: Self.festival(today: today),
+        hasMail: newPostcard != nil,
+        onMascotTap: { poke(droopy: growth.droopy) },
+        onMascotHold: {
           Haptics.success()
           showGrowth = true
+        },
+        onMailbox: { openMail(postcards) })
+        .frame(height: typeSize.isAccessibilitySize ? 300 : 236)
+        .overlay(alignment: .topTrailing) {
+          if let line {
+            MascotBubble(line: line, tail: .bottom) {
+              if line.opensMail {
+                openMail(postcards)
+              } else if line.opensGrowth {
+                showGrowth = true
+              } else {
+                MascotSpeech.dismiss(line, today: today)
+                withAnimation(.snappy) { bubbleTick += 1 }
+              }
+            } onMood: { level in
+              store.setDayMood(level, on: today)
+              say("一颗\(Mood(rawValue: level)?.label ?? "")的星星掉进罐子里啦", id: "star")
+            }
+            .frame(maxWidth: 250, alignment: .trailing)
+            .padding(.top, 14)
+            .padding(.trailing, 22)
+            .transition(.scale(scale: 0.8, anchor: .bottomTrailing).combined(with: .opacity))
+          }
         }
-        .accessibilityAddTraits(.isButton)
-        .accessibilityHint("轻点和小日玩，长按打开小日的成长")
-        .accessibilityAction { poke(droopy: growth.droopy) }
-        .accessibilityAction(named: "小日的成长") { showGrowth = true }
     }
     .padding(.top, 20)
     .animation(.snappy, value: line?.id)
     .sheet(isPresented: $showGrowth, onDismiss: { bubbleTick += 1 }) { GrowthSheet().oneDaySheet() }
+    .sheet(item: $openPostcard, onDismiss: { bubbleTick += 1 }) { PostcardSheet(card: $0).oneDaySheet() }
+    .sheet(isPresented: $showPostcards, onDismiss: { bubbleTick += 1 }) { PostcardsSheet().oneDaySheet() }
     #if DEBUG
     .onAppear {
       if UserDefaults.standard.bool(forKey: "OneDayGrowth") { showGrowth = true }
+      if UserDefaults.standard.bool(forKey: "OneDayPostcard") { openPostcard = postcards.last }
+      if UserDefaults.standard.bool(forKey: "OneDayPostcards") { showPostcards = true }
     }
     #endif
+  }
+
+  private static var now: Date {
+    #if DEBUG
+    // Screenshots of the scene at other times of day: `-OneDayHour 21`.
+    let hour = UserDefaults.standard.integer(forKey: "OneDayHour")
+    if hour > 0 { return DayKey.calendar.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date() }
+    #endif
+    return Date()
+  }
+
+  /// The festival being celebrated today, if any.
+  private static func festival(today: String) -> MascotOutfit? {
+    #if DEBUG
+    if let raw = UserDefaults.standard.string(forKey: "OneDayFestival") { return MascotOutfit(rawValue: raw) }
+    #endif
+    return MascotOutfit.allCases.first { $0.isFestival && Festivals.isWearable($0, today: today) }
+  }
+
+  /// A waiting postcard opens by itself; otherwise the whole collection.
+  private func openMail(_ postcards: [Postcard]) {
+    Haptics.tap()
+    if let card = MascotSpeech.unseenPostcard(postcards) {
+      MascotSpeech.markPostcardsSeen(postcards.count)
+      openPostcard = card
+    } else {
+      showPostcards = true
+    }
   }
 
   private static let pokePhrases = ["嘿嘿～", "被你发现啦", "一起慢慢来", "今天也辛苦啦", "摸摸头～", "我在努力长大哦", "有你在真好", "再点我要害羞啦"]
@@ -246,119 +282,25 @@ private struct HeroModule: View {
     Haptics.tap()
     pokes += 1
     excited = true
-    let text = droopy ? "你回来啦！" : Self.pokePhrases[(pokes - 1) % Self.pokePhrases.count]
-    withAnimation(.snappy) { pokeLine = MascotLine(id: "poke\(pokes)", text: text) }
-    let current = pokes
+    say(droopy ? "你回来啦！" : Self.pokePhrases[(pokes - 1) % Self.pokePhrases.count], id: "poke\(pokes)")
     Task { @MainActor in
       try? await Task.sleep(for: .seconds(1.2))
       excited = false
-      try? await Task.sleep(for: .seconds(1.3))
-      if pokes == current { withAnimation(.snappy) { pokeLine = nil } }
     }
   }
-}
 
-/// How 小日 moves when tapped.
-private struct PokeMotion {
-  var lift: CGFloat = 0
-  var turn: Double = 0
-  var scale: CGFloat = 1
-}
-
-/// Today's progress as a ring around 小日, whose face follows it. 小日 hops when a task is
-/// ticked and breathes gently the rest of the time.
-struct TodayRing: View {
-  @Environment(\.accent) private var accent
-  @Environment(\.palette) private var palette
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-  let done: Int
-  let total: Int
-  let mood: MascotMood
-  var stage = 1
-  var outfit: MascotOutfit?
-  var droopy = false
-  var plant: MascotPlant = .cherry
-  /// Bumped on each tap; alternates a hop, a spin and a wiggle.
-  var pokes = 0
-
-  private var progress: Double { total == 0 ? 0 : Double(done) / Double(total) }
-
-  var body: some View {
-    GeometryReader { geo in
-      let side = min(geo.size.width, geo.size.height)
-      let line = side * 0.075
-      ZStack {
-        // Inset by half the line so the ring stays inside its frame and lines up with the page margin.
-        Circle().inset(by: line / 2).stroke(accent.opacity(0.13), lineWidth: line)
-        Circle()
-          .inset(by: line / 2)
-          .trim(from: 0, to: progress)
-          .stroke(
-            AngularGradient(colors: [accent.opacity(0.75), accent], center: .center, startAngle: .degrees(0), endAngle: .degrees(360 * max(progress, 0.01))),
-            style: StrokeStyle(lineWidth: line, lineCap: .round))
-          .rotationEffect(.degrees(-90))
-          .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
-        mascot(side: side)
-        Text(total == 0 ? "自由的一天" : "\(done)/\(total)")
-          .font(.app(.footnote).weight(.semibold).monospacedDigit())
-          .contentTransition(.numericText())
-          .animation(.snappy, value: done)
-          .padding(.horizontal, 9)
-          .padding(.vertical, 3)
-          .background(palette.surface, in: Capsule())
-          .overlay(Capsule().stroke(accent.opacity(0.15), lineWidth: 1))
-          .offset(y: side * 0.36)
+  /// A passing remark that fades after a moment.
+  private func say(_ text: String, id: String) {
+    let line = MascotLine(id: id + "\(Date().timeIntervalSince1970)", text: text)
+    withAnimation(.snappy) { pokeLine = line }
+    Task { @MainActor in
+      try? await Task.sleep(for: .seconds(2.5))
+      if pokeLine == line {
+        withAnimation(.snappy) {
+          pokeLine = nil
+          bubbleTick += 1
+        }
       }
-      .frame(width: side, height: side)
-    }
-    .accessibilityElement(children: .ignore)
-    .accessibilityLabel(total == 0 ? "今天没有事项" : "今天完成 \(done) 件，共 \(total) 件")
-  }
-
-  @ViewBuilder
-  private func mascot(side: CGFloat) -> some View {
-    let base = MascotView(mood: mood, size: side * 0.6, stage: stage, outfit: outfit, droopy: droopy, plant: plant)
-      .offset(y: -side * 0.04)
-    if reduceMotion {
-      base
-    } else {
-      base
-        .keyframeAnimator(initialValue: CGFloat(0), trigger: done) { view, hop in
-          view.offset(y: hop)
-        } keyframes: { _ in
-          KeyframeTrack {
-            SpringKeyframe(-side * 0.08, duration: 0.18, spring: .snappy)
-            SpringKeyframe(0, duration: 0.35, spring: .bouncy)
-          }
-        }
-        .keyframeAnimator(initialValue: PokeMotion(), trigger: pokes) { view, m in
-          view
-            .offset(y: m.lift)
-            .rotationEffect(.degrees(m.turn))
-            .scaleEffect(m.scale)
-        } keyframes: { _ in
-          let kind = pokes % 3
-          let turns: [Double] = kind == 1 ? [120, 240, 360, 360] : kind == 2 ? [14, -14, 8, 0] : [0, 0, 0, 0]
-          KeyframeTrack(\.lift) {
-            SpringKeyframe(kind == 0 ? -side * 0.12 : -side * 0.03, duration: 0.18, spring: .snappy)
-            SpringKeyframe(0, duration: 0.4, spring: .bouncy)
-          }
-          KeyframeTrack(\.turn) {
-            CubicKeyframe(turns[0], duration: 0.12)
-            CubicKeyframe(turns[1], duration: 0.12)
-            CubicKeyframe(turns[2], duration: 0.12)
-            CubicKeyframe(turns[3], duration: 0.14)
-          }
-          KeyframeTrack(\.scale) {
-            SpringKeyframe(1.08, duration: 0.15, spring: .snappy)
-            SpringKeyframe(1, duration: 0.35, spring: .bouncy)
-          }
-        }
-        .phaseAnimator([false, true]) { view, breathe in
-          view.scaleEffect(breathe ? 1.03 : 1, anchor: .bottom)
-        } animation: { _ in
-          .easeInOut(duration: 1.8)
-        }
     }
   }
 }

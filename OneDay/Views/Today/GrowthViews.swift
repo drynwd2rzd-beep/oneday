@@ -9,6 +9,8 @@ struct MascotLine: Equatable {
   var opensGrowth = false
   /// Shows the five mood faces to tap.
   var asksMood = false
+  /// A postcard arrived: tapping opens it.
+  var opensMail = false
 }
 
 /// Picks at most one thing for 小日 to say on 今天, most important first. Growth news is
@@ -19,6 +21,7 @@ enum MascotSpeech {
   private static let seenOutfitsKey = "mascotSeenOutfits"
   private static let seenChallengeKey = "mascotSeenChallenge"
   private static let dismissedKey = "mascotDismissed"
+  private static let seenPostcardsKey = "mascotSeenPostcards"
 
   /// Festival outfits are news once per festival.
   private static func seenKey(_ outfit: MascotOutfit, today: String) -> String {
@@ -26,7 +29,7 @@ enum MascotSpeech {
     return outfit.rawValue + "@" + w.start
   }
 
-  static func line(state: AppState, today: String, growth: Growth, now: Date = Date()) -> MascotLine? {
+  static func line(state: AppState, today: String, growth: Growth, postcards: [Postcard] = [], now: Date = Date()) -> MascotLine? {
     let defaults = UserDefaults.standard
     // First run: whatever 小日 already has is not news.
     if defaults.object(forKey: seenStageKey) == nil { markGrowthSeen(growth) }
@@ -44,6 +47,9 @@ enum MascotSpeech {
     var candidates: [MascotLine] = []
     if growth.stage.rawValue > seenStage {
       candidates.append(MascotLine(id: "stage\(growth.stage.rawValue)", text: "我长出\(growth.stage.name)啦！", opensGrowth: true))
+    }
+    if let card = unseenPostcard(postcards) {
+      candidates.append(MascotLine(id: "postcard\(card.number)", text: "我从\(card.destination.region)寄了一张明信片回来！", opensMail: true))
     }
     if let outfit = growth.unlocked.first(where: { !seenOutfits.contains(seenKey($0, today: today)) }) {
       let text = outfit.isFestival ? "节日限定：\(outfit.name)可以戴啦" : "解锁了\(outfit.name)，点我换上～"
@@ -79,6 +85,21 @@ enum MascotSpeech {
     return candidates.first { !dismissed.contains("\(today)|\($0.id)") }
   }
 
+  /// The newest postcard, if it hasn't been opened yet. On first run the newest one counts
+  /// as new, so the mailbox flag is up the first time 小日's world is seen.
+  static func unseenPostcard(_ postcards: [Postcard]) -> Postcard? {
+    let defaults = UserDefaults.standard
+    if defaults.object(forKey: seenPostcardsKey) == nil {
+      defaults.set(max(0, postcards.count - 1), forKey: seenPostcardsKey)
+    }
+    guard let last = postcards.last, defaults.integer(forKey: seenPostcardsKey) < postcards.count else { return nil }
+    return last
+  }
+
+  static func markPostcardsSeen(_ count: Int) {
+    UserDefaults.standard.set(count, forKey: seenPostcardsKey)
+  }
+
   static func dismiss(_ line: MascotLine, today: String) {
     let defaults = UserDefaults.standard
     // Keep only today's entries.
@@ -101,6 +122,8 @@ struct MascotBubble: View {
   @Environment(\.palette) private var palette
   @Environment(\.accent) private var accent
   let line: MascotLine
+  /// Where the tail points: at 小日 beside the bubble, or below it.
+  var tail: Edge = .trailing
   let action: () -> Void
   /// For a mood question: the face that was tapped (1…5).
   var onMood: (Int) -> Void = { _ in }
@@ -130,7 +153,7 @@ struct MascotBubble: View {
               .font(.app(.subheadline).weight(.medium))
               .foregroundStyle(.primary)
               .multilineTextAlignment(.leading)
-            if line.opensGrowth {
+            if line.opensGrowth || line.opensMail {
               Image(systemName: "chevron.right").font(.app(.caption).weight(.bold)).foregroundStyle(accent)
             }
           }
@@ -138,19 +161,20 @@ struct MascotBubble: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("小日说：\(line.text)")
-        .accessibilityHint(line.opensGrowth ? "打开小日的成长" : "关闭")
+        .accessibilityHint(line.opensMail ? "打开明信片" : line.opensGrowth ? "打开小日的成长" : "关闭")
       }
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 8)
     .background(palette.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.sun.opacity(0.5), lineWidth: 1))
-    .overlay(alignment: .trailing) {
+    .overlay(alignment: tail == .bottom ? .bottomTrailing : .trailing) {
       BubbleTail()
         .fill(palette.surface)
         .overlay(BubbleTail().stroke(Color.sun.opacity(0.5), lineWidth: 1))
         .frame(width: 8, height: 12)
-        .offset(x: 7)
+        .rotationEffect(.degrees(tail == .bottom ? 90 : 0))
+        .offset(x: tail == .bottom ? -64 : 7, y: tail == .bottom ? 9 : 0)
     }
   }
 }
@@ -175,6 +199,7 @@ struct GrowthSheet: View {
   @State private var showLocked = false
   @State private var showStages = false
   @State private var showRules = false
+  @State private var showPostcards = false
 
   var body: some View {
     let growth = store.state.growth(today: store.today)
@@ -197,6 +222,7 @@ struct GrowthSheet: View {
             .padding(.vertical, 8)
 
             sunshineCard(growth)
+            postcardsRow
             plantRow(plant)
             outfitsCard(growth, worn: worn, plant: plant).id("outfits")
             folded("成长路线", isOpen: $showStages) { stages(growth, plant: plant) }
@@ -263,6 +289,31 @@ struct GrowthSheet: View {
       .accessibilityElement(children: .combine)
     }
     .card()
+  }
+
+  // MARK: Postcards
+
+  private var postcardsRow: some View {
+    let cards = store.state.postcards(today: store.today)
+    return Button {
+      showPostcards = true
+    } label: {
+      HStack(spacing: 10) {
+        Image(systemName: "envelope.fill").foregroundStyle(Color(hex: "#e0645a"))
+        Text("明信片").font(.app(.body)).foregroundStyle(.primary)
+        Spacer()
+        Text(cards.isEmpty ? "还差 \(store.state.daysToNextPostcard(today: store.today)) 天" : "\(cards.count) 张")
+          .font(.app(.body))
+          .foregroundStyle(.secondary)
+        Image(systemName: "chevron.right")
+          .font(.app(.footnote).weight(.semibold))
+          .foregroundStyle(.tertiary)
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .card()
+    .sheet(isPresented: $showPostcards) { PostcardsSheet().oneDaySheet() }
   }
 
   // MARK: Plant

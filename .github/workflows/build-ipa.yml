@@ -118,6 +118,13 @@ jobs:
           shoot widgets -OneDayDemo YES -OneDayTab me -OneDayWidgets YES
           shoot growth -OneDayDemo YES -OneDayTab today -OneDayGrowth YES
           shoot outfits -OneDayDemo YES -OneDayTab today -OneDayGrowth YES -OneDayOutfits YES
+          shoot scene-morning -OneDayDemo YES -OneDayTab today -OneDayHour 9
+          shoot scene-dawn-pumpkin -OneDayDemo YES -OneDayTab today -OneDayHour 6 -OneDayFestival pumpkin
+          shoot scene-golden-christmas -OneDayDemo YES -OneDayTab today -OneDayHour 17 -OneDayFestival santaHat
+          shoot scene-night-lanterns -OneDayDemo YES -OneDayTab today -OneDayHour 21 -OneDayFestival bunnyEars
+          shoot postcard -OneDayDemo YES -OneDayTab today -OneDayHour 10 -OneDayPostcard YES
+          shoot postcards -OneDayDemo YES -OneDayTab today -OneDayHour 10 -OneDayPostcards YES
+          shoot star-jar -OneDayDemo YES -OneDayTab review -OneDayReview overview -OneDayJar YES
           shoot journal-today -OneDayDemo YES -OneDayTab today -OneDayFont journal
           shoot journal-review -OneDayDemo YES -OneDayTab review -OneDayFont journal
           shoot rounded-tasks -OneDayDemo YES -OneDayTab tasks -OneDayFont rounded
