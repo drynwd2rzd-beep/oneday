@@ -753,14 +753,14 @@ enum DemoData {
     read.done[t] = true
     var gym = TaskItem(title: "运动", day: DayKey.add(days: -60, to: t), repeatMode: .weekly, reminder: nil)
     gym.perWeek = 3
-    var swim = TaskItem(title: "游泳课", day: DayKey.add(days: -60, to: t), repeatMode: .weekdays, reminder: 19 * 60)
-    swim.weekdays = [2, 4]
+    var swimClass = TaskItem(title: "游泳课", day: DayKey.add(days: -60, to: t), repeatMode: .weekdays, reminder: 19 * 60)
+    swimClass.weekdays = [2, 4]
     for k in 1...60 {
       let day = DayKey.add(days: -k, to: t)
       if [1, 3, 5].contains(DayKey.weekdayIndex(day)) { gym.done[day] = true }
-      if swim.occurs(on: day) && k % 9 != 0 { swim.done[day] = true }
+      if swimClass.occurs(on: day) && k % 9 != 0 { swimClass.done[day] = true }
     }
-    s.tasks = [read, walk, water, gym, swim, TaskItem(title: "整理房间", day: t, repeatMode: .once, reminder: nil)]
+    s.tasks = [read, walk, water, gym, swimClass, TaskItem(title: "整理房间", day: t, repeatMode: .once, reminder: nil)]
     s.settings.mascotOutfit = MascotOutfit.scarf.rawValue
     var strong = Plan(title: "成为更强大的人", desc: "每周运动三次，持续读书。")
     strong.color = "#287052"
