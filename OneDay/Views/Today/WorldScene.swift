@@ -98,7 +98,7 @@ struct WorldScene: View {
           .accessibilityElement()
           .accessibilityLabel(hasMail ? "邮筒，有新的明信片" : "邮筒，小日的明信片")
           .accessibilityAddTraits(.isButton)
-          .accessibilityAction(perform: onMailbox)
+          .accessibilityAction { onMailbox() }
 
         if look.droopy { rainCloud(w: w, h: h) }
         mascot(w: w, h: h)
@@ -121,13 +121,15 @@ struct WorldScene: View {
   // MARK: Sky
 
   private func sunOrMoon(_ time: SkyTime, w: CGFloat, h: CGFloat) -> some View {
-    let hour = Double(DayKey.calendar.component(.hour, from: now)) + Double(DayKey.calendar.component(.minute, from: now)) / 60
+    let minutes = DayKey.calendar.component(.hour, from: now) * 60 + DayKey.calendar.component(.minute, from: now)
+    let hour = Double(minutes) / 60
     // Across the sky from 6:00 to 18:00 (the moon from 18:00 to 6:00), highest at the middle.
-    let t = time.hasSun ? (hour - 6) / 12 : ((hour < 12 ? hour + 24 : hour) - 18) / 12
-    let p = min(max(t, 0.05), 0.95)
-    let x = w * (0.08 + 0.84 * p)
-    let y = h * (0.42 - 0.3 * sin(.pi * p))
-    let side = h * 0.17
+    let nightHour: Double = hour < 12 ? hour + 24 : hour
+    let t: Double = time.hasSun ? (hour - 6) / 12 : (nightHour - 18) / 12
+    let p: Double = min(max(t, 0.05), 0.95)
+    let x: CGFloat = w * CGFloat(0.08 + 0.84 * p)
+    let y: CGFloat = h * CGFloat(0.42 - 0.3 * sin(Double.pi * p))
+    let side: CGFloat = h * 0.17
     return Group {
       if time.hasSun {
         Circle()
@@ -204,11 +206,12 @@ struct WorldScene: View {
     let count = min(total, Self.flowerSlots.count)
     let size = h * 0.11
     return ForEach(0..<count, id: \.self) { index in
-      let x = Self.flowerSlots[index]
+      let x: CGFloat = Self.flowerSlots[index]
       // The second row stands a little lower on the hill.
-      let lower: CGFloat = index >= 4 ? h * 0.07 : 0
+      let lower: CGFloat = index >= 4 ? h * 0.09 : h * 0.02
+      let y: CGFloat = hillY(x, h: h) - size * 0.55 + lower
       HillFlower(bloomed: index < done, plant: look.plant, size: size)
-        .position(x: w * x, y: hillY(x, h: h) - size * 0.55 + lower + h * 0.02)
+        .position(x: w * x, y: y)
     }
     .accessibilityHidden(true)
   }
@@ -217,8 +220,9 @@ struct WorldScene: View {
   private func festivalProps(w: CGFloat, h: CGFloat) -> some View {
     switch festival {
     case .some(.pumpkin):
-      ForEach([0.2, 0.86], id: \.self) { x in
-        Pumpkin(size: h * 0.12).position(x: w * x, y: hillY(x, h: h) + h * 0.03)
+      ForEach([CGFloat(0.2), CGFloat(0.86)], id: \.self) { (x: CGFloat) in
+        let y: CGFloat = hillY(x, h: h) + h * 0.03
+        Pumpkin(size: h * 0.12).position(x: w * x, y: y)
       }
       .accessibilityHidden(true)
     case .some(.santaHat):
@@ -231,9 +235,10 @@ struct WorldScene: View {
   }
 
   private func lanterns(w: CGFloat, h: CGFloat) -> some View {
-    ForEach([(0.06, 0.0), (0.94, 0.04)], id: \.0) { spot in
+    let spots: [(x: CGFloat, y: CGFloat)] = [(0.06, 0.12), (0.94, 0.16)]
+    return ForEach(spots, id: \.x) { spot in
       Lantern(size: h * 0.14)
-        .position(x: w * spot.0, y: h * (0.12 + spot.1))
+        .position(x: w * spot.x, y: h * spot.y)
     }
     .accessibilityHidden(true)
   }
@@ -254,19 +259,22 @@ struct WorldScene: View {
   // MARK: 小日
 
   private func mascot(w: CGFloat, h: CGFloat) -> some View {
-    let size = h * 0.46
+    let size: CGFloat = h * 0.46
+    let x: CGFloat = w * Self.mascotX
+    let y: CGFloat = hillY(Self.mascotX, h: h) - size * 0.36
+    let tap = onMascotTap, hold = onMascotHold
     return LivelyMascot(look: look, size: size, hops: done, pokes: pokes)
       .frame(width: size * 1.2, height: size * 1.2)
       .contentShape(Rectangle())
-      .onTapGesture(perform: onMascotTap)
-      .onLongPressGesture(minimumDuration: 0.4, perform: onMascotHold)
-      .position(x: w * Self.mascotX, y: hillY(Self.mascotX, h: h) - size * 0.36)
+      .onTapGesture { tap() }
+      .onLongPressGesture(minimumDuration: 0.4) { hold() }
+      .position(x: x, y: y)
       .accessibilityElement()
       .accessibilityLabel("小日")
       .accessibilityAddTraits(.isButton)
       .accessibilityHint("轻点和小日玩，长按打开小日的成长")
-      .accessibilityAction(perform: onMascotTap)
-      .accessibilityAction(named: "小日的成长", onMascotHold)
+      .accessibilityAction { tap() }
+      .accessibilityAction(named: "小日的成长") { hold() }
   }
 
   private func progressChip(dark: Bool) -> some View {
@@ -508,6 +516,7 @@ private struct Pumpkin: View {
 
 private struct ChristmasTree: View {
   let size: CGFloat
+  private static let baubles: [(x: CGFloat, y: CGFloat)] = [(-0.12, -0.1), (0.1, 0.06), (-0.16, 0.22), (0.18, 0.26)]
 
   var body: some View {
     ZStack {
@@ -519,9 +528,9 @@ private struct ChristmasTree: View {
       }
       Rectangle().fill(Color(hex: "#8a5a3b")).frame(width: size * 0.1, height: size * 0.14).offset(y: size * 0.4)
       Sparkle().fill(Color(hex: "#ffd76a")).frame(width: size * 0.2, height: size * 0.2).offset(y: -size * 0.46)
-      ForEach([(-0.12, -0.1), (0.1, 0.06), (-0.16, 0.22), (0.18, 0.26)], id: \.0) { spot in
+      ForEach(Self.baubles, id: \.x) { spot in
         Circle().fill(Color(hex: "#e04a3a")).frame(width: size * 0.06, height: size * 0.06)
-          .offset(x: size * spot.0, y: size * spot.1)
+          .offset(x: size * spot.x, y: size * spot.y)
       }
     }
     .frame(width: size, height: size)

@@ -12,6 +12,13 @@ struct PostcardPicture: View {
   let destination: Destination
   let look: MascotLook
 
+  private static let stars: [(x: CGFloat, y: CGFloat)] = [(0.1, 0.12), (0.26, 0.3), (0.44, 0.1), (0.62, 0.24), (0.9, 0.14), (0.78, 0.36)]
+  private static let extras: [(x: CGFloat, y: CGFloat)] = [(0.14, 0.24), (0.58, 0.14), (0.28, 0.5)]
+
+  private static func hill(_ x: CGFloat) -> CGFloat {
+    HillShape.y(at: x, left: 0.8, top: 0.68, right: 0.76)
+  }
+
   var body: some View {
     GeometryReader { geo in
       let w = geo.size.width, h = geo.size.height
@@ -21,9 +28,9 @@ struct PostcardPicture: View {
           colors: [Color(hex: destination.sky.0), Color(hex: destination.sky.1)],
           startPoint: .top, endPoint: .bottom)
         if destination.night {
-          ForEach(Array([(0.1, 0.12), (0.26, 0.3), (0.44, 0.1), (0.62, 0.24), (0.9, 0.14), (0.78, 0.36)].enumerated()), id: \.offset) { _, spot in
+          ForEach(Array(Self.stars.enumerated()), id: \.offset) { _, spot in
             Sparkle().fill(Color.white.opacity(0.9)).frame(width: h * 0.045, height: h * 0.045)
-              .position(x: w * spot.0, y: h * spot.1)
+              .position(x: w * spot.x, y: h * spot.y)
           }
         } else {
           Circle()
@@ -32,20 +39,20 @@ struct PostcardPicture: View {
             .shadow(color: Color(hex: "#ffd76a").opacity(0.8), radius: h * 0.08)
             .position(x: w * 0.86, y: h * 0.2)
         }
-        ForEach(Array([(0.14, 0.24), (0.58, 0.14), (0.28, 0.5)].enumerated()), id: \.offset) { index, spot in
+        ForEach(Array(Self.extras.enumerated()), id: \.offset) { index, spot in
           Image(systemName: destination.extra)
             .font(.system(size: h * (index == 1 ? 0.07 : 0.09)))
             .foregroundStyle(destination.night ? Color.white.opacity(0.8) : ink.opacity(0.45))
-            .position(x: w * spot.0, y: h * spot.1)
+            .position(x: w * spot.x, y: h * spot.y)
         }
         HillShape(left: 0.8, top: 0.68, right: 0.76).fill(Color(hex: destination.ground))
         Image(systemName: destination.symbol)
           .font(.system(size: h * 0.36, weight: .regular))
           .foregroundStyle(ink)
           .shadow(color: .black.opacity(0.12), radius: 2, y: 2)
-          .position(x: w * 0.36, y: HillShape.y(at: 0.36, left: 0.8, top: 0.68, right: 0.76) * h - h * 0.16)
+          .position(x: w * 0.36, y: Self.hill(0.36) * h - h * 0.16)
         MascotView(mood: .happy, size: h * 0.34, stage: look.stage, outfit: look.outfit, plant: look.plant)
-          .position(x: w * 0.76, y: HillShape.y(at: 0.76, left: 0.8, top: 0.68, right: 0.76) * h - h * 0.1)
+          .position(x: w * 0.76, y: Self.hill(0.76) * h - h * 0.1)
       }
       .frame(width: w, height: h)
     }
