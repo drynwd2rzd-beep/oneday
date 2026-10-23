@@ -42,6 +42,9 @@ struct MeView: View {
           } label: {
             SettingLabel(icon: "paintpalette.fill", title: "个性化", value: "\(themeLabel(s)) · \(s.fontStyle.label)")
           }
+          SettingRow(icon: "bubble.left.and.bubble.right.fill", title: "和小日聊聊", value: APIKeyStore.hasKey ? "AI" : "未设置") {
+            store.chat = ChatRequest()
+          }
         }
 
         Section("提醒与数据") {

@@ -123,6 +123,8 @@ final class Store {
     didSet { UserDefaults.standard.set(recordsMode.rawValue, forKey: "recordsMode") }
   }
   var recap: MonthRef?
+  /// The chat with 小日, open from anywhere.
+  var chat: ChatRequest?
   var reflection: ReflectionTarget?
   /// The font the screens were last built with (see `applyFontStyle`).
   var appliedFontStyle: FontStyle = .system
@@ -812,6 +814,7 @@ final class Store {
     default: break
     }
     if defaults.string(forKey: "OneDayReview") == "day" { reviewDate = DayKey.add(days: -1, to: today) }
+    if defaults.bool(forKey: "OneDayChat") { chat = ChatRequest() }
   }
   #endif
 }

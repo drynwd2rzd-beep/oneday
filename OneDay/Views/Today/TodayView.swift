@@ -211,6 +211,22 @@ private struct HeroModule: View {
         },
         onMailbox: { openMail(postcards) })
         .frame(height: typeSize.isAccessibilitySize ? 300 : 236)
+        .overlay(alignment: .bottomTrailing) {
+          Button {
+            Haptics.tap()
+            store.chat = ChatRequest()
+          } label: {
+            Label("聊聊", systemImage: "bubble.left.and.bubble.right.fill")
+              .font(.app(.footnote).weight(.semibold))
+              .foregroundStyle(Color(hex: "#2f4a2a"))
+              .padding(.horizontal, 10)
+              .padding(.vertical, 6)
+              .background(Color.white.opacity(0.85), in: Capsule())
+          }
+          .buttonStyle(.plain)
+          .padding(12)
+          .accessibilityLabel("和小日聊聊")
+        }
         .overlay(alignment: .topTrailing) {
           if let line {
             MascotBubble(line: line, tail: .bottom) {

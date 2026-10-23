@@ -125,6 +125,7 @@ jobs:
           shoot postcard -OneDayDemo YES -OneDayTab today -OneDayHour 10 -OneDayPostcard YES
           shoot postcards -OneDayDemo YES -OneDayTab today -OneDayHour 10 -OneDayPostcards YES
           shoot star-jar -OneDayDemo YES -OneDayTab review -OneDayReview overview -OneDayJar YES
+          shoot chat-setup -OneDayDemo YES -OneDayTab today -OneDayHour 10 -OneDayChat YES
           shoot journal-today -OneDayDemo YES -OneDayTab today -OneDayFont journal
           shoot journal-review -OneDayDemo YES -OneDayTab review -OneDayFont journal
           shoot rounded-tasks -OneDayDemo YES -OneDayTab tasks -OneDayFont rounded

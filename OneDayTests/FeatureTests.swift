@@ -476,4 +476,21 @@ final class FeatureTests: XCTestCase {
     let stars = s.moodStars(month: DayKey.date("2026-10-15"), today: today)
     XCTAssertEqual(stars.map(\.level), [2, 5], "this month's moods, oldest first")
   }
+
+  func testAIContextReadsRecentDays() {
+    var s = AppState()
+    var task = TaskItem(title: "阅读", day: today, repeatMode: .once, reminder: nil)
+    task.done[today] = true
+    s.tasks = [task]
+    var note = NoteEntry(text: "今天\n很好", time: "", photos: [], tags: [])
+    note.mood = 5
+    s.notes[today] = [note]
+    s.weekReflections[DayKey.weekStart(today)] = WeekReflection(gains: "早起", problems: "", next: "游泳")
+    let text = s.aiContext(today: today)
+    XCTAssertTrue(text.contains("心情：很好"))
+    XCTAssertTrue(text.contains("阅读✓"))
+    XCTAssertTrue(text.contains("「今天 很好」"), "notes are flattened to one line")
+    XCTAssertTrue(text.contains("下周重点：游泳"))
+    XCTAssertFalse(text.contains("10月21日"), "quiet days are left out")
+  }
 }

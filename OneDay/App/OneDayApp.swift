@@ -138,6 +138,7 @@ struct RootView: View {
       .oneDaySheet()
     }
     .sheet(item: $store.recap) { RecapSheet(month: $0.month).oneDaySheet() }
+    .sheet(item: $store.chat) { ChatView(request: $0).oneDaySheet() }
     .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
       store.refreshDay()
     }

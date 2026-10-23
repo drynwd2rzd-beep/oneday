@@ -662,6 +662,7 @@ private struct WeekStoryCard: View {
   @Environment(\.accent) private var accent
   let week: WeekSummary
   let today: String
+  @State private var chat: ChatRequest?
 
   var body: some View {
     VStack(alignment: .leading, spacing: Spacing.inner) {
@@ -705,8 +706,19 @@ private struct WeekStoryCard: View {
           .accessibilityLabel("周\(DayKey.weekdayLetters[i])，做完 \(week.dayDone[i]) 件")
         }
       }
+      if week.hasActivity {
+        Button {
+          chat = ChatRequest(prompt: "帮我解读一下这一周（\(DayKey.weekRange(week.start))）：哪里做得好，哪里卡住了，下周可以试试什么。", deep: true)
+        } label: {
+          Label("请小日解读这一周", systemImage: "sparkles")
+            .font(.app(.subheadline).weight(.semibold))
+            .frame(maxWidth: .infinity)
+        }
+        .oneDayButton()
+      }
     }
     .card()
+    .sheet(item: $chat) { ChatView(request: $0).oneDaySheet() }
   }
 
   private var sentences: [(icon: String, text: String)] {
