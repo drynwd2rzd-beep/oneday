@@ -444,17 +444,18 @@ struct DreamyGlow: View {
   var body: some View {
     GeometryReader { geo in
       let w = geo.size.width, h = geo.size.height
+      // Radial gradients fading to clear: the look of a blur without a live blur filter.
       ZStack {
         ForEach(Array(Self.orbs.enumerated()), id: \.offset) { _, orb in
+          let color = Color(hex: dark ? orb.dark : orb.light)
+          let side = w * orb.size * 1.5
           Circle()
-            .fill(Color(hex: dark ? orb.dark : orb.light))
-            .frame(width: w * orb.size, height: w * orb.size)
+            .fill(RadialGradient(colors: [color, color.opacity(0.5), color.opacity(0)], center: .center, startRadius: 0, endRadius: side / 2))
+            .frame(width: side, height: side)
             .position(x: w * orb.x, y: h * orb.y)
             .opacity(orb.opacity * strength * (dark ? 0.8 : 1))
         }
       }
-      .blur(radius: w * 0.18)
-      .drawingGroup()
     }
     .allowsHitTesting(false)
     .accessibilityHidden(true)
