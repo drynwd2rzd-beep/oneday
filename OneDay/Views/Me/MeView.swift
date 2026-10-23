@@ -57,9 +57,11 @@ struct MeView: View {
           }
         }
 
-        Section("关于") {
+        Section {
           SettingRow(icon: "stethoscope", title: "诊断信息") { sheet = .diagnostics }
           SettingRow(icon: "info", title: "关于 OneDay", value: "v\(AppInfo.version)") { sheet = .about }
+        } header: {
+          Text("关于")
         } footer: {
           Text("不是为了记录而记录，而是为了更好地生活。")
             .font(.journal(.footnote, size: 13))
