@@ -408,22 +408,56 @@ extension View {
 struct AppBackground: View {
   @Environment(\.palette) private var palette
   @Environment(\.visualStyle) private var style
-  @Environment(\.accent) private var accent
 
   var body: some View {
     ZStack {
       palette.bg
       if palette.isMeteor {
         MeteorSky()
-      } else if style.usesGlass {
-        // One quiet wash of the accent color gives Liquid Glass something to refract.
-        LinearGradient(
-          colors: [accent.opacity(palette.isDark ? 0.16 : 0.10), .clear, Color(hex: palette.isDark ? "#3b5f8e" : "#e9c79c").opacity(palette.isDark ? 0.10 : 0.14)],
-          startPoint: .topTrailing,
-          endPoint: .bottomLeading)
+      } else {
+        DreamyGlow(dark: palette.isDark, strength: style.usesGlass ? 1 : 0.7)
       }
     }
     .ignoresSafeArea()
+  }
+}
+
+/// Soft pastel light behind every page: peach, lavender, mint and sky, blurred into each
+/// other like a watercolor wash, for glass to refract and cards to float on.
+struct DreamyGlow: View {
+  let dark: Bool
+  var strength: Double = 1
+
+  private struct Orb {
+    let x: CGFloat, y: CGFloat, size: CGFloat
+    let light: String, dark: String
+    let opacity: Double
+  }
+
+  private static let orbs: [Orb] = [
+    Orb(x: 0.92, y: 0.02, size: 0.95, light: "#ffd2bf", dark: "#5a3f6e", opacity: 0.55),
+    Orb(x: 0.02, y: 0.34, size: 0.85, light: "#ddd3f7", dark: "#2f3f74", opacity: 0.5),
+    Orb(x: 0.98, y: 0.66, size: 0.8, light: "#cdebdc", dark: "#244f55", opacity: 0.45),
+    Orb(x: 0.12, y: 0.98, size: 0.9, light: "#cfe3f7", dark: "#3a3566", opacity: 0.45),
+  ]
+
+  var body: some View {
+    GeometryReader { geo in
+      let w = geo.size.width, h = geo.size.height
+      ZStack {
+        ForEach(Array(Self.orbs.enumerated()), id: \.offset) { _, orb in
+          Circle()
+            .fill(Color(hex: dark ? orb.dark : orb.light))
+            .frame(width: w * orb.size, height: w * orb.size)
+            .position(x: w * orb.x, y: h * orb.y)
+            .opacity(orb.opacity * strength * (dark ? 0.8 : 1))
+        }
+      }
+      .blur(radius: w * 0.18)
+      .drawingGroup()
+    }
+    .allowsHitTesting(false)
+    .accessibilityHidden(true)
   }
 }
 

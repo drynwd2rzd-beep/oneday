@@ -8,15 +8,21 @@ struct ChatRequest: Identifiable, Hashable {
   var deep = false
 }
 
-/// 和小日聊聊: a chat with Claude as 小日, who can read the recent records.
+/// The colors of Messages: blue for what you send, gray for what comes back.
+private enum Bubble {
+  static let blueTop = Color(hex: "#3d9bff")
+  static let blue = Color(hex: "#0a7cff")
+  static let gray = Color(uiColor: .systemGray5)
+}
+
+/// 和小日聊聊, laid out like Messages: 小日 (Claude) can read the recent records.
 struct ChatView: View {
   @Environment(Store.self) private var store
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.accent) private var accent
   var request: ChatRequest?
   @State private var session = ChatSession.shared
   @State private var draft = ""
-  @State private var hasKey = APIKeyStore.hasKey
+  @State private var hasKey = APIKeyStore.hasKey || ChatSession.isDemo
   @State private var showKey = false
   @State private var confirmClear = false
   @FocusState private var typing: Bool
@@ -35,13 +41,13 @@ struct ChatView: View {
           chat
         } else {
           APIKeySetup { hasKey = true }
+            .background { AppBackground() }
         }
       }
-      .background { AppBackground() }
-      .navigationTitle("和小日聊聊")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } }
+        ToolbarItem(placement: .principal) { header }
         if hasKey {
           ToolbarItem(placement: .primaryAction) {
             Menu {
@@ -86,35 +92,67 @@ struct ChatView: View {
     }
   }
 
+  /// 小日's round picture over its name, like a contact at the top of Messages.
+  private var header: some View {
+    VStack(spacing: 1) {
+      Avatar(size: 30)
+      HStack(spacing: 2) {
+        Text("小日").font(.app(.caption).weight(.semibold))
+        Image(systemName: "chevron.right").font(.app(size: 8, weight: .bold)).foregroundStyle(.tertiary)
+      }
+    }
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("小日")
+  }
+
   // MARK: Chat
 
   private var chat: some View {
     ScrollViewReader { proxy in
       ScrollView {
-        LazyVStack(alignment: .leading, spacing: 14) {
+        LazyVStack(spacing: 0) {
           if session.lines.isEmpty && !session.isBusy {
             intro
           }
-          ForEach(session.lines) { line in
-            bubble(line.role, text: line.text, shared: line.sharedRecords).id(line.id)
+          ForEach(Array(session.lines.enumerated()), id: \.element.id) { index, line in
+            let previous = index > 0 ? session.lines[index - 1] : nil
+            let next = index + 1 < session.lines.count ? session.lines[index + 1] : nil
+            if previous.map({ line.date.timeIntervalSince($0.date) > 15 * 60 }) ?? true {
+              timestamp(line.date)
+            }
+            // A run of messages from one side sits close together; the last one gets the tail.
+            let continues = next?.role == line.role || (line.role == .assistant && next == nil && session.isBusy)
+            message(line.role, text: line.text, tail: !continues)
+              .padding(.top, previous?.role == line.role ? 2 : 10)
+              .id(line.id)
+            if line.sharedRecords {
+              note("附上了最近 14 天的记录", trailing: true)
+            }
           }
           if let streaming = session.streaming {
-            bubble(.assistant, text: streaming.isEmpty ? "小日在想…" : streaming, thinking: streaming.isEmpty)
-              .id("streaming")
+            Group {
+              if streaming.isEmpty {
+                TypingBubble()
+                  .frame(maxWidth: .infinity, alignment: .leading)
+              } else {
+                message(.assistant, text: streaming, tail: true)
+              }
+            }
+            .padding(.top, session.lines.last?.role == .assistant ? 2 : 10)
+            .id("streaming")
           }
           if let error = session.error {
-            Label(error, systemImage: "exclamationmark.triangle")
-              .font(.app(.footnote))
-              .foregroundStyle(.secondary)
+            note(error, trailing: false, icon: "exclamationmark.circle")
               .frame(maxWidth: .infinity)
-              .padding(.top, 4)
+              .padding(.top, 8)
           }
-          Color.clear.frame(height: 1).id("bottom")
+          Color.clear.frame(height: 8).id("bottom")
         }
-        .padding(.horizontal, Spacing.page)
-        .padding(.vertical, Spacing.stack)
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
       }
       .scrollDismissesKeyboard(.interactively)
+      .background(Color(uiColor: .systemBackground))
       .onChange(of: session.streaming) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
       .onChange(of: session.lines.count) { _, _ in withAnimation(.snappy) { proxy.scrollTo("bottom", anchor: .bottom) } }
       .onAppear { proxy.scrollTo("bottom", anchor: .bottom) }
@@ -123,109 +161,141 @@ struct ChatView: View {
   }
 
   private var intro: some View {
-    VStack(spacing: Spacing.stack) {
-      MascotView(mood: .happy, size: 84, stage: store.state.growth(today: store.today).stage.rawValue, outfit: store.mascotOutfit, plant: store.mascotPlant)
-      Text("想聊点什么？").font(.app(.title3).weight(.bold))
-      Text(session.shareRecords ? "我会看看你最近 14 天的记录再回答。" : "这次不带上你的记录。")
-        .font(.app(.subheadline))
+    VStack(spacing: 10) {
+      Avatar(size: 76)
+      Text("小日").font(.app(.title3).weight(.semibold))
+      Text(session.shareRecords ? "由 Claude 提供 · 会先看看你最近 14 天的记录" : "由 Claude 提供 · 这次不带上你的记录")
+        .font(.app(.caption))
         .foregroundStyle(.secondary)
-      VStack(spacing: 8) {
+        .multilineTextAlignment(.center)
+      FlowLayout(spacing: 8) {
         ForEach(Self.starters, id: \.title) { starter in
           Button {
             send(starter.prompt, deep: starter.deep)
           } label: {
-            HStack {
-              Text(starter.title).font(.app(.subheadline).weight(.medium))
-              Spacer()
-              Image(systemName: "arrow.up.circle.fill").foregroundStyle(accent)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .contentShape(Rectangle())
+            Text(starter.title)
+              .font(.app(.subheadline))
+              .foregroundStyle(Bubble.blue)
+              .padding(.horizontal, 14)
+              .padding(.vertical, 8)
+              .overlay(Capsule().stroke(Bubble.blue.opacity(0.5), lineWidth: 1))
+              .contentShape(Capsule())
           }
           .buttonStyle(.plain)
         }
       }
-      .padding(.top, 6)
+      .padding(.top, 10)
     }
     .frame(maxWidth: .infinity)
-    .padding(.top, 20)
+    .padding(.top, 36)
+    .padding(.bottom, 20)
+    .padding(.horizontal, 12)
+  }
+
+  private func timestamp(_ date: Date) -> some View {
+    let day = DayKey.of(date)
+    let time = date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
+    let label = day == store.today ? "今天 \(time)" : "\(DayKey.shortDate(day)) \(time)"
+    return Text(label)
+      .font(.app(.caption2).weight(.medium))
+      .foregroundStyle(.secondary)
+      .frame(maxWidth: .infinity)
+      .padding(.top, 14)
+      .padding(.bottom, 2)
+  }
+
+  private func note(_ text: String, trailing: Bool, icon: String? = nil) -> some View {
+    HStack(spacing: 4) {
+      if let icon { Image(systemName: icon) }
+      Text(text)
+    }
+    .font(.app(.caption2))
+    .foregroundStyle(.secondary)
+    .frame(maxWidth: .infinity, alignment: trailing ? .trailing : .center)
+    .padding(.top, 3)
+    .padding(.trailing, trailing ? 6 : 0)
   }
 
   @ViewBuilder
-  private func bubble(_ role: ChatLine.Role, text: String, shared: Bool = false, thinking: Bool = false) -> some View {
-    if role == .user {
-      VStack(alignment: .trailing, spacing: 4) {
+  private func message(_ role: ChatLine.Role, text: String, tail: Bool) -> some View {
+    let mine = role == .user
+    let shape = BubbleShape(mine: mine, tail: tail)
+    Group {
+      if mine {
         Text(text)
-          .font(.app(.body))
-          .foregroundStyle(.white)
-          .padding(.horizontal, 14)
-          .padding(.vertical, 10)
-          .background(accent, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        if shared {
-          Label("带上了最近 14 天的记录", systemImage: "paperclip")
-            .font(.app(.caption2))
-            .foregroundStyle(.secondary)
-        }
+      } else {
+        MarkdownText(text: text)
       }
-      .frame(maxWidth: .infinity, alignment: .trailing)
-      .padding(.leading, 48)
-    } else {
-      HStack(alignment: .top, spacing: 8) {
-        MascotView(mood: thinking ? .calm : .happy, size: 30, stage: 1, plant: store.mascotPlant)
-          .frame(width: 32, height: 32)
-          .accessibilityHidden(true)
-        Group {
-          if thinking {
-            Text(text).foregroundStyle(.secondary)
-              .phaseAnimator([0.4, 1]) { view, alpha in view.opacity(alpha) } animation: { _ in .easeInOut(duration: 0.8) }
-          } else {
-            MarkdownText(text: text)
-              .textSelection(.enabled)
-          }
-        }
-        .font(.journal(.body, size: 17))
-        .lineSpacing(4)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.background.opacity(0.85), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.sun.opacity(0.35), lineWidth: 1))
-      }
-      .padding(.trailing, 32)
-      .accessibilityElement(children: .combine)
-      .accessibilityLabel("小日说：\(text)")
     }
+    .font(.app(.body))
+    .foregroundStyle(mine ? Color.white : Color.primary)
+    .textSelection(.enabled)
+    .padding(.horizontal, 13)
+    .padding(.vertical, 8)
+    .padding(mine ? .trailing : .leading, tail ? 5 : 0)
+    .background {
+      if mine {
+        shape.fill(LinearGradient(colors: [Bubble.blueTop, Bubble.blue], startPoint: .top, endPoint: .bottom))
+      } else {
+        shape.fill(Bubble.gray)
+      }
+    }
+    .padding(mine ? .trailing : .leading, tail ? 0 : 5)
+    .frame(maxWidth: 300, alignment: mine ? .trailing : .leading)
+    .frame(maxWidth: .infinity, alignment: mine ? .trailing : .leading)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(mine ? "我：\(text)" : "小日：\(text)")
   }
 
   private var inputBar: some View {
     HStack(alignment: .bottom, spacing: 8) {
-      TextField("和小日说点什么", text: $draft, axis: .vertical)
-        .font(.app(.body))
-        .lineLimit(1...5)
-        .focused($typing)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Color.secondary.opacity(0.2), lineWidth: 1))
-      if session.isBusy {
-        Button {
-          session.stop()
-        } label: {
-          Image(systemName: "stop.circle.fill").font(.system(size: 32)).foregroundStyle(.secondary)
+      Menu {
+        ForEach(Self.starters, id: \.title) { starter in
+          Button(starter.title) { send(starter.prompt, deep: starter.deep) }
         }
-        .accessibilityLabel("停止")
-      } else {
-        Button {
-          send(draft, deep: false)
-        } label: {
-          Image(systemName: "arrow.up.circle.fill").font(.system(size: 32)).foregroundStyle(accent)
-        }
-        .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        .accessibilityLabel("发送")
+      } label: {
+        Image(systemName: "plus")
+          .font(.app(.body).weight(.semibold))
+          .foregroundStyle(.secondary)
+          .frame(width: 34, height: 34)
+          .background(Color(uiColor: .systemGray6), in: Circle())
       }
+      .disabled(session.isBusy)
+      .accessibilityLabel("常用问题")
+      HStack(alignment: .bottom, spacing: 4) {
+        TextField("信息", text: $draft, axis: .vertical)
+          .font(.app(.body))
+          .lineLimit(1...6)
+          .focused($typing)
+          .padding(.leading, 14)
+          .padding(.vertical, 7)
+        Group {
+          if session.isBusy {
+            Button {
+              session.stop()
+            } label: {
+              Image(systemName: "stop.circle.fill").font(.system(size: 28)).foregroundStyle(.secondary)
+            }
+            .accessibilityLabel("停止")
+          } else if !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            Button {
+              send(draft, deep: false)
+            } label: {
+              Image(systemName: "arrow.up.circle.fill").font(.system(size: 28)).foregroundStyle(Bubble.blue)
+            }
+            .accessibilityLabel("发送")
+            .transition(.scale.combined(with: .opacity))
+          }
+        }
+        .padding(.trailing, 3)
+        .padding(.bottom, 3)
+      }
+      .frame(minHeight: 36)
+      .background(Color(uiColor: .systemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+      .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color(uiColor: .systemGray4), lineWidth: 0.8))
+      .animation(.snappy(duration: 0.2), value: draft.isEmpty)
     }
-    .padding(.horizontal, Spacing.page)
+    .padding(.horizontal, 10)
     .padding(.vertical, 8)
     .background(.bar)
   }
@@ -234,6 +304,78 @@ struct ChatView: View {
     let context = session.shareRecords ? store.state.aiContext(today: store.today) : nil
     session.send(text, context: context, deep: deep)
     draft = ""
+  }
+}
+
+/// 小日 in a round frame on a soft sky.
+private struct Avatar: View {
+  @Environment(Store.self) private var store
+  let size: CGFloat
+
+  var body: some View {
+    ZStack {
+      LinearGradient(colors: [Color(hex: "#ffe7c2"), Color(hex: "#ffd0b5")], startPoint: .top, endPoint: .bottom)
+      MascotView(mood: .happy, size: size * 0.74, stage: store.state.growth(today: store.today).stage.rawValue, outfit: store.mascotOutfit, plant: store.mascotPlant)
+        .offset(y: size * 0.06)
+    }
+    .frame(width: size, height: size)
+    .clipShape(Circle())
+    .accessibilityHidden(true)
+  }
+}
+
+/// A Messages bubble: rounded, with a little curled tail at the bottom corner on the
+/// last message of a run.
+private struct BubbleShape: Shape {
+  let mine: Bool
+  let tail: Bool
+
+  func path(in rect: CGRect) -> Path {
+    let r: CGFloat = min(18, rect.height / 2)
+    // The tail takes 5pt beside the body.
+    let body = CGRect(
+      x: rect.minX + (tail && !mine ? 5 : 0), y: rect.minY,
+      width: rect.width - (tail ? 5 : 0), height: rect.height)
+    var p = Path(roundedRect: body, cornerRadius: r, style: .continuous)
+    guard tail else { return p }
+    var t = Path()
+    if mine {
+      t.move(to: CGPoint(x: body.maxX - r * 0.6, y: body.maxY - r))
+      t.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.maxY), control: CGPoint(x: body.maxX, y: body.maxY - 2))
+      t.addQuadCurve(to: CGPoint(x: body.maxX - r * 0.9, y: body.maxY), control: CGPoint(x: body.maxX - 4, y: body.maxY))
+    } else {
+      t.move(to: CGPoint(x: body.minX + r * 0.6, y: body.maxY - r))
+      t.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.maxY), control: CGPoint(x: body.minX, y: body.maxY - 2))
+      t.addQuadCurve(to: CGPoint(x: body.minX + r * 0.9, y: body.maxY), control: CGPoint(x: body.minX + 4, y: body.maxY))
+    }
+    t.closeSubpath()
+    p.addPath(t)
+    return p
+  }
+}
+
+/// Three dots that pulse while 小日 is writing.
+private struct TypingBubble: View {
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+  var body: some View {
+    HStack(spacing: 4) {
+      ForEach(0..<3, id: \.self) { i in
+        Circle()
+          .fill(Color.secondary)
+          .frame(width: 8, height: 8)
+          .phaseAnimator(reduceMotion ? [1.0] : [0.35, 1.0]) { view, alpha in
+            view.opacity(alpha)
+          } animation: { _ in
+            .easeInOut(duration: 0.5).delay(Double(i) * 0.18)
+          }
+      }
+    }
+    .padding(.leading, 21)
+    .padding(.trailing, 16)
+    .padding(.vertical, 13)
+    .background(BubbleShape(mine: false, tail: true).fill(Bubble.gray))
+    .accessibilityLabel("小日正在输入")
   }
 }
 

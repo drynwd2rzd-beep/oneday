@@ -9,6 +9,7 @@ struct ChatLine: Codable, Identifiable, Hashable {
   var text: String
   /// The first message of a conversation can carry the recent records along.
   var sharedRecords = false
+  var date = Date()
 }
 
 /// The conversation with 小日 (Claude). The raw API messages are kept exactly as sent and
@@ -38,7 +39,30 @@ final class ChatSession {
     return dir.appendingPathComponent("chat.json")
   }
 
-  private init() { load() }
+  private init() {
+    #if DEBUG
+    if Self.isDemo {
+      let start = Date().addingTimeInterval(-600)
+      lines = [
+        ChatLine(role: .user, text: "帮我解读一下我最近的状态", sharedRecords: true, date: start),
+        ChatLine(role: .assistant, text: "这两周你有 10 天都来了，很稳 🌱\n\n我注意到：「阅读 20 分钟」几乎每天都做到了，可是**周二和周四**的事项常常没完成——那两天有游泳课。", date: start.addingTimeInterval(20)),
+        ChatLine(role: .assistant, text: "一个小建议：游泳那天，只留一件最小的事，比如「喝 8 杯水」。做完就算赢。", date: start.addingTimeInterval(22)),
+        ChatLine(role: .user, text: "好主意！那周末呢？", date: start.addingTimeInterval(60)),
+      ]
+      return
+    }
+    #endif
+    load()
+  }
+
+  /// Screenshots: a made-up conversation, no API key needed.
+  static var isDemo: Bool {
+    #if DEBUG
+    return UserDefaults.standard.bool(forKey: "OneDayChatDemo")
+    #else
+    return false
+    #endif
+  }
 
   /// Sends `text`; on the first message of a conversation, the records come along when allowed.
   func send(_ text: String, context: String?, deep: Bool = false) {
