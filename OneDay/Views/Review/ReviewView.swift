@@ -305,18 +305,14 @@ private struct ReviewDayDetail: View {
     let tasks = store.state.tasks(on: day)
     ScrollView {
       VStack(alignment: .leading, spacing: Spacing.stack) {
-        VStack(alignment: .leading, spacing: 4) {
-          Text(DayKey.weekday(day))
-            .font(.app(.footnote).weight(.medium))
-            .foregroundStyle(.secondary)
-          Text(DayKey.fullDate(day))
-            .font(.journal(.title, size: 28, bold: true))
-        }
-        .padding(.bottom, 4)
-        .accessibilityElement(children: .combine)
-
         if notes.isEmpty {
-          EmptyState(title: "这一天没有记录", icon: "text.page.slash").card()
+          VStack(spacing: Spacing.inner) {
+            EmptyState(title: "这一天没有记录", icon: "text.page.slash")
+            Button("补一条记录", systemImage: "plus") { addLate() }
+              .oneDayButton(prominent: true)
+          }
+          .frame(maxWidth: .infinity)
+          .card()
         } else {
           ForEach(Array(notes.enumerated()), id: \.element.id) { index, note in
             entryView(note, index: index)
@@ -345,12 +341,17 @@ private struct ReviewDayDetail: View {
       .padding(.bottom, Spacing.section)
     }
     .background { AppBackground() }
-    .navigationTitle(DayKey.shortDate(day))
-    .navigationBarTitleDisplayMode(.inline)
+    .navigationTitle(title)
+    .navigationBarTitleDisplayMode(.large)
     .toolbar {
       if !notes.isEmpty {
         ToolbarItem(placement: .topBarTrailing) {
           Menu {
+            Button {
+              addLate()
+            } label: {
+              Label("补一条记录", systemImage: "plus")
+            }
             Button {
               sharing = true
             } label: {
@@ -388,6 +389,12 @@ private struct ReviewDayDetail: View {
     } message: {
       Text("只删除当天留下的文字、照片和语音，不影响事项完成状态。删除后可以撤销。")
     }
+  }
+
+  /// "10月22日 周四", with the year only when it isn't this year.
+  private var title: String {
+    let date = day.prefix(4) == store.today.prefix(4) ? DayKey.shortDate(day) : DayKey.fullDate(day)
+    return date + " " + DayKey.weekday(day).replacingOccurrences(of: "星期", with: "周")
   }
 
   private func entryView(_ note: NoteEntry, index: Int) -> some View {
@@ -456,6 +463,11 @@ private struct ReviewDayDetail: View {
       })
   }
 
+  /// A late entry for this day (补记), opened in the full editor.
+  private func addLate() {
+    editing = NoteEditTarget(entry: NoteEntry(text: "", time: "", photos: [], tags: []))
+  }
+
   /// The 复盘 is edited on its own page, next to the day's tasks and notes.
   private func edit(_ note: NoteEntry) {
     if note.isReflection {
@@ -469,11 +481,11 @@ private struct ReviewDayDetail: View {
   @ViewBuilder
   private func photoGrid(_ note: NoteEntry) -> some View {
     if note.photos.count == 1, let photo = note.photos.first, let image = MediaStore.image(photo) {
-      Image(uiImage: image)
-        .resizable()
-        .scaledToFill()
+      // The photo fills a fixed frame as an overlay, so a wide photo can't widen the page.
+      Color.clear
         .frame(maxWidth: .infinity)
         .frame(height: 240)
+        .overlay { Image(uiImage: image).resizable().scaledToFill() }
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .contentShape(Rectangle())
         .onTapGesture { preview = PhotoRef(name: photo) }

@@ -398,16 +398,25 @@ final class Store {
     toast("已经留下来了")
   }
 
-  /// Saves an edited note (text, tags, photos, videos, recordings and place).
+  /// Saves an edited note (text, tags, photos, videos, recordings and place). A note that
+  /// isn't on that day yet is added to it: that's how an earlier day gets a late entry (补记).
   @discardableResult
   func updateNote(day: String, note edited: NoteEntry) -> Bool {
-    guard let i = state.notes[day]?.firstIndex(where: { $0.id == edited.id }) else { return false }
+    let i = state.notes[day]?.firstIndex(where: { $0.id == edited.id })
     var note = edited
     note.text = note.text.trimmed
     note.tags = note.tags.uniqued()
     guard !note.isEmpty else {
       toast("记录不能是空的")
       return false
+    }
+    guard let i else {
+      checkpoint("补记")
+      state.notes[day, default: []].append(note)
+      save()
+      Haptics.success()
+      toast("已经补上了", undoable: "补记")
+      return true
     }
     checkpoint("编辑记录")
     state.notes[day]?[i] = note

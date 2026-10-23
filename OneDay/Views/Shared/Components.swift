@@ -203,6 +203,42 @@ struct TaskList: View {
   }
 }
 
+/// Finished tasks folded under one "已完成 N" line; tapping it shows them.
+struct DoneTasksFold: View {
+  let tasks: [TaskItem]
+  let day: String
+  /// Vertical padding of the fold line, to match the rows around it.
+  var linePadding: CGFloat = 0
+  @State private var isOpen = false
+
+  var body: some View {
+    if !tasks.isEmpty {
+      VStack(alignment: .leading, spacing: 0) {
+        Button {
+          withAnimation(.snappy) { isOpen.toggle() }
+        } label: {
+          HStack(spacing: 6) {
+            Text("已完成 \(tasks.count)")
+            Image(systemName: "chevron.right")
+              .font(.app(.caption).weight(.semibold))
+              .rotationEffect(.degrees(isOpen ? 90 : 0))
+            Spacer()
+          }
+          .font(.app(.subheadline).weight(.medium))
+          .foregroundStyle(.secondary)
+          .padding(.vertical, linePadding)
+          .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(isOpen ? "已展开" : "已收起")
+        if isOpen {
+          TaskList(tasks: tasks, day: day)
+        }
+      }
+    }
+  }
+}
+
 struct ReminderSheet: View {
   @Environment(Store.self) private var store
   @Environment(\.dismiss) private var dismiss
@@ -560,13 +596,10 @@ struct AvatarView: View {
       if let image = MediaStore.image(name) {
         Image(uiImage: image).resizable().scaledToFill()
       } else {
+        // No photo yet: 小日 stands in, on a warm paper circle.
         ZStack {
-          Color(hex: "#20262e")
-          Image(systemName: "person.fill")
-            .resizable()
-            .scaledToFit()
-            .padding(size * 0.22)
-            .foregroundStyle(Color(hex: "#6b7682"))
+          Color.sun.opacity(palette.isDark ? 0.22 : 0.16)
+          MascotView(mood: .happy, size: size * 0.66).offset(y: size * 0.04)
         }
       }
     }

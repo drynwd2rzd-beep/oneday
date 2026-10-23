@@ -57,7 +57,7 @@ struct MeView: View {
           }
         }
 
-        Section {
+        Section("关于") {
           SettingRow(icon: "stethoscope", title: "诊断信息") { sheet = .diagnostics }
           SettingRow(icon: "info", title: "关于 OneDay", value: "v\(AppInfo.version)") { sheet = .about }
         } footer: {
@@ -68,6 +68,7 @@ struct MeView: View {
         }
       }
       .listStyle(.insetGrouped)
+      .listSectionSpacing(.compact)
       .scrollContentBackground(.hidden)
       .background { AppBackground() }
       .navigationTitle("我的")
@@ -132,6 +133,7 @@ private struct PersonalizeView: View {
       }
     }
     .listStyle(.insetGrouped)
+    .listSectionSpacing(.compact)
     .scrollContentBackground(.hidden)
     .background { AppBackground() }
     .navigationTitle("个性化")

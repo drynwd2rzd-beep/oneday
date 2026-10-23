@@ -236,4 +236,36 @@ final class OneDayUITests: XCTestCase {
     let renamed = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "整理房间和书桌")).firstMatch
     XCTAssertTrue(renamed.waitForExistence(timeout: 10))
   }
+
+  /// An earlier day can get a late entry (补记) from its page.
+  func testLateEntryOnEarlierDay() {
+    let app = launch(["-OneDayTab", "review", "-OneDayReview", "day"])
+    let more = app.buttons["更多"]
+    XCTAssertTrue(more.waitForExistence(timeout: 8))
+    more.tap()
+    let add = app.buttons["补一条记录"]
+    XCTAssertTrue(add.waitForExistence(timeout: 5))
+    add.tap()
+    // A vertical text field: it may show up as a text view or a text field.
+    let editor = app.descendants(matching: .any)
+      .matching(NSPredicate(format: "placeholderValue == %@", "不需要写得很好，只留下真实的你。")).firstMatch
+    XCTAssertTrue(editor.waitForExistence(timeout: 8))
+    editor.tap()
+    editor.typeText("晚上补记一句")
+    app.buttons["保存"].tap()
+    let added = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "晚上补记一句")).firstMatch
+    XCTAssertTrue(added.waitForExistence(timeout: 10), "the late entry shows on that day")
+  }
+
+  /// Tasks can be added from the Today page without switching tabs.
+  func testAddTaskFromToday() {
+    let app = launch(["-OneDayTab", "today"])
+    let plus = app.buttons["添加今天的事项"]
+    XCTAssertTrue(plus.waitForExistence(timeout: 8))
+    plus.tap()
+    let field = app.textFields.firstMatch
+    XCTAssertTrue(field.waitForExistence(timeout: 10), "the add sheet opens")
+    app.buttons["取消"].tap()
+    XCTAssertTrue(plus.waitForExistence(timeout: 5))
+  }
 }

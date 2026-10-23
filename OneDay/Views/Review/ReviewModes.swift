@@ -91,10 +91,16 @@ struct JournalCalendar: View {
       .overlay {
         if isToday { shape.strokeBorder(accent, lineWidth: 1.5) }
       }
-    if notes.isEmpty {
+    if isFuture {
       content
         .accessibilityElement()
+        .accessibilityLabel(DayKey.fullDate(day))
+    } else if notes.isEmpty {
+      // An empty day still opens, so it can get a late entry (补记).
+      NavigationLink(value: day) { content }
+        .buttonStyle(.plain)
         .accessibilityLabel("\(DayKey.fullDate(day))，没有记录")
+        .accessibilityHint("可以补一条记录")
     } else {
       NavigationLink(value: day) { content }
         .buttonStyle(.plain)

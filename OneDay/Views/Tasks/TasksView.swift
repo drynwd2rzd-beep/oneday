@@ -6,7 +6,6 @@ struct TasksView: View {
   @Environment(Store.self) private var store
   @Environment(\.accent) private var accent
 
-  @State private var showDone = false
   @State private var selected = DayKey.today
   @State private var month = DayKey.monthStart(Date())
   @State private var showCalendar = false
@@ -131,27 +130,7 @@ struct TasksView: View {
         TaskList(tasks: open, day: selected)
       }
 
-      if !done.isEmpty {
-        Button {
-          withAnimation(.snappy) { showDone.toggle() }
-        } label: {
-          HStack(spacing: 6) {
-            Text("已完成 \(done.count)")
-            Image(systemName: "chevron.right")
-              .font(.app(.caption).weight(.semibold))
-              .rotationEffect(.degrees(showDone ? 90 : 0))
-            Spacer()
-          }
-          .font(.app(.subheadline).weight(.medium))
-          .foregroundStyle(.secondary)
-          .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityValue(showDone ? "已展开" : "已收起")
-        if showDone {
-          TaskList(tasks: done, day: selected)
-        }
-      }
+      DoneTasksFold(tasks: done, day: selected)
     }
     .card()
   }

@@ -26,6 +26,9 @@ struct NoteEditorSheet: View {
     _note = State(initialValue: entry)
   }
 
+  /// A late entry for an earlier day, not yet saved.
+  private var isNew: Bool { store.state.notes[day]?.contains { $0.id == entry.id } != true }
+
   private var videos: [MediaItem] { note.media.filter { $0.kind == .video } }
   private var audios: [MediaItem] { note.media.filter { $0.kind == .audio } }
   private var canAddVisual: Bool { note.photos.count < Self.maxPhotos || videos.count < Self.maxVideos }
@@ -164,7 +167,7 @@ struct NoteEditorSheet: View {
           }
         }
       }
-      .navigationTitle("编辑这条记录")
+      .navigationTitle(isNew ? "补一条记录" : "编辑这条记录")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }

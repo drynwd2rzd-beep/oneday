@@ -217,7 +217,7 @@ private struct HeroModule: View {
         mood: excited ? .party : growth.droopy && done == 0 ? .sleepy : MascotMood.of(done: done, total: list.count, at: now),
         stage: growth.stage.rawValue, outfit: store.mascotOutfit, droopy: growth.droopy && !excited,
         plant: store.mascotPlant, pokes: pokes)
-        .frame(width: 124, height: 124)
+        .frame(width: 128, height: 128)
         .contentShape(Circle())
         .onTapGesture { poke(droopy: growth.droopy) }
         .onLongPressGesture(minimumDuration: 0.4) {
@@ -288,8 +288,10 @@ struct TodayRing: View {
       let side = min(geo.size.width, geo.size.height)
       let line = side * 0.075
       ZStack {
-        Circle().stroke(accent.opacity(0.13), lineWidth: line)
+        // Inset by half the line so the ring stays inside its frame and lines up with the page margin.
+        Circle().inset(by: line / 2).stroke(accent.opacity(0.13), lineWidth: line)
         Circle()
+          .inset(by: line / 2)
           .trim(from: 0, to: progress)
           .stroke(
             AngularGradient(colors: [accent.opacity(0.75), accent], center: .center, startAngle: .degrees(0), endAngle: .degrees(360 * max(progress, 0.01))),
@@ -364,17 +366,31 @@ struct TodayRing: View {
 private struct TodayTasksModule: View {
   @Environment(Store.self) private var store
   @Environment(\.accent) private var accent
+  @State private var adding = false
 
   var body: some View {
     let day = store.today
     let list = store.state.tasks(on: day)
     let open = list.filter { !$0.isDone(on: day) }
     VStack(alignment: .leading, spacing: Spacing.title) {
-      HStack(alignment: .firstTextBaseline, spacing: 8) {
+      HStack(alignment: .center, spacing: 8) {
         Text("今天")
           .font(.app(.title3).weight(.bold))
           .accessibilityAddTraits(.isHeader)
         Spacer()
+        // Add without leaving the page.
+        Button {
+          adding = true
+        } label: {
+          Image(systemName: "plus")
+            .font(.app(.subheadline).weight(.semibold))
+            .foregroundStyle(accent)
+            .frame(width: 30, height: 30)
+            .background(accent.opacity(0.12), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("添加今天的事项")
+        .padding(.trailing, 6)
         Button {
           store.selectedTab = .tasks
         } label: {
@@ -392,12 +408,18 @@ private struct TodayTasksModule: View {
           Button {
             store.reflection = .week(focus.week)
           } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
               Image(systemName: "scope").foregroundStyle(Color.sun)
-              Text("本周重点：" + focus.items.joined(separator: " · "))
-                .font(.app(.subheadline))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
+              VStack(alignment: .leading, spacing: 2) {
+                Text("本周重点")
+                  .font(.app(.caption).weight(.medium))
+                  .foregroundStyle(.secondary)
+                Text(focus.items.joined(separator: " · "))
+                  .font(.app(.subheadline))
+                  .foregroundStyle(.primary)
+                  .lineLimit(2)
+                  .multilineTextAlignment(.leading)
+              }
               Spacer(minLength: 4)
               Image(systemName: "chevron.right").font(.app(.caption).weight(.semibold)).foregroundStyle(.tertiary)
             }
@@ -417,9 +439,15 @@ private struct TodayTasksModule: View {
         } else {
           TaskList(tasks: open, day: day)
         }
+        let done = list.filter { $0.isDone(on: day) }
+        if !done.isEmpty {
+          Divider()
+          DoneTasksFold(tasks: done, day: day, linePadding: 12)
+        }
       }
       .listCard()
     }
+    .sheet(isPresented: $adding) { AddTaskSheet(day: store.today).oneDaySheet() }
   }
 }
 
