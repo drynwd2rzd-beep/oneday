@@ -4,8 +4,21 @@ import Foundation
 
 enum RepeatMode: String, Codable, CaseIterable, Hashable {
   case once, daily
+  /// On chosen weekdays (`TaskItem.weekdays`).
+  case weekdays
+  /// A number of times per week, any days (`TaskItem.perWeek`).
+  case weekly
 
-  var label: String { self == .daily ? "每天" : "单次" }
+  var label: String {
+    switch self {
+    case .once: "一次"
+    case .daily: "每天"
+    case .weekdays: "指定星期"
+    case .weekly: "每周几次"
+    }
+  }
+
+  var isRecurring: Bool { self != .once }
 }
 
 enum PlanStatus: String, Codable, CaseIterable, Hashable {
@@ -176,9 +189,13 @@ struct TaskItem: Codable, Identifiable, Hashable {
   var reminder: Int?
   /// The plan this task moves forward, if any.
   var planId: String?
+  /// `.weekdays`: 1 = Monday … 7 = Sunday.
+  var weekdays: [Int] = []
+  /// `.weekly`: how many times a week.
+  var perWeek = 0
 
   enum CodingKeys: String, CodingKey {
-    case id, title, date, created, done, reminder, planId
+    case id, title, date, created, done, reminder, planId, weekdays, perWeek
     case repeatMode = "repeat"
   }
 
@@ -204,10 +221,50 @@ struct TaskItem: Codable, Identifiable, Hashable {
     done = c.get("done", as: [String: Bool].self) ?? [:]
     reminder = c.get("reminder", as: Int.self)
     planId = c.string("planId")
+    weekdays = c.get("weekdays", as: LenientArray<Int>.self)?.items ?? []
+    perWeek = c.get("perWeek", as: Int.self) ?? 0
   }
 
   func occurs(on day: String) -> Bool {
-    repeatMode == .daily ? day >= created : date == day
+    switch repeatMode {
+    case .once:
+      return date == day
+    case .daily:
+      return day >= created
+    case .weekdays:
+      return day >= created && weekdays.contains(DayKey.weekdayIndex(day))
+    case .weekly:
+      // Shown every day until this week's count is reached (and on the days it was done).
+      return day >= created && (isDone(on: day) || doneThisWeek(before: day) < max(perWeek, 1))
+    }
+  }
+
+  /// Completions earlier in the same Monday-first week, not counting `day`.
+  func doneThisWeek(before day: String) -> Int {
+    let start = DayKey.weekStart(day)
+    var count = 0
+    var d = start
+    while d < day {
+      if isDone(on: d) { count += 1 }
+      d = DayKey.add(days: 1, to: d)
+    }
+    return count
+  }
+
+  /// Completions in the week of `day`, including it.
+  func doneInWeek(of day: String) -> Int {
+    let start = DayKey.weekStart(day)
+    return (0..<7).filter { isDone(on: DayKey.add(days: $0, to: start)) }.count
+  }
+
+  /// "每天", "周一、三、五", "每周 3 次" or the date.
+  var frequencyLabel: String {
+    switch repeatMode {
+    case .once: return DayKey.shortDate(date)
+    case .daily: return "每天"
+    case .weekdays: return DayKey.weekdaysLabel(weekdays)
+    case .weekly: return "每周 \(max(perWeek, 1)) 次"
+    }
   }
 
   func isDone(on day: String) -> Bool { done[day] == true }
@@ -373,6 +430,8 @@ struct Settings: Codable, Hashable {
   var cardStyle: VisualStyle = .glass
   var bgTone: BgTone = .warm
   var fontStyle: FontStyle = .system
+  /// What 小日 wears (a `MascotOutfit` raw value), if anything.
+  var mascotOutfit: String?
   var customTags: [String] = []
   var celebratedDays: [String] = []
   var notifications = NotificationPrefs()
@@ -396,6 +455,7 @@ struct Settings: Codable, Hashable {
     cardStyle = c.get("cardStyle", as: VisualStyle.self) ?? d.cardStyle
     bgTone = c.get("bgTone", as: BgTone.self) ?? d.bgTone
     fontStyle = c.get("fontStyle", as: FontStyle.self) ?? d.fontStyle
+    mascotOutfit = c.string("mascotOutfit").flatMap { MascotOutfit(rawValue: $0)?.rawValue }
     customTags = c.get("customTags", as: LenientArray<String>.self)?.items ?? []
     celebratedDays = c.get("celebratedDays", as: LenientArray<String>.self)?.items ?? []
     notifications = c.get("notifications", as: NotificationPrefs.self) ?? d.notifications
@@ -438,6 +498,10 @@ struct AppState: Codable {
       t.id = Self.safeId(t.id, seen: &seen)
       t.done = t.done.filter { $0.value }
       if let r = t.reminder, !(0..<1440).contains(r) { t.reminder = nil }
+      t.weekdays = Array(Set(t.weekdays.filter { (1...7).contains($0) })).sorted()
+      if t.repeatMode == .weekdays && t.weekdays.isEmpty { t.repeatMode = .daily }
+      if t.repeatMode == .weekdays && t.weekdays.count == 7 { t.repeatMode = .daily }
+      if t.repeatMode == .weekly { t.perWeek = min(max(t.perWeek, 1), 7) }
       return t
     }
     for (day, list) in notes {

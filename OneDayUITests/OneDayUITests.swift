@@ -29,6 +29,11 @@ final class OneDayUITests: XCTestCase {
     let rowStart = app.staticTexts["散步 30 分钟"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
     rowStart.press(forDuration: 0.05, thenDragTo: rowStart.withOffset(CGVector(dx: 0, dy: -420)))
     XCTAssertTrue(memory.waitForExistence(timeout: 3))
+    // The page is long; keep scrolling (from the side, away from the rows) until it shows.
+    for _ in 0..<3 where !memory.isHittable {
+      let edge = app.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.7))
+      edge.press(forDuration: 0.05, thenDragTo: edge.withOffset(CGVector(dx: 0, dy: -300)))
+    }
     XCTAssertTrue(memory.isHittable, "page scrolled to the on-this-day module")
     XCTAssertTrue(app.staticTexts["散步 30 分钟"].exists, "vertical drag did not delete the row")
   }
@@ -197,5 +202,14 @@ final class OneDayUITests: XCTestCase {
     app.open(URL(string: "oneday://capture")!)
     XCTAssertTrue(app.staticTexts["值得留下"].waitForExistence(timeout: 10), "the link opens the capture card on 今天")
     XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), "ready to type")
+  }
+
+  func testGrowthPageOpensFromRing() {
+    let app = launch(["-OneDayTab", "today"])
+    let ring = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "今天完成")).firstMatch
+    XCTAssertTrue(ring.waitForExistence(timeout: 10))
+    ring.tap()
+    XCTAssertTrue(app.staticTexts["小日的成长"].waitForExistence(timeout: 10), "tapping 小日 opens its growth page")
+    XCTAssertTrue(app.staticTexts["怎样收集阳光"].exists)
   }
 }

@@ -218,7 +218,7 @@ struct ReminderSheet: View {
             .labelsHidden()
             .frame(maxWidth: .infinity)
         } footer: {
-          Text(task.repeatMode == .daily ? "每天这个时间提醒，当天已完成则不提醒。" : "在这件事当天的这个时间提醒。")
+          Text(task.repeatMode.isRecurring ? "每天这个时间提醒，当天已完成则不提醒。" : "在这件事当天的这个时间提醒。")
         }
       }
       .navigationTitle(task.title)

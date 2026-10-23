@@ -340,4 +340,69 @@ final class FeatureTests: XCTestCase {
     XCTAssertEqual(SharedData.provisionedGroups(fromProfile: data), ["group.com.oneday.app.ABC123"])
     XCTAssertEqual(SharedData.provisionedGroups(fromProfile: Data("no plist".utf8)), [])
   }
+
+  func testWeekdayAndWeeklyTasks() {
+    // 2026-10-19 is a Monday; today is Thursday the 22nd.
+    var swim = TaskItem(title: "游泳", day: "2026-10-01", repeatMode: .weekdays, reminder: nil)
+    swim.weekdays = [2, 4]
+    XCTAssertTrue(swim.occurs(on: "2026-10-20"))
+    XCTAssertFalse(swim.occurs(on: "2026-10-21"))
+    XCTAssertEqual(swim.frequencyLabel, "周二、四")
+
+    var gym = TaskItem(title: "运动", day: "2026-10-01", repeatMode: .weekly, reminder: nil)
+    gym.perWeek = 2
+    gym.done["2026-10-19"] = true
+    XCTAssertTrue(gym.occurs(on: "2026-10-20"), "shown until the week's count is reached")
+    gym.done["2026-10-20"] = true
+    XCTAssertTrue(gym.occurs(on: "2026-10-20"), "still shown on the day it was done")
+    XCTAssertFalse(gym.occurs(on: "2026-10-21"), "hidden for the rest of the week")
+    XCTAssertTrue(gym.occurs(on: "2026-10-26"), "back next Monday")
+
+    var s = AppState()
+    for d in ["2026-10-06", "2026-10-08", "2026-10-13", "2026-10-15", "2026-10-20"] { swim.done[d] = true }
+    for d in ["2026-10-05", "2026-10-07", "2026-10-12", "2026-10-14"] { gym.done[d] = true }
+    s.tasks = [swim, gym]
+    XCTAssertEqual(s.streak(for: swim, today: today).current, 5, "scheduled days in a row")
+    XCTAssertEqual(s.streak(for: gym, today: today).current, 3, "weeks that reached the count")
+    XCTAssertEqual(s.taskStreaks(today: today).first { $0.title == "运动" }?.unit, "周")
+
+    var odd = TaskItem(title: "x", day: today, repeatMode: .weekdays, reminder: nil)
+    var t = AppState()
+    t.tasks = [odd]
+    t.normalize()
+    XCTAssertEqual(t.tasks[0].repeatMode, .daily, "no weekdays chosen means every day")
+    odd.repeatMode = .weekly
+    t.tasks = [odd]
+    t.normalize()
+    XCTAssertEqual(t.tasks[0].perWeek, 1)
+  }
+
+  func testGrowth() {
+    var g = AppState()
+    var read = TaskItem(title: "阅读", day: "2026-10-01", repeatMode: .daily, reminder: nil)
+    for k in 0..<10 { read.done[DayKey.add(days: -k, to: today)] = true }
+    g.tasks = [read]
+    g.notes[today] = [NoteEntry(text: "好", time: "", photos: [], tags: [])]
+    var reflection = NoteEntry(text: "复盘", time: "", photos: [], tags: [])
+    reflection.isReflection = true
+    g.notes["2026-10-21"] = [reflection]
+    g.weekReflections["2026-10-12"] = WeekReflection(gains: "a", problems: "", next: "")
+
+    let growth = g.growth(today: today)
+    // Ten days of 1 done + 2 all done, a note today, a 复盘 yesterday, a weekly review.
+    XCTAssertEqual(growth.sunshine, 35)
+    XCTAssertEqual(growth.today, 4)
+    XCTAssertEqual(growth.stage, .twoLeaves)
+    XCTAssertEqual(growth.toNext, 5)
+    XCTAssertEqual(growth.streak, 10)
+    XCTAssertTrue(growth.isUnlocked(.scarf))
+    XCTAssertFalse(growth.isUnlocked(.hat))
+    XCTAssertFalse(growth.droopy)
+
+    let later = g.growth(today: "2026-10-26")
+    XCTAssertTrue(later.droopy, "a few quiet days")
+    XCTAssertEqual(later.sunshine, 35, "sunshine is never lost")
+    XCTAssertEqual(later.streak, 0)
+    XCTAssertEqual(GrowthStage.at(320), .fruit)
+  }
 }

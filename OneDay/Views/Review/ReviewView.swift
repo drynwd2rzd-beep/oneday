@@ -533,7 +533,7 @@ private struct TotalsCard: View {
   var body: some View {
     let state = store.state
     let completions = state.tasks.reduce(0) { $0 + $1.completionCount }
-    let best = state.taskStreaks(today: store.today).map(\.best).max() ?? 0
+    let best = state.taskStreaks(today: store.today).filter { $0.unit == "天" }.map(\.best).max() ?? 0
     HStack(alignment: .top, spacing: 0) {
       number("\(completions)", "累计完成", unit: "次")
       number("\(state.recordDates.count)", "有记录", unit: "天")
@@ -734,7 +734,7 @@ private struct StreaksCard: View {
     VStack(alignment: .leading, spacing: Spacing.inner) {
       VStack(alignment: .leading, spacing: 3) {
         Text("每日打卡").font(.app(.headline))
-        Text("设为「每天」重复的事项，连续完成了几天")
+        Text("重复的事项连续完成了多久")
           .font(.app(.caption))
           .foregroundStyle(.secondary)
       }
@@ -750,7 +750,7 @@ private struct StreaksCard: View {
               .frame(width: 22)
             VStack(alignment: .leading, spacing: 2) {
               Text(s.title).font(.app(.body)).lineLimit(1)
-              Text("最长 \(s.best) 天")
+              Text("最长 \(s.best) \(s.unit)")
                 .font(.app(.footnote))
                 .foregroundStyle(.secondary)
             }
@@ -759,7 +759,7 @@ private struct StreaksCard: View {
             Text("\(s.current)")
               .font(.app(.title3).weight(.bold))
               .foregroundStyle(s.current > 0 ? accent : .secondary)
-            Text("天").font(.app(.caption)).foregroundStyle(.secondary)
+            Text(s.unit).font(.app(.caption)).foregroundStyle(.secondary)
           }
           .accessibilityElement(children: .combine)
         }

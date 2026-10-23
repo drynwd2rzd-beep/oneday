@@ -262,7 +262,7 @@ struct PlanEditorSheet: View {
 
   /// Daily tasks first, then one-off tasks from today on (plus any already linked).
   private var candidateTasks: [TaskItem] {
-    let daily = store.state.tasks.filter { $0.repeatMode == .daily }
+    let daily = store.state.tasks.filter { $0.repeatMode.isRecurring }
     let once = store.state.tasks.filter { $0.repeatMode == .once && ($0.date >= store.today || linked.contains($0.id)) }
     return daily + once.sorted { $0.date < $1.date }
   }
@@ -404,7 +404,7 @@ struct PlanEditorSheet: View {
   }
 
   private func taskCaption(_ task: TaskItem) -> String {
-    var parts = [task.repeatMode == .daily ? "每天" : DayKey.shortDate(task.date)]
+    var parts = [task.frequencyLabel]
     if let other = store.state.plan(task.planId), other.id != editingPlan?.id {
       parts.append("当前属于「\(other.title)」")
     }

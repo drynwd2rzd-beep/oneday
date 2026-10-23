@@ -154,6 +154,8 @@ struct AddTaskSheet: View {
   @State private var remind = false
   @State private var time = DayKey.dateToday(minutes: 9 * 60)
   @State private var planId: String?
+  @State private var weekdays: Set<Int> = [1, 3, 5]
+  @State private var perWeek = 3
   @FocusState private var focused: Bool
 
   var body: some View {
@@ -165,12 +167,21 @@ struct AddTaskSheet: View {
             .submitLabel(.done)
             .onSubmit(save)
         }
-        Section("类型") {
-          Picker("类型", selection: $repeatMode) {
-            Text("仅这一天").tag(RepeatMode.once)
-            Text("每天循环").tag(RepeatMode.daily)
+        Section {
+          Picker("重复", selection: $repeatMode.animation(.snappy)) {
+            ForEach(RepeatMode.allCases, id: \.self) { Text($0.label).tag($0) }
           }
           .pickerStyle(.segmented)
+          if repeatMode == .weekdays {
+            WeekdayChips(selection: $weekdays)
+          }
+          if repeatMode == .weekly {
+            Stepper("每周 \(perWeek) 次", value: $perWeek, in: 1...6)
+          }
+        } header: {
+          Text("重复")
+        } footer: {
+          Text(repeatFooter)
         }
         if !store.state.activePlans.isEmpty {
           Section {
@@ -212,10 +223,52 @@ struct AddTaskSheet: View {
     .presentationDetents([.medium, .large])
   }
 
+  private var repeatFooter: String {
+    switch repeatMode {
+    case .once: "只在这一天出现。"
+    case .daily: "每天出现，连续完成会累计天数。"
+    case .weekdays: "只在选中的日子出现。"
+    case .weekly: "每天都会出现，这周完成 \(perWeek) 次后就收起来，下周一再出现。"
+    }
+  }
+
   private func save() {
     guard !title.trimmed.isEmpty else { return }
-    store.addTask(title: title, repeatMode: repeatMode, day: day, reminder: remind ? DayKey.minutes(of: time) : nil, planId: planId)
+    guard repeatMode != .weekdays || !weekdays.isEmpty else { return store.toast("至少选一天") }
+    store.addTask(
+      title: title, repeatMode: repeatMode, day: day, reminder: remind ? DayKey.minutes(of: time) : nil,
+      planId: planId, weekdays: Array(weekdays).sorted(), perWeek: perWeek)
     if remind { Task { await ensureNotificationsOn(store) } }
     dismiss()
+  }
+}
+
+/// 一 二 三 四 五 六 日 as toggles.
+private struct WeekdayChips: View {
+  @Environment(\.accent) private var accent
+  @Binding var selection: Set<Int>
+  private let names = ["一", "二", "三", "四", "五", "六", "日"]
+
+  var body: some View {
+    HStack(spacing: 6) {
+      ForEach(1...7, id: \.self) { day in
+        let on = selection.contains(day)
+        Button {
+          Haptics.tap()
+          if on { selection.remove(day) } else { selection.insert(day) }
+        } label: {
+          Text(names[day - 1])
+            .font(.app(.subheadline).weight(on ? .semibold : .regular))
+            .foregroundStyle(on ? Color.white : Color.primary)
+            .frame(maxWidth: .infinity, minHeight: 34)
+            .background(on ? accent : Color.secondary.opacity(0.12), in: Circle())
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("周\(names[day - 1])")
+        .accessibilityAddTraits(on ? .isSelected : [])
+      }
+    }
+    .padding(.vertical, 4)
   }
 }

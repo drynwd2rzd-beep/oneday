@@ -43,6 +43,11 @@ enum MascotMood: String, CaseIterable {
 struct MascotView: View {
   let mood: MascotMood
   var size: CGFloat = 64
+  /// `GrowthStage` raw value: 0 小芽 … 5 结果.
+  var stage = 1
+  var outfit: MascotOutfit?
+  /// After a few quiet days the leaves hang down.
+  var droopy = false
 
   private let ink = Color(red: 0.36, green: 0.23, blue: 0.16)
   private let bodyTop = Color(red: 1.0, green: 0.89, blue: 0.56)
@@ -70,14 +75,9 @@ struct MascotView: View {
       foot(at: CGPoint(x: 0.36, y: 0.92), line: line)
       foot(at: CGPoint(x: 0.64, y: 0.92), line: line)
 
-      // Sprout.
-      Capsule()
-        .fill(leaf)
-        .overlay(Capsule().stroke(ink, lineWidth: line * 0.8))
-        .frame(width: s * 0.045, height: s * 0.12)
-        .position(x: s * 0.5, y: s * 0.22)
-      leafShape(at: CGPoint(x: 0.41, y: 0.15), angle: -28, line: line)
-      leafShape(at: CGPoint(x: 0.59, y: 0.15), angle: 28, line: line)
+      if outfit == .halo { halo(line: line) }
+      // The sprout grows with 小日; under a hat it pokes out of the top instead.
+      if outfit != .hat { sprout(line: line, lift: 0) }
 
       // Body.
       Ellipse()
@@ -102,6 +102,7 @@ struct MascotView: View {
       eye(at: 0.37, line: line)
       eye(at: 0.63, line: line)
       mouth(line: line)
+      outfitLayer(line: line)
 
       if mood == .sleepy {
         Text("z")
@@ -117,6 +118,158 @@ struct MascotView: View {
     .frame(width: s, height: s)
     .accessibilityElement()
     .accessibilityLabel("小日")
+  }
+
+  // MARK: Growth
+
+  @ViewBuilder
+  private func sprout(line: CGFloat, lift: CGFloat) -> some View {
+    let s = size
+    let stage = min(max(self.stage, 0), 5)
+    let stemHeight: CGFloat = stage == 0 ? 0.08 : stage == 1 ? 0.12 : 0.17
+    let base: CGFloat = 0.28 - lift
+    let top = base - stemHeight
+    let sideAngle: Double = droopy ? 70 : 28
+    let sideDrop: CGFloat = droopy ? 0.03 : 0
+    ZStack(alignment: .topLeading) {
+      Capsule()
+        .fill(leaf)
+        .overlay(Capsule().stroke(ink, lineWidth: line * 0.8))
+        .frame(width: s * 0.045, height: s * stemHeight)
+        .position(x: s * 0.5, y: s * (base - stemHeight / 2))
+      switch stage {
+      case 0:
+        leafShape(at: CGPoint(x: 0.44, y: top + 0.02 + sideDrop), angle: -sideAngle, line: line, width: 0.11, height: 0.06)
+        leafShape(at: CGPoint(x: 0.56, y: top + 0.02 + sideDrop), angle: sideAngle, line: line, width: 0.11, height: 0.06)
+      case 1:
+        leafShape(at: CGPoint(x: 0.41, y: top - 0.01 + sideDrop), angle: -sideAngle, line: line)
+        leafShape(at: CGPoint(x: 0.59, y: top - 0.01 + sideDrop), angle: sideAngle, line: line)
+      default:
+        leafShape(at: CGPoint(x: 0.41, y: top + 0.07 + sideDrop), angle: -sideAngle, line: line, width: 0.16, height: 0.085)
+        leafShape(at: CGPoint(x: 0.59, y: top + 0.07 + sideDrop), angle: sideAngle, line: line, width: 0.16, height: 0.085)
+        crown(stage: stage, top: top, line: line)
+      }
+    }
+  }
+
+  /// What grows at the top of the stem from 三片叶 on.
+  @ViewBuilder
+  private func crown(stage: Int, top: CGFloat, line: CGFloat) -> some View {
+    let s = size
+    switch stage {
+    case 2:
+      Ellipse()
+        .fill(leaf)
+        .overlay(Ellipse().stroke(ink, lineWidth: line * 0.8))
+        .frame(width: s * 0.08, height: s * 0.14)
+        .rotationEffect(.degrees(droopy ? 30 : 0))
+        .position(x: s * 0.5, y: s * (top - 0.02))
+    case 3:
+      Ellipse()
+        .fill(Color(red: 1, green: 0.66, blue: 0.74))
+        .overlay(Ellipse().stroke(ink, lineWidth: line * 0.8))
+        .frame(width: s * 0.1, height: s * 0.13)
+        .position(x: s * 0.5, y: s * (top - 0.03))
+    case 4:
+      ZStack {
+        ForEach(0..<5, id: \.self) { i in
+          let angle = Double(i) / 5 * 2 * .pi - .pi / 2
+          Circle()
+            .fill(Color(red: 1, green: 0.78, blue: 0.84))
+            .overlay(Circle().stroke(ink, lineWidth: line * 0.7))
+            .frame(width: s * 0.11, height: s * 0.11)
+            .offset(x: CGFloat(cos(angle)) * s * 0.06, y: CGFloat(sin(angle)) * s * 0.06)
+        }
+        Circle()
+          .fill(Color(red: 1, green: 0.8, blue: 0.3))
+          .overlay(Circle().stroke(ink, lineWidth: line * 0.7))
+          .frame(width: s * 0.075, height: s * 0.075)
+      }
+      .position(x: s * 0.5, y: s * (top - 0.04))
+    default:
+      ZStack {
+        Circle()
+          .fill(Color(red: 0.9, green: 0.27, blue: 0.3))
+          .overlay(Circle().stroke(ink, lineWidth: line * 0.8))
+          .frame(width: s * 0.14, height: s * 0.14)
+        Circle()
+          .fill(Color.white.opacity(0.7))
+          .frame(width: s * 0.035, height: s * 0.035)
+          .offset(x: -s * 0.025, y: -s * 0.025)
+      }
+      .position(x: s * 0.5, y: s * (top - 0.045))
+    }
+  }
+
+  // MARK: Outfits
+
+  private var scarfRed: Color { Color(red: 0.9, green: 0.33, blue: 0.35) }
+  private var straw: Color { Color(red: 0.94, green: 0.79, blue: 0.5) }
+
+  @ViewBuilder
+  private func outfitLayer(line: CGFloat) -> some View {
+    let s = size
+    switch outfit {
+    case .some(.scarf):
+      RoundedRectangle(cornerRadius: s * 0.03, style: .continuous)
+        .fill(scarfRed)
+        .overlay(RoundedRectangle(cornerRadius: s * 0.03, style: .continuous).stroke(ink, lineWidth: line * 0.8))
+        .frame(width: s * 0.09, height: s * 0.17)
+        .rotationEffect(.degrees(12))
+        .position(x: s * 0.67, y: s * 0.86)
+      Capsule()
+        .fill(scarfRed)
+        .overlay(Capsule().stroke(ink, lineWidth: line * 0.8))
+        .frame(width: s * 0.66, height: s * 0.1)
+        .position(x: s * 0.5, y: s * 0.79)
+    case .some(.glasses):
+      Group {
+        Circle().fill(Color.white.opacity(0.25))
+          .overlay(Circle().stroke(ink, lineWidth: line * 0.75))
+          .frame(width: s * 0.17, height: s * 0.17)
+          .position(x: s * 0.37, y: s * 0.56)
+        Circle().fill(Color.white.opacity(0.25))
+          .overlay(Circle().stroke(ink, lineWidth: line * 0.75))
+          .frame(width: s * 0.17, height: s * 0.17)
+          .position(x: s * 0.63, y: s * 0.56)
+        Path { p in
+          p.move(to: CGPoint(x: s * 0.455, y: s * 0.55))
+          p.addLine(to: CGPoint(x: s * 0.545, y: s * 0.55))
+        }
+        .stroke(ink, lineWidth: line * 0.75)
+      }
+    case .some(.hat):
+      Ellipse()
+        .fill(straw)
+        .overlay(Ellipse().stroke(ink, lineWidth: line * 0.85))
+        .frame(width: s * 0.42, height: s * 0.26)
+        .position(x: s * 0.5, y: s * 0.21)
+      Capsule()
+        .fill(scarfRed)
+        .frame(width: s * 0.4, height: s * 0.045)
+        .position(x: s * 0.5, y: s * 0.255)
+      Ellipse()
+        .fill(straw)
+        .overlay(Ellipse().stroke(ink, lineWidth: line * 0.85))
+        .frame(width: s * 0.72, height: s * 0.12)
+        .position(x: s * 0.5, y: s * 0.29)
+      sprout(line: line, lift: 0.17)
+    case .some(.halo), .none:
+      EmptyView()
+    }
+  }
+
+  private func halo(line: CGFloat) -> some View {
+    let s = size
+    let gold = Color(red: 0.95, green: 0.7, blue: 0.24)
+    return ZStack {
+      Ellipse()
+        .stroke(gold, lineWidth: line * 1.4)
+        .frame(width: s * 0.5, height: s * 0.11)
+      Sparkle().fill(gold).frame(width: s * 0.09, height: s * 0.09).offset(x: -s * 0.3, y: -s * 0.02)
+      Sparkle().fill(gold).frame(width: s * 0.07, height: s * 0.07).offset(x: s * 0.3, y: s * 0.01)
+    }
+    .position(x: s * 0.5, y: s * (stage >= 3 ? 0.0 : 0.04))
   }
 
   // MARK: Parts
@@ -202,11 +355,13 @@ struct MascotView: View {
       .position(x: size * point.x, y: size * point.y)
   }
 
-  private func leafShape(at point: CGPoint, angle: Double, line: CGFloat) -> some View {
+  private func leafShape(
+    at point: CGPoint, angle: Double, line: CGFloat, width: CGFloat = 0.17, height: CGFloat = 0.09
+  ) -> some View {
     Ellipse()
       .fill(leaf)
       .overlay(Ellipse().stroke(ink, lineWidth: line * 0.8))
-      .frame(width: size * 0.17, height: size * 0.09)
+      .frame(width: size * width, height: size * height)
       .rotationEffect(.degrees(angle))
       .position(x: size * point.x, y: size * point.y)
   }
@@ -246,5 +401,20 @@ struct Sparkle: Shape {
     }
     p.closeSubpath()
     return p
+  }
+}
+
+/// Things 小日 can wear, unlocked in the app by keeping at it.
+enum MascotOutfit: String, CaseIterable, Codable, Identifiable {
+  case scarf, glasses, hat, halo
+  var id: String { rawValue }
+
+  var name: String {
+    switch self {
+    case .scarf: "围巾"
+    case .glasses: "眼镜"
+    case .hat: "草帽"
+    case .halo: "星星光环"
+    }
   }
 }

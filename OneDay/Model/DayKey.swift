@@ -24,6 +24,23 @@ enum DayKey {
     return of(date(key)) == key
   }
 
+  /// 1 = Monday … 7 = Sunday.
+  static func weekdayIndex(_ key: String) -> Int {
+    let weekday = calendar.component(.weekday, from: date(key))  // 1 = Sunday
+    return (weekday + 5) % 7 + 1
+  }
+
+  /// "周一、三、五", "工作日", "周末", "每天".
+  static func weekdaysLabel(_ days: [Int]) -> String {
+    let set = Set(days)
+    if set == Set(1...7) { return "每天" }
+    if set == Set(1...5) { return "工作日" }
+    if set == [6, 7] { return "周末" }
+    let names = ["一", "二", "三", "四", "五", "六", "日"]
+    let parts = set.sorted().map { names[$0 - 1] }
+    return parts.isEmpty ? "" : "周" + parts.joined(separator: "、")
+  }
+
   static func date(_ key: String) -> Date {
     let parts = key.split(separator: "-").compactMap { Int($0) }
     guard parts.count == 3 else { return Date() }

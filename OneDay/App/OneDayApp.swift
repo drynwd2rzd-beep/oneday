@@ -182,7 +182,9 @@ struct MotivationSheet: View {
 
   var body: some View {
     VStack(spacing: 18) {
-      MascotView(mood: .party, size: 120)
+      MascotView(
+        mood: .party, size: 120, stage: Store.shared.state.growth(today: Store.shared.today).stage.rawValue,
+        outfit: Store.shared.mascotOutfit)
         .keyframeAnimator(initialValue: CGFloat(0), trigger: appeared) { view, hop in
           view.offset(y: hop)
         } keyframes: { _ in

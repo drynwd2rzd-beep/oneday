@@ -163,11 +163,16 @@ private struct RecapBanner: View {
 private struct HeroModule: View {
   @Environment(Store.self) private var store
   @Environment(\.dynamicTypeSize) private var typeSize
+  @State private var showGrowth = false
+  /// Bumped when the bubble is tapped away, so the next line (or none) shows.
+  @State private var bubbleTick = 0
 
   var body: some View {
     let now = Date()
     let list = store.state.tasks(on: store.today)
     let done = list.filter { $0.isDone(on: store.today) }.count
+    let growth = store.state.growth(today: store.today)
+    let line = bubbleTick >= 0 ? MascotSpeech.line(state: store.state, today: store.today, growth: growth, now: now) : nil
     let layout = typeSize.isAccessibilitySize
       ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.section))
       : AnyLayout(HStackLayout(alignment: .center, spacing: Spacing.inner))
@@ -184,13 +189,40 @@ private struct HeroModule: View {
           .lineLimit(3)
           .fixedSize(horizontal: false, vertical: true)
           .padding(.top, 2)
+        if let line {
+          MascotBubble(line: line) {
+            if line.opensGrowth {
+              showGrowth = true
+            } else {
+              MascotSpeech.dismiss(line, today: store.today)
+              withAnimation(.snappy) { bubbleTick += 1 }
+            }
+          }
+          .padding(.top, 8)
+          .transition(.scale(scale: 0.8, anchor: .trailing).combined(with: .opacity))
+        }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      .accessibilityElement(children: .combine)
-      TodayRing(done: done, total: list.count, mood: MascotMood.of(done: done, total: list.count, at: now))
-        .frame(width: 124, height: 124)
+      Button {
+        showGrowth = true
+      } label: {
+        TodayRing(
+          done: done, total: list.count,
+          mood: growth.droopy && done == 0 ? .sleepy : MascotMood.of(done: done, total: list.count, at: now),
+          stage: growth.stage.rawValue, outfit: store.mascotOutfit, droopy: growth.droopy)
+          .frame(width: 124, height: 124)
+      }
+      .buttonStyle(.plain)
+      .accessibilityHint("打开小日的成长")
     }
     .padding(.top, 20)
+    .animation(.snappy, value: line?.id)
+    .sheet(isPresented: $showGrowth, onDismiss: { bubbleTick += 1 }) { GrowthSheet().oneDaySheet() }
+    #if DEBUG
+    .onAppear {
+      if UserDefaults.standard.bool(forKey: "OneDayGrowth") { showGrowth = true }
+    }
+    #endif
   }
 }
 
@@ -203,6 +235,9 @@ struct TodayRing: View {
   let done: Int
   let total: Int
   let mood: MascotMood
+  var stage = 1
+  var outfit: MascotOutfit?
+  var droopy = false
 
   private var progress: Double { total == 0 ? 0 : Double(done) / Double(total) }
 
@@ -238,7 +273,8 @@ struct TodayRing: View {
 
   @ViewBuilder
   private func mascot(side: CGFloat) -> some View {
-    let base = MascotView(mood: mood, size: side * 0.6).offset(y: -side * 0.04)
+    let base = MascotView(mood: mood, size: side * 0.6, stage: stage, outfit: outfit, droopy: droopy)
+      .offset(y: -side * 0.04)
     if reduceMotion {
       base
     } else {

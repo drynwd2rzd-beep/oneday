@@ -23,6 +23,10 @@ struct WidgetSnapshot: Codable, Hashable {
   var wroteToday: Bool
   /// Completions for the last seven days, oldest first, ending with `day`.
   var week: [Int]
+  /// 小日 as in the app (growth stage, outfit, droopy); nil in snapshots from before 1.6.
+  var stage: Int?
+  var outfit: String?
+  var droopy: Bool?
 
   var doneCount: Int { today.filter(\.done).count }
   var total: Int { today.count }

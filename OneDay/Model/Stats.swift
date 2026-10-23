@@ -8,6 +8,8 @@ struct TaskStreak: Identifiable {
   let best: Int
   /// Completion rate over the last 30 days the task existed.
   let rate30: Double
+  /// 天 for daily tasks, 次 for chosen weekdays, 周 for so-many-times-a-week.
+  var unit = "天"
 }
 
 /// How the tasks linked to a plan are going.
@@ -50,19 +52,38 @@ extension DayKey {
 }
 
 extension AppState {
+  /// Current and best run for a repeating task: days for 每天, scheduled days for 指定星期,
+  /// weeks that reached their count for 每周几次. Today (or this week) still open does not
+  /// break the run.
   func streak(for task: TaskItem, today: String) -> (current: Int, best: Int) {
-    guard task.repeatMode == .daily, task.created <= today else {
+    guard task.repeatMode.isRecurring, task.created <= today else {
       let done = task.isDone(on: task.date) ? 1 : 0
       return (done, done)
     }
     var best = 0, run = 0
+    if task.repeatMode == .weekly {
+      let current = DayKey.weekStart(today)
+      var week = DayKey.weekStart(task.created)
+      while week <= current {
+        if task.doneInWeek(of: week) >= max(task.perWeek, 1) {
+          run += 1
+          best = max(best, run)
+        } else if week != current {
+          run = 0
+        }
+        week = DayKey.add(days: 7, to: week)
+      }
+      return (run, best)
+    }
     var day = task.created
     while day <= today {
-      if task.isDone(on: day) {
-        run += 1
-        best = max(best, run)
-      } else if day != today {
-        run = 0
+      if task.occurs(on: day) {
+        if task.isDone(on: day) {
+          run += 1
+          best = max(best, run)
+        } else if day != today {
+          run = 0
+        }
       }
       day = DayKey.add(days: 1, to: day)
     }
@@ -70,19 +91,21 @@ extension AppState {
   }
 
   func taskStreaks(today: String) -> [TaskStreak] {
-    tasks.filter { $0.repeatMode == .daily && $0.created <= today }.map { task in
+    tasks.filter { $0.repeatMode.isRecurring && $0.created <= today }.map { task in
       let (current, best) = streak(for: task, today: today)
       var considered = 0, done = 0
       for k in 0..<30 {
         let day = DayKey.add(days: -k, to: today)
         guard day >= task.created else { break }
         if day == today && !task.isDone(on: day) { continue }
+        guard task.repeatMode == .weekly || task.occurs(on: day) else { continue }
         considered += 1
         if task.isDone(on: day) { done += 1 }
       }
       return TaskStreak(
         id: task.id, title: task.title, current: current, best: best,
-        rate30: considered == 0 ? 0 : Double(done) / Double(considered))
+        rate30: considered == 0 ? 0 : Double(done) / Double(considered),
+        unit: task.repeatMode == .weekly ? "周" : task.repeatMode == .weekdays ? "次" : "天")
     }
     .sorted { $0.current != $1.current ? $0.current > $1.current : $0.best > $1.best }
   }

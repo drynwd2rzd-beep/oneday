@@ -33,8 +33,13 @@ struct TaskRow: View {
           .font(.app(.body))
           .strikethrough(done, color: .secondary)
           .foregroundStyle(done ? .secondary : .primary)
-        if task.reminder != nil || plan != nil {
+        if task.reminder != nil || plan != nil || task.repeatMode == .weekly || task.repeatMode == .weekdays {
           HStack(spacing: 10) {
+            if task.repeatMode == .weekly {
+              Text("本周 \(task.doneInWeek(of: day))/\(max(task.perWeek, 1))")
+            } else if task.repeatMode == .weekdays {
+              Text(task.frequencyLabel)
+            }
             if let reminder = task.reminder {
               Label(DayKey.clock(minutes: reminder), systemImage: "bell")
                 .labelStyle(CompactLabelStyle())

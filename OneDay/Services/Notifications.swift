@@ -159,7 +159,7 @@ enum NotificationPlanner {
           guard let minutes = task.reminder else { continue }
           add("task.\(task.id).\(day)", day: day, minutes: minutes) { c in
             c.title = task.title
-            c.body = task.repeatMode == .daily ? "每日事项 · 现在是做这件事的好时候。" : "现在是做这件事的好时候。"
+            c.body = task.repeatMode.isRecurring ? "\(task.frequencyLabel) · 现在是做这件事的好时候。" : "现在是做这件事的好时候。"
             c.categoryIdentifier = NotificationManager.taskCategory
             c.userInfo = ["tab": AppTab.tasks.rawValue, "taskId": task.id, "day": day]
           }

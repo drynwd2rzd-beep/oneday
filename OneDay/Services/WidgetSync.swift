@@ -9,13 +9,14 @@ enum WidgetSync {
     func items(_ day: String) -> [WidgetTask] {
       let list = state.tasks(on: day).map { task in
         WidgetTask(
-          id: task.id, title: task.title, done: task.isDone(on: day), daily: task.repeatMode == .daily,
+          id: task.id, title: task.title, done: task.isDone(on: day), daily: task.repeatMode.isRecurring,
           color: state.plan(task.planId)?.color)
       }
       // Open tasks first, like a to-do list; order is otherwise kept.
       return list.filter { !$0.done } + list.filter(\.done)
     }
     let best = state.taskStreaks(today: today).first { $0.current > 0 }
+    let growth = state.growth(today: today)
     let mood = state.mood(on: today).map { Int($0.rounded()) }
     let week = (0..<7).reversed().map { back in
       let day = DayKey.add(days: -back, to: today)
@@ -30,7 +31,10 @@ enum WidgetSync {
       streakDays: best?.current ?? 0,
       mood: mood,
       wroteToday: state.hasNotes(on: today),
-      week: week)
+      week: week,
+      stage: growth.stage.rawValue,
+      outfit: state.settings.mascotOutfit,
+      droopy: growth.droopy)
   }
 
   /// Writes the snapshot and reloads widgets only when something they show has changed.
