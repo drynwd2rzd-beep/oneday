@@ -105,9 +105,7 @@ private struct TimelineList: View {
     } else {
       let weeks = Self.weekPlacement(groups, written: store.state.weekReflections)
       VStack(alignment: .leading, spacing: Spacing.stack) {
-        if store.state.weekReflections[DayKey.weekStart(store.today)] == nil {
-          ThisWeekEntry()
-        }
+        ThisWeekEntry()
         // Month titles scroll with the page: a pinned band never matched the paper background.
         LazyVStack(alignment: .leading, spacing: 0) {
           ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in

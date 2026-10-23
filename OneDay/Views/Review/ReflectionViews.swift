@@ -52,6 +52,34 @@ struct TodayReflectionModule: View {
   }
 }
 
+// MARK: - Browsing weekly reviews
+
+/// The weekly review with ‹ › to look back at earlier weeks (from the first week with any
+/// activity) and forward again to this one.
+struct WeekReviewBrowser: View {
+  @Environment(Store.self) private var store
+  @State private var week: String
+
+  init(start: String) {
+    _week = State(initialValue: DayKey.weekStart(start))
+  }
+
+  var body: some View {
+    let current = DayKey.weekStart(store.today)
+    let firstActive = store.state.activeDays.first.map(DayKey.weekStart) ?? current
+    let earliest = min(firstActive, store.state.weekReflections.keys.min() ?? current)
+    WeekReflectionSheet(
+      start: week,
+      reflection: store.state.weekReflections[week],
+      canGoBack: week > earliest,
+      canGoForward: week < current
+    ) { delta in
+      week = DayKey.add(days: 7 * delta, to: week)
+    }
+    .id(week)
+  }
+}
+
 // MARK: - 回顾 → 记录
 
 /// One line at the top of the timeline to write this week's review any day.
@@ -69,7 +97,9 @@ struct ThisWeekEntry: View {
         Image(systemName: "calendar.badge.clock").foregroundStyle(accent)
         VStack(alignment: .leading, spacing: 2) {
           Text("本周复盘").font(.app(.body)).foregroundStyle(.primary)
-          Text("\(DayKey.weekRange(start)) · 完成 \(week.completions) 次")
+          Text(store.state.weekReflections[start] == nil
+            ? "\(DayKey.weekRange(start)) · 完成 \(week.completions) 次"
+            : "\(DayKey.weekRange(start)) · 已写好 ✓ · 往前翻看以前的复盘")
             .font(.app(.caption))
             .foregroundStyle(.secondary)
         }
@@ -411,14 +441,24 @@ struct WeekReflectionSheet: View {
   @Environment(\.accent) private var accent
   let start: String
   private let original: WeekReflection
+  private let canGoBack: Bool
+  private let canGoForward: Bool
+  /// Moves to the week before (-1) or after (+1); nil hides the arrows.
+  private let onShift: ((Int) -> Void)?
   @State private var draft: WeekReflection
   @State private var editingDay: DayRef?
   @State private var confirmDiscard = false
 
-  init(start: String, reflection: WeekReflection?) {
+  init(
+    start: String, reflection: WeekReflection?,
+    canGoBack: Bool = false, canGoForward: Bool = false, onShift: ((Int) -> Void)? = nil
+  ) {
     self.start = start
     let initial = reflection ?? WeekReflection(updatedAt: 0)
     original = initial
+    self.canGoBack = canGoBack
+    self.canGoForward = canGoForward
+    self.onShift = onShift
     _draft = State(initialValue: initial)
   }
 
@@ -431,14 +471,21 @@ struct WeekReflectionSheet: View {
     NavigationStack {
       ScrollView {
         VStack(alignment: .leading, spacing: Spacing.stack) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text(week.isCurrent ? "本周" : String(start.prefix(4)) + " 年")
-              .font(.app(.footnote).weight(.medium))
-              .foregroundStyle(.secondary)
-            Text(DayKey.weekRange(start))
-              .font(.journal(.title, size: 26, bold: true))
+          HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(week.isCurrent ? "本周" : String(start.prefix(4)) + " 年")
+                .font(.app(.footnote).weight(.medium))
+                .foregroundStyle(.secondary)
+              Text(DayKey.weekRange(start))
+                .font(.journal(.title, size: 26, bold: true))
+            }
+            .accessibilityElement(children: .combine)
+            Spacer(minLength: 0)
+            if let onShift {
+              weekButton("chevron.left", label: "上一周", enabled: canGoBack) { shift(-1, onShift) }
+              weekButton("chevron.right", label: "下一周", enabled: canGoForward) { shift(1, onShift) }
+            }
           }
-          .accessibilityElement(children: .combine)
 
           WeekNumbers(week: week)
           WeekDaysCard(week: week, today: store.today) { editingDay = DayRef(day: $0) }
@@ -488,6 +535,27 @@ struct WeekReflectionSheet: View {
         DayReflectionSheet(day: ref.day, note: store.state.reflectionNote(on: ref.day)).oneDaySheet()
       }
     }
+  }
+
+  private func weekButton(_ icon: String, label: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+      Image(systemName: icon)
+        .font(.app(.body).weight(.semibold))
+        .foregroundStyle(enabled ? accent : Color.secondary.opacity(0.3))
+        .frame(width: 36, height: 36)
+        .background(accent.opacity(enabled ? 0.1 : 0.04), in: Circle())
+        .contentShape(Circle())
+    }
+    .buttonStyle(.plain)
+    .disabled(!enabled)
+    .accessibilityLabel(label)
+  }
+
+  /// What was written stays: it is saved before turning the page.
+  private func shift(_ delta: Int, _ onShift: (Int) -> Void) {
+    if changed { store.saveWeekReflection(week: start, draft) }
+    Haptics.tap()
+    onShift(delta)
   }
 
   private func question(_ title: String, prompt: String, text: Binding<String>) -> some View {

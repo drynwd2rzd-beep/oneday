@@ -132,7 +132,7 @@ struct RootView: View {
         case .day(let day):
           DayReflectionSheet(day: day, note: store.state.reflectionNote(on: day))
         case .week(let week):
-          WeekReflectionSheet(start: week, reflection: store.state.weekReflections[week])
+          WeekReviewBrowser(start: week)
         }
       }
       .oneDaySheet()

@@ -184,6 +184,10 @@ final class OneDayUITests: XCTestCase {
     XCTAssertTrue(week.waitForExistence(timeout: 10))
     week.tap()
     XCTAssertTrue(app.staticTexts["本周收获"].waitForExistence(timeout: 15), "weekly review asks its questions")
+    // Earlier weeks are one tap away.
+    app.buttons["上一周"].tap()
+    let lastWeek = app.descendants(matching: .any).matching(NSPredicate(format: "value CONTAINS %@", "读完了一本书")).firstMatch
+    XCTAssertTrue(lastWeek.waitForExistence(timeout: 10), "last week's review shows")
     app.buttons["取消"].tap()
   }
 
