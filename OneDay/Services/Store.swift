@@ -761,7 +761,7 @@ enum DemoData {
       if swimClass.occurs(on: day) && k % 9 != 0 { swimClass.done[day] = true }
     }
     s.tasks = [read, walk, water, gym, swimClass, TaskItem(title: "整理房间", day: t, repeatMode: .once, reminder: nil)]
-    s.settings.mascotOutfit = MascotOutfit.scarf.rawValue
+    s.settings.mascotOutfit = MascotOutfit.headset.rawValue
     var strong = Plan(title: "成为更强大的人", desc: "每周运动三次，持续读书。")
     strong.color = "#287052"
     strong.icon = "figure.run"

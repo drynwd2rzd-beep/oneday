@@ -36,6 +36,10 @@ struct Growth {
   let bestStreak: Int
   /// Notes left (not counting 复盘).
   let records: Int
+  /// Weekly reviews written.
+  let weekReviews: Int
+  /// Days when every task of the day was done.
+  let allDoneDays: Int
   /// Three or more days without anything done or written.
   let droopy: Bool
 
@@ -53,6 +57,10 @@ struct Growth {
     case .glasses: (records, 50, "条")
     case .hat: (bestStreak, 30, "天")
     case .halo: (bestStreak, 100, "天")
+    case .headset: (sunshine, 100, "阳光")
+    case .visor: (weekReviews, 4, "次")
+    case .stageMic: (allDoneDays, 20, "天")
+    case .cosmos: (sunshine, 500, "阳光")
     }
   }
 
@@ -62,6 +70,21 @@ struct Growth {
   }
 
   var unlocked: [MascotOutfit] { MascotOutfit.allCases.filter(isUnlocked) }
+
+  /// "连续 12/30 天", "阳光 80/100" …
+  func lockText(_ outfit: MascotOutfit) -> String {
+    let r = requirement(outfit)
+    let what: String
+    switch outfit {
+    case .glasses: what = "记录"
+    case .headset, .cosmos: what = "阳光"
+    case .visor: what = "一周复盘"
+    case .stageMic: what = "全部完成"
+    default: what = "连续"
+    }
+    let unit = r.unit == "阳光" ? "" : " " + r.unit
+    return "\(what) \(min(r.current, r.target))/\(r.target)\(unit)"
+  }
 
   /// How sunshine is earned, for the growth page.
   static let rules: [(icon: String, title: String, points: String)] = [
@@ -114,6 +137,7 @@ extension AppState {
     }
     let droopy = days.last.map { SharedDay.distance(from: $0, to: today) >= 3 } ?? false
     let records = notes.values.reduce(0) { $0 + $1.filter { !$0.isReflection }.count }
+    let allDoneDays = days.filter { allDone(on: $0) }.count
 
     return Growth(
       sunshine: total,
@@ -122,6 +146,8 @@ extension AppState {
       streak: current,
       bestStreak: best,
       records: records,
+      weekReviews: weekReflections.count,
+      allDoneDays: allDoneDays,
       droopy: droopy)
   }
 }

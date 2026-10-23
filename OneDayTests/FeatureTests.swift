@@ -397,6 +397,10 @@ final class FeatureTests: XCTestCase {
     XCTAssertEqual(growth.streak, 10)
     XCTAssertTrue(growth.isUnlocked(.scarf))
     XCTAssertFalse(growth.isUnlocked(.hat))
+    XCTAssertFalse(growth.isUnlocked(.headset), "æ 系列 needs 100 sunshine")
+    XCTAssertEqual(growth.lockText(.headset), "阳光 35/100")
+    XCTAssertEqual(growth.lockText(.visor), "一周复盘 1/4 次")
+    XCTAssertEqual(growth.allDoneDays, 10)
     XCTAssertFalse(growth.droopy)
 
     let later = g.growth(today: "2026-10-26")

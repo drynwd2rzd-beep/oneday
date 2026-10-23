@@ -60,6 +60,7 @@ struct MascotView: View {
     let s = size
     let line = max(1.2, s * 0.045)
     ZStack(alignment: .topLeading) {
+      if outfit == .cosmos { cosmos(line: line) }
       if mood == .party {
         sparkle(at: CGPoint(x: 0.1, y: 0.16), size: 0.16, color: Color(red: 1, green: 0.72, blue: 0.1))
         sparkle(at: CGPoint(x: 0.92, y: 0.2), size: 0.13, color: blush)
@@ -126,7 +127,7 @@ struct MascotView: View {
   private func sprout(line: CGFloat, lift: CGFloat) -> some View {
     let s = size
     let stage = min(max(self.stage, 0), 5)
-    let stemHeight: CGFloat = stage == 0 ? 0.08 : stage == 1 ? 0.12 : 0.17
+    let stemHeight: CGFloat = stage == 0 ? 0.1 : stage == 1 ? 0.12 : 0.17
     let base: CGFloat = 0.28 - lift
     let top = base - stemHeight
     let sideAngle: Double = droopy ? 70 : 28
@@ -139,8 +140,8 @@ struct MascotView: View {
         .position(x: s * 0.5, y: s * (base - stemHeight / 2))
       switch stage {
       case 0:
-        leafShape(at: CGPoint(x: 0.44, y: top + 0.02 + sideDrop), angle: -sideAngle, line: line, width: 0.11, height: 0.06)
-        leafShape(at: CGPoint(x: 0.56, y: top + 0.02 + sideDrop), angle: sideAngle, line: line, width: 0.11, height: 0.06)
+        leafShape(at: CGPoint(x: 0.43, y: top + 0.01 + sideDrop), angle: -sideAngle, line: line, width: 0.14, height: 0.075)
+        leafShape(at: CGPoint(x: 0.57, y: top + 0.01 + sideDrop), angle: sideAngle, line: line, width: 0.14, height: 0.075)
       case 1:
         leafShape(at: CGPoint(x: 0.41, y: top - 0.01 + sideDrop), angle: -sideAngle, line: line)
         leafShape(at: CGPoint(x: 0.59, y: top - 0.01 + sideDrop), angle: sideAngle, line: line)
@@ -254,9 +255,89 @@ struct MascotView: View {
         .frame(width: s * 0.72, height: s * 0.12)
         .position(x: s * 0.5, y: s * 0.29)
       sprout(line: line, lift: 0.17)
-    case .some(.halo), .none:
+    case .some(.headset):
+      // Silver band over the head, glowing violet ear cups.
+      Path { p in
+        p.move(to: CGPoint(x: s * 0.12, y: s * 0.54))
+        p.addQuadCurve(to: CGPoint(x: s * 0.88, y: s * 0.54), control: CGPoint(x: s * 0.5, y: -s * 0.12))
+      }
+      .stroke(ink, style: StrokeStyle(lineWidth: line * 2.6, lineCap: .round))
+      Path { p in
+        p.move(to: CGPoint(x: s * 0.12, y: s * 0.54))
+        p.addQuadCurve(to: CGPoint(x: s * 0.88, y: s * 0.54), control: CGPoint(x: s * 0.5, y: -s * 0.12))
+      }
+      .stroke(chrome, style: StrokeStyle(lineWidth: line * 1.5, lineCap: .round))
+      earCup(at: 0.1, line: line)
+      earCup(at: 0.9, line: line)
+    case .some(.visor):
+      RoundedRectangle(cornerRadius: s * 0.065, style: .continuous)
+        .fill(LinearGradient(colors: [Color(red: 0.93, green: 0.94, blue: 0.98), violet, cyan], startPoint: .leading, endPoint: .trailing))
+        .overlay(RoundedRectangle(cornerRadius: s * 0.065, style: .continuous).stroke(ink, lineWidth: line * 0.85))
+        .overlay(alignment: .topLeading) {
+          Capsule()
+            .fill(Color.white.opacity(0.85))
+            .frame(width: s * 0.16, height: s * 0.025)
+            .rotationEffect(.degrees(-12))
+            .offset(x: s * 0.07, y: s * 0.03)
+        }
+        .frame(width: s * 0.58, height: s * 0.14)
+        .position(x: s * 0.5, y: s * 0.56)
+    case .some(.stageMic):
+      Circle()
+        .fill(Color(red: 0.2, green: 0.2, blue: 0.24))
+        .overlay(Circle().stroke(ink, lineWidth: line * 0.7))
+        .frame(width: s * 0.11, height: s * 0.11)
+        .position(x: s * 0.12, y: s * 0.55)
+      Path { p in
+        p.move(to: CGPoint(x: s * 0.14, y: s * 0.6))
+        p.addQuadCurve(to: CGPoint(x: s * 0.35, y: s * 0.72), control: CGPoint(x: s * 0.16, y: s * 0.75))
+      }
+      .stroke(Color(red: 0.2, green: 0.2, blue: 0.24), style: StrokeStyle(lineWidth: line * 0.9, lineCap: .round))
+      Capsule()
+        .fill(Color(red: 0.2, green: 0.2, blue: 0.24))
+        .frame(width: s * 0.07, height: s * 0.04)
+        .position(x: s * 0.37, y: s * 0.715)
+    case .some(.halo), .some(.cosmos), .none:
       EmptyView()
     }
+  }
+
+  private var chrome: Color { Color(red: 0.84, green: 0.87, blue: 0.93) }
+  private var violet: Color { Color(red: 0.72, green: 0.62, blue: 1.0) }
+  private var cyan: Color { Color(red: 0.55, green: 0.88, blue: 1.0) }
+
+  private func earCup(at x: CGFloat, line: CGFloat) -> some View {
+    let s = size
+    return RoundedRectangle(cornerRadius: s * 0.05, style: .continuous)
+      .fill(Color(red: 0.24, green: 0.24, blue: 0.3))
+      .overlay(RoundedRectangle(cornerRadius: s * 0.05, style: .continuous).stroke(ink, lineWidth: line * 0.8))
+      .overlay(
+        RoundedRectangle(cornerRadius: s * 0.03, style: .continuous)
+          .fill(violet)
+          .frame(width: s * 0.04, height: s * 0.11)
+          .shadow(color: violet, radius: s * 0.03))
+      .frame(width: s * 0.13, height: s * 0.2)
+      .position(x: s * x, y: s * 0.55)
+  }
+
+  /// A holographic ring and stars behind 小日.
+  private func cosmos(line: CGFloat) -> some View {
+    let s = size
+    let pink = Color(red: 1, green: 0.62, blue: 0.85)
+    return ZStack {
+      Circle()
+        .fill(RadialGradient(colors: [violet.opacity(0.28), .clear], center: .center, startRadius: s * 0.2, endRadius: s * 0.52))
+      Circle()
+        .stroke(
+          AngularGradient(colors: [violet, cyan, pink, violet], center: .center),
+          lineWidth: line * 1.6)
+        .frame(width: s * 0.98, height: s * 0.98)
+      Sparkle().fill(cyan).frame(width: s * 0.12, height: s * 0.12).offset(x: -s * 0.42, y: -s * 0.3)
+      Sparkle().fill(pink).frame(width: s * 0.09, height: s * 0.09).offset(x: s * 0.44, y: -s * 0.18)
+      Sparkle().fill(violet).frame(width: s * 0.07, height: s * 0.07).offset(x: s * 0.36, y: s * 0.38)
+    }
+    .frame(width: s, height: s)
+    .position(x: s * 0.5, y: s * 0.55)
   }
 
   private func halo(line: CGFloat) -> some View {
@@ -407,6 +488,8 @@ struct Sparkle: Shape {
 /// Things 小日 can wear, unlocked in the app by keeping at it.
 enum MascotOutfit: String, CaseIterable, Codable, Identifiable {
   case scarf, glasses, hat, halo
+  /// The æ series, after aespa's cyber, chrome and cosmic looks (no logos or likenesses).
+  case headset, visor, stageMic, cosmos
   var id: String { rawValue }
 
   var name: String {
@@ -415,6 +498,12 @@ enum MascotOutfit: String, CaseIterable, Codable, Identifiable {
     case .glasses: "眼镜"
     case .hat: "草帽"
     case .halo: "星星光环"
+    case .headset: "赛博耳机"
+    case .visor: "未来护目镜"
+    case .stageMic: "舞台耳麦"
+    case .cosmos: "宇宙光芒"
     }
   }
+
+  var isAeSeries: Bool { [.headset, .visor, .stageMic, .cosmos].contains(self) }
 }

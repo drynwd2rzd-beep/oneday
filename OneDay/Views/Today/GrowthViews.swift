@@ -235,19 +235,30 @@ struct GrowthSheet: View {
   private func outfitsCard(_ growth: Growth, worn: MascotOutfit?) -> some View {
     VStack(alignment: .leading, spacing: Spacing.inner) {
       Text("装扮").font(.app(.headline))
-      LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-        ForEach(MascotOutfit.allCases) { outfit in
-          outfitTile(outfit, growth: growth, worn: worn)
-        }
+      outfitGrid(MascotOutfit.allCases.filter { !$0.isAeSeries }, growth: growth, worn: worn)
+      VStack(alignment: .leading, spacing: 2) {
+        Text("æ 系列").font(.app(.subheadline).weight(.bold))
+        Text("灵感来自 aespa 的赛博、银色和宇宙风格")
+          .font(.app(.caption))
+          .foregroundStyle(.secondary)
       }
+      .padding(.top, 6)
+      outfitGrid(MascotOutfit.allCases.filter(\.isAeSeries), growth: growth, worn: worn)
     }
     .card()
+  }
+
+  private func outfitGrid(_ outfits: [MascotOutfit], growth: Growth, worn: MascotOutfit?) -> some View {
+    LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+      ForEach(outfits) { outfit in
+        outfitTile(outfit, growth: growth, worn: worn)
+      }
+    }
   }
 
   private func outfitTile(_ outfit: MascotOutfit, growth: Growth, worn: MascotOutfit?) -> some View {
     let unlocked = growth.isUnlocked(outfit)
     let wearing = worn == outfit
-    let need = growth.requirement(outfit)
     return Button {
       guard unlocked else { return }
       Haptics.tap()
@@ -264,7 +275,7 @@ struct GrowthSheet: View {
           } else if unlocked {
             Text("点击戴上").foregroundStyle(.secondary)
           } else {
-            Label(lockText(outfit, need: need), systemImage: "lock.fill").foregroundStyle(.secondary)
+            Label(growth.lockText(outfit), systemImage: "lock.fill").foregroundStyle(.secondary)
           }
         }
         .font(.app(.caption))
@@ -282,11 +293,6 @@ struct GrowthSheet: View {
     }
     .buttonStyle(.plain)
     .accessibilityLabel(outfit.name)
-    .accessibilityValue(wearing ? "戴着" : unlocked ? "已解锁" : lockText(outfit, need: need))
-  }
-
-  private func lockText(_ outfit: MascotOutfit, need: (current: Int, target: Int, unit: String)) -> String {
-    let what = outfit == .glasses ? "记录" : "连续"
-    return "\(what) \(min(need.current, need.target))/\(need.target) \(need.unit)"
+    .accessibilityValue(wearing ? "戴着" : unlocked ? "已解锁" : growth.lockText(outfit))
   }
 }
