@@ -133,6 +133,7 @@ struct GrowthSheet: View {
     let growth = store.state.growth(today: store.today)
     let worn = store.state.settings.mascotOutfit.flatMap(MascotOutfit.init(rawValue:))
     NavigationStack {
+      ScrollViewReader { proxy in
       ScrollView {
         VStack(spacing: Spacing.section) {
           VStack(spacing: 8) {
@@ -148,11 +149,16 @@ struct GrowthSheet: View {
           sunshineCard(growth)
           stagesCard(growth)
           rulesCard
-          outfitsCard(growth, worn: worn)
+          outfitsCard(growth, worn: worn).id("outfits")
         }
         .padding(.horizontal, Spacing.page)
         .padding(.bottom, Spacing.section)
       }
+      #if DEBUG
+      .onAppear {
+        if UserDefaults.standard.bool(forKey: "OneDayOutfits") { proxy.scrollTo("outfits", anchor: .bottom) }
+      }
+      #endif
       .background { AppBackground() }
       .navigationTitle("小日的成长")
       .navigationBarTitleDisplayMode(.inline)
@@ -160,6 +166,7 @@ struct GrowthSheet: View {
         ToolbarItem(placement: .confirmationAction) { Button("完成") { dismiss() } }
       }
       .onAppear { MascotSpeech.markGrowthSeen(growth) }
+      }
     }
   }
 

@@ -117,6 +117,7 @@ jobs:
           shoot glass-review-week -OneDayDemo YES -OneDayTab review -OneDayReview week
           shoot widgets -OneDayDemo YES -OneDayTab me -OneDayWidgets YES
           shoot growth -OneDayDemo YES -OneDayTab today -OneDayGrowth YES
+          shoot outfits -OneDayDemo YES -OneDayTab today -OneDayGrowth YES -OneDayOutfits YES
           shoot journal-today -OneDayDemo YES -OneDayTab today -OneDayFont journal
           shoot journal-review -OneDayDemo YES -OneDayTab review -OneDayFont journal
           shoot rounded-tasks -OneDayDemo YES -OneDayTab tasks -OneDayFont rounded
