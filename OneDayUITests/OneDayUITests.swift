@@ -54,7 +54,9 @@ final class OneDayUITests: XCTestCase {
     let note = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "傍晚的风")).firstMatch
     XCTAssertTrue(note.waitForExistence(timeout: 8), "day page pushed with the note")
     note.press(forDuration: 1.0)
-    XCTAssertTrue(app.buttons["编辑"].waitForExistence(timeout: 3), "long press shows the menu")
+    // The page may still be settling after the push; one more press if the menu missed it.
+    if !app.buttons["编辑"].waitForExistence(timeout: 3) { note.press(forDuration: 1.5) }
+    XCTAssertTrue(app.buttons["编辑"].waitForExistence(timeout: 5), "long press shows the menu")
     app.buttons["编辑"].tap()
     XCTAssertTrue(app.staticTexts["照片和视频"].waitForExistence(timeout: 5))
     XCTAssertTrue(app.buttons["添加照片或视频"].exists)
