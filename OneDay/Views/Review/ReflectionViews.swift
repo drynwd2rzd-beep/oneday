@@ -448,6 +448,7 @@ struct WeekReflectionSheet: View {
   @State private var draft: WeekReflection
   @State private var editingDay: DayRef?
   @State private var confirmDiscard = false
+  @State private var showDetails = false
 
   init(
     start: String, reflection: WeekReflection?,
@@ -487,22 +488,35 @@ struct WeekReflectionSheet: View {
             }
           }
 
-          WeekNumbers(week: week)
-          WeekDaysCard(week: week, today: store.today) { editingDay = DayRef(day: $0) }
-          if !week.tasks.isEmpty { WeekTasksCard(week: week) }
-          if !week.plans.isEmpty { WeekPlansCard(week: week) }
+          // First what happened, in plain words; then three questions; the details fold away.
+          WeekStoryCard(week: week, today: store.today)
 
-          Text("复盘")
-            .font(.app(.title3).weight(.bold))
-            .accessibilityAddTraits(.isHeader)
-            .padding(.top, Spacing.section - Spacing.stack)
-          question("本周收获", prompt: "这周最值得记住的事、进步和收获", text: $draft.gains)
-          question("遇到的问题", prompt: "哪里没做好？卡住你的是什么？", text: $draft.problems)
+          VStack(alignment: .leading, spacing: 3) {
+            Text("写写这一周")
+              .font(.app(.title3).weight(.bold))
+              .accessibilityAddTraits(.isHeader)
+            Text("三个问题，想到什么写什么，写一句也可以。")
+              .font(.app(.subheadline))
+              .foregroundStyle(.secondary)
+          }
+          .padding(.top, Spacing.section - Spacing.stack)
+          question(1, "这周有什么收获？", prompt: "比如：坚持早起了 4 天", text: $draft.gains)
+          question(2, "遇到了什么问题？", prompt: "比如：晚上总是刷手机，睡得晚", text: $draft.problems)
           VStack(alignment: .leading, spacing: 10) {
-            questionField("下周重点", prompt: "每行一件事", text: $draft.next)
+            questionField(3, "下周最想做好什么？", prompt: "每行写一件，比如：11 点前睡觉", text: $draft.next)
+            Text("写下的会出现在下周的「今天」页上。")
+              .font(.app(.caption))
+              .foregroundStyle(.secondary)
             focusButton
           }
           .card()
+
+          detailsToggle
+          if showDetails {
+            WeekDaysCard(week: week, today: store.today) { editingDay = DayRef(day: $0) }
+            if !week.tasks.isEmpty { WeekTasksCard(week: week) }
+            if !week.plans.isEmpty { WeekPlansCard(week: week) }
+          }
         }
         .padding(.horizontal, Spacing.page)
         .padding(.vertical, Spacing.stack)
@@ -560,13 +574,43 @@ struct WeekReflectionSheet: View {
     onShift(delta)
   }
 
-  private func question(_ title: String, prompt: String, text: Binding<String>) -> some View {
-    questionField(title, prompt: prompt, text: text).card()
+  /// Every day, each task's ticks and the plans: there when wanted, folded otherwise.
+  private var detailsToggle: some View {
+    Button {
+      withAnimation(.snappy) { showDetails.toggle() }
+    } label: {
+      HStack(spacing: 6) {
+        Text("每一天和每件事的细节")
+        Image(systemName: "chevron.right")
+          .font(.app(.caption).weight(.semibold))
+          .rotationEffect(.degrees(showDetails ? 90 : 0))
+        Spacer()
+      }
+      .font(.app(.subheadline).weight(.medium))
+      .foregroundStyle(.secondary)
+      .padding(.horizontal, 4)
+      .padding(.top, 6)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityValue(showDetails ? "已展开" : "已收起")
   }
 
-  private func questionField(_ title: String, prompt: String, text: Binding<String>) -> some View {
+  private func question(_ number: Int, _ title: String, prompt: String, text: Binding<String>) -> some View {
+    questionField(number, title, prompt: prompt, text: text).card()
+  }
+
+  private func questionField(_ number: Int, _ title: String, prompt: String, text: Binding<String>) -> some View {
     VStack(alignment: .leading, spacing: 8) {
-      Text(title).font(.app(.headline))
+      HStack(spacing: 8) {
+        Text("\(number)")
+          .font(.app(.caption).weight(.bold))
+          .foregroundStyle(.white)
+          .frame(width: 20, height: 20)
+          .background(accent, in: Circle())
+          .accessibilityHidden(true)
+        Text(title).font(.app(.headline))
+      }
       TextField(prompt, text: text, axis: .vertical)
         .font(.journal(.body, size: 17))
         .lineSpacing(5)
@@ -612,36 +656,80 @@ struct WeekReflectionSheet: View {
   }
 }
 
-private struct WeekNumbers: View {
+/// The week told in a few plain sentences by 小日, over a strip of the seven days.
+private struct WeekStoryCard: View {
+  @Environment(Store.self) private var store
   @Environment(\.accent) private var accent
   let week: WeekSummary
+  let today: String
 
   var body: some View {
-    let diff = week.completions - week.lastWeekCompletions
-    VStack(alignment: .leading, spacing: 12) {
-      HStack(alignment: .top, spacing: 0) {
-        number("\(week.completions)", "次完成")
-        number(week.rate.map { "\(Int(($0 * 100).rounded()))%" } ?? "—", "完成率")
-        number("\(week.noteDays)", "天有记录")
-        number("\(week.reflectionDays.count)", "天复盘")
+    VStack(alignment: .leading, spacing: Spacing.inner) {
+      HStack(alignment: .top, spacing: 12) {
+        MascotView(mood: week.hasActivity ? .happy : .calm, size: 44, stage: store.state.growth(today: today).stage.rawValue, outfit: store.mascotOutfit, plant: store.mascotPlant)
+          .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 8) {
+          Text(week.isCurrent ? "这周到现在" : "这一周")
+            .font(.app(.headline))
+          ForEach(sentences, id: \.text) { line in
+            Label {
+              Text(line.text).font(.app(.subheadline)).fixedSize(horizontal: false, vertical: true)
+            } icon: {
+              Image(systemName: line.icon).foregroundStyle(accent)
+            }
+          }
+        }
+        Spacer(minLength: 0)
       }
-      Text(diff == 0 ? "完成次数和上周同期持平" : diff > 0 ? "比上周同期多完成 \(diff) 次" : "比上周同期少完成 \(-diff) 次")
-        .font(.app(.subheadline))
-        .foregroundStyle(diff >= 0 ? accent : .secondary)
+      Divider()
+      HStack(spacing: 0) {
+        ForEach(Array(week.days.enumerated()), id: \.offset) { i, day in
+          VStack(spacing: 5) {
+            Text("周" + DayKey.weekdayLetters[i])
+              .font(.app(.caption2).weight(.medium))
+              .foregroundStyle(day == today ? accent : .secondary)
+            Group {
+              if let face = week.moods[i].flatMap(Mood.init(average:)) {
+                MoodFace(level: face.rawValue, size: 22)
+              } else {
+                Circle().fill(Color.secondary.opacity(day > today ? 0.08 : 0.18)).frame(width: 8, height: 8)
+              }
+            }
+            .frame(height: 22)
+            Text(day > today ? " " : "\(week.dayDone[i]) 件")
+              .font(.app(.caption2).monospacedDigit())
+              .foregroundStyle(.secondary)
+          }
+          .frame(maxWidth: .infinity)
+          .accessibilityElement(children: .ignore)
+          .accessibilityLabel("周\(DayKey.weekdayLetters[i])，做完 \(week.dayDone[i]) 件")
+        }
+      }
     }
     .card()
   }
 
-  private func number(_ value: String, _ label: String) -> some View {
-    VStack(alignment: .leading, spacing: 2) {
-      Text(value)
-        .font(.app(.title2).weight(.bold))
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
-      Text(label).font(.app(.caption)).foregroundStyle(.secondary)
+  private var sentences: [(icon: String, text: String)] {
+    guard week.hasActivity else {
+      return [("leaf", "这周还很安静，从一件小事开始就好。")]
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .accessibilityElement(children: .combine)
+    var out: [(icon: String, text: String)] = []
+    let diff = week.completions - week.lastWeekCompletions
+    let compare = diff > 0 ? "，比上周同期多 \(diff) 件" : diff < 0 ? "，比上周同期少 \(-diff) 件，没关系" : "，和上周差不多"
+    out.append(("checkmark.circle", "做完了 \(week.completions) 件事" + compare))
+    if week.noteDays > 0 || !week.reflectionDays.isEmpty {
+      var text = "有 \(week.noteDays) 天写了记录"
+      if !week.reflectionDays.isEmpty { text += "，\(week.reflectionDays.count) 天写了复盘" }
+      out.append(("square.and.pencil", text))
+    }
+    if let best = week.tasks.max(by: { $0.doneCount < $1.doneCount }), best.doneCount >= 2 {
+      out.append(("flame", "做得最多的是「\(best.title)」，\(best.doneCount) 次"))
+    }
+    let faces = week.moods.compactMap { $0.flatMap(Mood.init(average:)) }
+    if let common = Dictionary(grouping: faces, by: { $0 }).max(by: { ($0.value.count, $0.key.rawValue) < ($1.value.count, $1.key.rawValue) })?.key {
+      out.append(("face.smiling", "心情大多是「\(common.label)」"))
+    }
+    return out
   }
 }
 

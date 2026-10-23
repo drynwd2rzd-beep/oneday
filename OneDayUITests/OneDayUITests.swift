@@ -139,7 +139,7 @@ final class OneDayUITests: XCTestCase {
     let app = launch(["-OneDayTab", "review"])
     XCTAssertTrue(app.buttons["统计"].waitForExistence(timeout: 8))
     app.buttons["统计"].tap()
-    XCTAssertTrue(app.staticTexts["每日打卡"].waitForExistence(timeout: 5))
+    XCTAssertTrue(app.staticTexts["坚持得最久的事"].waitForExistence(timeout: 5))
     app.tabBars.buttons["我的"].tap()
     let backupRow = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "备份与恢复")).firstMatch
     XCTAssertTrue(backupRow.waitForExistence(timeout: 5))
@@ -180,7 +180,7 @@ final class OneDayUITests: XCTestCase {
     let week = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "本周复盘")).firstMatch
     XCTAssertTrue(week.waitForExistence(timeout: 10))
     week.tap()
-    XCTAssertTrue(app.staticTexts["本周收获"].waitForExistence(timeout: 15), "weekly review asks its questions")
+    XCTAssertTrue(app.staticTexts["这周有什么收获？"].waitForExistence(timeout: 15), "weekly review asks its questions")
     // Earlier weeks are one tap away.
     app.buttons["上一周"].tap()
     let lastWeek = app.descendants(matching: .any).matching(NSPredicate(format: "value CONTAINS %@", "读完了一本书")).firstMatch

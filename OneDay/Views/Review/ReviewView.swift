@@ -534,9 +534,6 @@ private struct OverviewPanel: View {
       StarJarCard()
       HeatmapCard()
       StreaksCard()
-      if store.state.moodSeries(today: store.today, days: 30).count >= 2 {
-        MoodCard()
-      }
       MonthCard(month: $month, onRecap: onRecap)
     }
   }
@@ -551,12 +548,11 @@ private struct TotalsCard: View {
     let completions = state.tasks.reduce(0) { $0 + $1.completionCount }
     let best = state.taskStreaks(today: store.today).filter { $0.unit == "天" }.map(\.best).max() ?? 0
     HStack(alignment: .top, spacing: 0) {
-      number("\(completions)", "累计完成", unit: "次")
-      number("\(state.recordDates.count)", "有记录", unit: "天")
-      number("\(best)", "最长连续", unit: "天")
+      number("\(completions)", "一共做完", unit: "件")
+      number("\(state.recordDates.count)", "写了记录", unit: "天")
+      number("\(best)", "最长坚持", unit: "天")
     }
-    .padding(.horizontal, 4)
-    .padding(.vertical, 6)
+    .card()
   }
 
   private func number(_ value: String, _ label: String, unit: String) -> some View {
@@ -599,6 +595,10 @@ private struct MonthCard: View {
           .opacity(isCurrent ? 0.3 : 1)
       }
 
+      Text("这个月每件事做了几次")
+        .font(.app(.caption))
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity)
       if o.items.isEmpty {
         Text("这个月还没有完成记录。")
           .font(.app(.subheadline))
@@ -668,10 +668,15 @@ private struct HeatmapCard: View {
     let columns = store.state.heatmap(today: store.today, weeks: 53)
     VStack(alignment: .leading, spacing: 12) {
       HStack {
-        Text("这一年").font(.app(.headline))
+        VStack(alignment: .leading, spacing: 3) {
+          Text("每天做了多少").font(.app(.headline))
+          Text("颜色越深，那天做完的越多。点一格看那天。")
+            .font(.app(.caption))
+            .foregroundStyle(.secondary)
+        }
         Spacer()
         if let selected {
-          Text("\(DayKey.shortDate(selected.day)) · \(selected.total == 0 ? "无事项" : "完成 \(selected.done)/\(selected.total)")\(selected.hasNote ? " · 有记录" : "")")
+          Text("\(DayKey.shortDate(selected.day)) · \(selected.total == 0 ? "没有事项" : "做完 \(selected.done)/\(selected.total)")\(selected.hasNote ? " · 写了记录" : "")")
             .font(.app(.caption))
             .foregroundStyle(.secondary)
             .transition(.opacity)
@@ -685,11 +690,6 @@ private struct HeatmapCard: View {
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
                   .fill(color(day))
                   .frame(width: cell, height: cell)
-                  .overlay {
-                    if day.hasNote && !day.isFuture {
-                      Circle().fill(Color.primary.opacity(0.35)).frame(width: 3, height: 3)
-                    }
-                  }
                   .overlay {
                     if selected?.day == day.day {
                       RoundedRectangle(cornerRadius: 3).strokeBorder(Color.primary, lineWidth: 1.2)
@@ -713,7 +713,6 @@ private struct HeatmapCard: View {
         }
         Text("多").font(.app(.caption2)).foregroundStyle(.secondary)
         Spacer()
-        Text("圆点表示当天有记录").font(.app(.caption2)).foregroundStyle(.secondary)
       }
     }
     .card()
@@ -749,8 +748,8 @@ private struct StreaksCard: View {
     let streaks = store.state.taskStreaks(today: store.today)
     VStack(alignment: .leading, spacing: Spacing.inner) {
       VStack(alignment: .leading, spacing: 3) {
-        Text("每日打卡").font(.app(.headline))
-        Text("重复的事项连续完成了多久")
+        Text("坚持得最久的事").font(.app(.headline))
+        Text("重复的事，已经连着做了多久")
           .font(.app(.caption))
           .foregroundStyle(.secondary)
       }
@@ -771,7 +770,7 @@ private struct StreaksCard: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            Text("连续").font(.app(.caption)).foregroundStyle(.secondary)
+            Text("已连续").font(.app(.caption)).foregroundStyle(.secondary)
             Text("\(s.current)")
               .font(.app(.title3).weight(.bold))
               .foregroundStyle(s.current > 0 ? accent : .secondary)

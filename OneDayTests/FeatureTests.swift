@@ -455,4 +455,25 @@ final class FeatureTests: XCTestCase {
     s.tasks = [TaskItem(title: "游泳", day: "2026-10-20", repeatMode: .once, reminder: nil)]
     XCTAssertEqual(s.focusThisWeek(today: today)?.items, ["早睡"], "focus items that are not tasks yet")
   }
+
+  func testPostcardsAndStarJar() {
+    var s = AppState()
+    XCTAssertTrue(s.postcards(today: today).isEmpty)
+    XCTAssertEqual(s.daysToNextPostcard(today: today), Travel.daysPerTrip)
+    // Fifteen active days with gaps: two trips so far, one more day to the third.
+    let days = (0..<20).map { DayKey.add(days: -$0, to: today) }.filter { !$0.hasSuffix("5") }.prefix(15)
+    s.notes = Dictionary(uniqueKeysWithValues: days.map { ($0, [NoteEntry(text: "x", time: "", photos: [], tags: [])]) })
+    let cards = s.postcards(today: today)
+    XCTAssertEqual(cards.map(\.number), [1, 2])
+    XCTAssertEqual(cards.first?.destination, Travel.destinations[0])
+    XCTAssertEqual(cards.last?.day, days.sorted()[13], "arrives on the 14th active day")
+    XCTAssertEqual(s.daysToNextPostcard(today: today), 6)
+    XCTAssertEqual(Set(Travel.destinations.map(\.id)).count, Travel.destinations.count, "ids are unique")
+
+    s.dayMoods[today] = 5
+    s.dayMoods["2026-10-01"] = 2
+    s.dayMoods["2026-09-30"] = 4
+    let stars = s.moodStars(month: DayKey.date("2026-10-15"), today: today)
+    XCTAssertEqual(stars.map(\.level), [2, 5], "this month's moods, oldest first")
+  }
 }

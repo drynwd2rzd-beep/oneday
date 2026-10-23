@@ -1,4 +1,3 @@
-import Charts
 import SwiftUI
 
 // MARK: - Calendar
@@ -241,70 +240,5 @@ struct PhotoWall: View {
       }
     }
     return out
-  }
-}
-
-// MARK: - Mood chart
-
-/// The last 30 days of mood as a soft line, and how often each mood came up.
-struct MoodCard: View {
-  @Environment(Store.self) private var store
-  @Environment(\.accent) private var accent
-
-  var body: some View {
-    let series = store.state.moodSeries(today: store.today, days: 30)
-    let counts = Dictionary(grouping: series, by: { Mood(average: $0.value) ?? .okay }).mapValues(\.count)
-    VStack(alignment: .leading, spacing: Spacing.inner) {
-      HStack(alignment: .firstTextBaseline) {
-        Text("心情").font(.app(.headline))
-        Spacer()
-        Text("近 30 天").font(.app(.caption)).foregroundStyle(.secondary)
-      }
-      if series.count < 2 {
-        Text("写记录时选一个心情，这里会画出你最近的情绪曲线。")
-          .font(.app(.subheadline))
-          .foregroundStyle(.secondary)
-      } else {
-        Chart(series) { point in
-          LineMark(x: .value("日期", DayKey.date(point.day), unit: .day), y: .value("心情", point.value))
-            .interpolationMethod(.catmullRom)
-            .foregroundStyle(accent.opacity(0.5))
-          PointMark(x: .value("日期", DayKey.date(point.day), unit: .day), y: .value("心情", point.value))
-            .foregroundStyle(Color(hex: (Mood(average: point.value) ?? .okay).hex))
-            .symbolSize(40)
-        }
-        .chartYScale(domain: 0.5...5.5)
-        .chartYAxis {
-          AxisMarks(position: .leading, values: [1.0, 3.0, 5.0]) { value in
-            AxisGridLine().foregroundStyle(Color.secondary.opacity(0.15))
-            AxisValueLabel {
-              MoodFace(level: Int((value.as(Double.self) ?? 3).rounded()), size: 14)
-            }
-          }
-        }
-        .chartXAxis {
-          AxisMarks(values: .stride(by: .day, count: 7)) { _ in
-            AxisValueLabel(format: .dateTime.month(.defaultDigits).day()).font(.app(.caption2))
-          }
-        }
-        .frame(height: 140)
-        .accessibilityLabel("近 30 天心情曲线")
-
-        HStack(spacing: 0) {
-          ForEach(Mood.allCases) { mood in
-            VStack(spacing: 4) {
-              MoodFace(level: mood.rawValue, size: 24)
-              Text("\(counts[mood] ?? 0) 天")
-                .font(.app(.caption2).monospacedDigit())
-                .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(mood.label) \(counts[mood] ?? 0) 天")
-          }
-        }
-      }
-    }
-    .card()
   }
 }
