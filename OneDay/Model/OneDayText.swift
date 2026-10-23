@@ -40,6 +40,8 @@ enum OneDayText {
 
   static func greeting(_ date: Date = Date()) -> String {
     let h = DayKey.calendar.component(.hour, from: date)
+    // Same hours as 小日: asleep from 22:00 to 5:00.
+    if h < 5 || h >= 22 { return "夜深了。" }
     return h < 11 ? "早上好。" : h < 18 ? "下午好。" : "晚上好。"
   }
 
@@ -60,6 +62,11 @@ enum OneDayText {
   """
 
   static let versionNotes = """
+  OneDay 1.5.1
+
+  • 时间线的月份标题不再固定在顶部，去掉了和背景不一致的色条
+  • 深夜问候改为「夜深了」，和小日睡觉的时间一致
+
   OneDay 1.5
 
   视觉升级：

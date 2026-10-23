@@ -184,7 +184,7 @@ struct PhotoWall: View {
       EmptyState(title: "还没有照片", icon: "photo.on.rectangle", message: "在记录里留下照片后，它们会按月份排在这里。")
         .card()
     } else {
-      LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+      LazyVStack(alignment: .leading, spacing: 0) {
         ForEach(sections) { section in
           Section {
             LazyVGrid(columns: columns, spacing: 3) {
@@ -215,8 +215,8 @@ struct PhotoWall: View {
                 .foregroundStyle(.secondary)
               Spacer()
             }
-            .padding(.vertical, 8)
-            .background(palette.bg.opacity(0.96))
+            .padding(.top, 12)
+            .padding(.bottom, 8)
             .accessibilityAddTraits(.isHeader)
           }
         }

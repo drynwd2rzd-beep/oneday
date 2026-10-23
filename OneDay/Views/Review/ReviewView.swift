@@ -108,7 +108,8 @@ private struct TimelineList: View {
         if store.state.weekReflections[DayKey.weekStart(store.today)] == nil {
           ThisWeekEntry()
         }
-        LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+        // Month titles scroll with the page: a pinned band never matched the paper background.
+        LazyVStack(alignment: .leading, spacing: 0) {
           ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
             Section {
               ForEach(Array(group.days.enumerated()), id: \.element) { position, day in
@@ -192,8 +193,8 @@ private struct MonthHeader: View {
         .foregroundStyle(.secondary)
       Spacer()
     }
-    .padding(.vertical, 10)
-    .background(palette.bg.opacity(0.96))
+    .padding(.top, 14)
+    .padding(.bottom, 10)
     .accessibilityAddTraits(.isHeader)
   }
 
