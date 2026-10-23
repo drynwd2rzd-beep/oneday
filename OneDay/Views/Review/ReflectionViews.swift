@@ -327,12 +327,12 @@ struct DayReflectionSheet: View {
   @State private var confirmDiscard = false
   @FocusState private var focused: Bool
 
-  init(day: String, note: NoteEntry?) {
+  init(day: String, note: NoteEntry?, mood: Int? = nil) {
     self.day = day
     original = note?.text ?? ""
-    originalMood = note?.mood
+    originalMood = mood
     _text = State(initialValue: note?.text ?? "")
-    _mood = State(initialValue: note?.mood)
+    _mood = State(initialValue: mood)
   }
 
   private var changed: Bool { text.trimmed != original || mood != originalMood }
@@ -532,7 +532,9 @@ struct WeekReflectionSheet: View {
         Button("继续编辑", role: .cancel) {}
       }
       .sheet(item: $editingDay) { ref in
-        DayReflectionSheet(day: ref.day, note: store.state.reflectionNote(on: ref.day)).oneDaySheet()
+        DayReflectionSheet(
+          day: ref.day, note: store.state.reflectionNote(on: ref.day), mood: store.state.dayMoods[ref.day]
+        ).oneDaySheet()
       }
     }
   }

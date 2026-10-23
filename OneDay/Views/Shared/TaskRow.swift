@@ -9,6 +9,7 @@ struct TaskRow: View {
   let task: TaskItem
   let day: String
   @State private var editingReminder = false
+  @State private var editingTask = false
 
   var body: some View {
     let done = task.isDone(on: day)
@@ -33,8 +34,14 @@ struct TaskRow: View {
           .font(.app(.body))
           .strikethrough(done, color: .secondary)
           .foregroundStyle(done ? .secondary : .primary)
-        if task.reminder != nil || plan != nil || task.repeatMode == .weekly || task.repeatMode == .weekdays {
+        let carried = task.repeatMode == .once && task.carriedFrom != nil && task.date == day && !done
+        if carried || task.reminder != nil || plan != nil || task.repeatMode == .weekly || task.repeatMode == .weekdays {
           HStack(spacing: 10) {
+            if carried, let from = task.carriedFrom {
+              Label("顺延自 \(DayKey.shortDate(from))", systemImage: "arrow.turn.down.right")
+                .labelStyle(CompactLabelStyle())
+                .foregroundStyle(Color.sun)
+            }
             if task.repeatMode == .weekly {
               Text("本周 \(task.doneInWeek(of: day))/\(max(task.perWeek, 1))")
             } else if task.repeatMode == .weekdays {
@@ -71,10 +78,25 @@ struct TaskRow: View {
     .sheet(isPresented: $editingReminder) {
       ReminderSheet(task: task).oneDaySheet()
     }
+    .sheet(isPresented: $editingTask) {
+      AddTaskSheet(day: task.date, editing: task).oneDaySheet()
+    }
   }
 
   @ViewBuilder
   private var menu: some View {
+    Button {
+      editingTask = true
+    } label: {
+      Label("编辑", systemImage: "pencil")
+    }
+    if task.repeatMode == .once && !task.isDone(on: day) {
+      Button {
+        withAnimation(.snappy) { store.moveToTomorrow(task.id, from: day) }
+      } label: {
+        Label("改到明天", systemImage: "arrow.turn.down.right")
+      }
+    }
     Button {
       editingReminder = true
     } label: {

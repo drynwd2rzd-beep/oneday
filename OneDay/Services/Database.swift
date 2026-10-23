@@ -48,6 +48,9 @@ final class Database {
     guard let settingsJSON = try meta("settings") else { return nil }
     var state = AppState()
     state.settings = (try? decoder.decode(Settings.self, from: Data(settingsJSON.utf8))) ?? Settings()
+    if let moods = try meta("dayMoods") {
+      state.dayMoods = (try? decoder.decode([String: Int].self, from: Data(moods.utf8))) ?? [:]
+    }
     try query("SELECT json FROM tasks ORDER BY sort") { stmt in
       if let task = try? decoder.decode(TaskItem.self, from: column(stmt, 0)) { state.tasks.append(task) }
     }
@@ -94,10 +97,12 @@ final class Database {
     var weekReflections: [(week: String, item: WeekReflection)] = []
     var deletedReflections: [String] = []
     var settings: Settings?
+    /// The whole small map, rewritten when any day's mood changes.
+    var dayMoods: [String: Int]?
 
     var isEmpty: Bool {
       !replaceAll && tasks.isEmpty && deletedTasks.isEmpty && plans.isEmpty && deletedPlans.isEmpty
-        && notes.isEmpty && deletedNotes.isEmpty && reflectionCount == 0 && settings == nil
+        && notes.isEmpty && deletedNotes.isEmpty && reflectionCount == 0 && settings == nil && dayMoods == nil
     }
 
     var rowCount: Int {
@@ -120,6 +125,7 @@ final class Database {
       changes.dayReflections = new.dayReflections.map { ($0.key, $0.value) }
       changes.weekReflections = new.weekReflections.map { ($0.key, $0.value) }
       changes.settings = new.settings
+      changes.dayMoods = new.dayMoods
       return changes
     }
 
@@ -159,6 +165,7 @@ final class Database {
       + old.weekReflections.keys.filter { new.weekReflections[$0] == nil }.map { "w:" + $0 }
 
     if old.settings != new.settings { changes.settings = new.settings }
+    if old.dayMoods != new.dayMoods { changes.dayMoods = new.dayMoods }
     return changes
   }
 
@@ -195,6 +202,7 @@ final class Database {
         for (week, item) in changes.weekReflections { try run(stmt, ["w:" + week, try json(item)]) }
       }
       if let settings = changes.settings { try setMeta("settings", try json(settings)) }
+      if let moods = changes.dayMoods { try setMeta("dayMoods", try json(moods)) }
       try exec("COMMIT")
     } catch {
       try? exec("ROLLBACK")

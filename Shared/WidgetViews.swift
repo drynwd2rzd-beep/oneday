@@ -147,7 +147,8 @@ private struct SmallCute: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       HStack(alignment: .top, spacing: 0) {
-        MascotView(mood: mood, size: 64, stage: snapshot.stage ?? 1, outfit: snapshot.outfit.flatMap(MascotOutfit.init(rawValue:)), droopy: snapshot.droopy ?? false)
+        MascotView(mood: mood, size: 64, stage: snapshot.stage ?? 1, outfit: snapshot.outfit.flatMap(MascotOutfit.init(rawValue:)), droopy: snapshot.droopy ?? false,
+          plant: snapshot.plant.flatMap(MascotPlant.init(rawValue:)) ?? .cherry)
           .offset(x: -4, y: -4)
         Spacer(minLength: 0)
         VStack(alignment: .trailing, spacing: -2) {
@@ -181,7 +182,8 @@ private struct MediumCute: View {
   var body: some View {
     HStack(alignment: .center, spacing: 12) {
       VStack(spacing: 6) {
-        MascotView(mood: mood, size: 74, stage: snapshot.stage ?? 1, outfit: snapshot.outfit.flatMap(MascotOutfit.init(rawValue:)), droopy: snapshot.droopy ?? false)
+        MascotView(mood: mood, size: 74, stage: snapshot.stage ?? 1, outfit: snapshot.outfit.flatMap(MascotOutfit.init(rawValue:)), droopy: snapshot.droopy ?? false,
+          plant: snapshot.plant.flatMap(MascotPlant.init(rawValue:)) ?? .cherry)
         Text(notice ?? mood.line(for: snapshot))
           .font(.cute(12))
           .foregroundStyle(theme.ink)
@@ -240,7 +242,8 @@ private struct LargeCute: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 10) {
-        MascotView(mood: mood, size: 72, stage: snapshot.stage ?? 1, outfit: snapshot.outfit.flatMap(MascotOutfit.init(rawValue:)), droopy: snapshot.droopy ?? false)
+        MascotView(mood: mood, size: 72, stage: snapshot.stage ?? 1, outfit: snapshot.outfit.flatMap(MascotOutfit.init(rawValue:)), droopy: snapshot.droopy ?? false,
+          plant: snapshot.plant.flatMap(MascotPlant.init(rawValue:)) ?? .cherry)
         VStack(alignment: .leading, spacing: 4) {
           Text(greeting).font(.cute(20, .heavy)).foregroundStyle(theme.ink)
           SpeechBubble(text: notice ?? mood.line(for: snapshot), theme: theme, size: 12)

@@ -26,6 +26,8 @@ enum GrowthStage: Int, CaseIterable, Identifiable {
 
 /// 小日's growth: sunshine only ever adds up, and nothing is lost after a break.
 struct Growth {
+  /// The day this was worked out for.
+  let day: String
   /// All sunshine collected.
   let sunshine: Int
   /// Sunshine collected today.
@@ -42,6 +44,10 @@ struct Growth {
   let allDoneDays: Int
   /// Three or more days without anything done or written.
   let droopy: Bool
+  /// This week's challenge.
+  let challenge: WeeklyChallenge
+  /// Sunshine from finished weekly challenges (included in `sunshine`).
+  let challengeBonus: Int
 
   var next: GrowthStage? { GrowthStage(rawValue: stage.rawValue + 1) }
   var toNext: Int { next.map { $0.threshold - sunshine } ?? 0 }
@@ -61,6 +67,7 @@ struct Growth {
     case .visor: (weekReviews, 4, "次")
     case .stageMic: (allDoneDays, 20, "天")
     case .cosmos: (sunshine, 500, "阳光")
+    case .lunarHat, .bunnyEars, .pumpkin, .santaHat: (Festivals.isWearable(outfit, today: day) ? 1 : 0, 1, "")
     }
   }
 
@@ -71,8 +78,12 @@ struct Growth {
 
   var unlocked: [MascotOutfit] { MascotOutfit.allCases.filter(isUnlocked) }
 
-  /// "连续 12/30 天", "阳光 80/100" …
+  /// "连续 12/30 天", "阳光 80/100", "10月28日起" …
   func lockText(_ outfit: MascotOutfit) -> String {
+    if outfit.isFestival {
+      guard let window = Festivals.window(of: outfit, around: day) else { return "节日限定" }
+      return "\(DayKey.shortDate(window.start))起可以戴"
+    }
     let r = requirement(outfit)
     let what: String
     switch outfit {
@@ -93,6 +104,7 @@ struct Growth {
     ("square.and.pencil", "留下一条记录", "+1"),
     ("moon.stars", "写今天的复盘", "+1"),
     ("calendar.badge.clock", "写一周复盘", "+3"),
+    ("flag.checkered", "完成每周挑战", "+5"),
   ]
 }
 
@@ -138,16 +150,185 @@ extension AppState {
     let droopy = days.last.map { SharedDay.distance(from: $0, to: today) >= 3 } ?? false
     let records = notes.values.reduce(0) { $0 + $1.filter { !$0.isReflection }.count }
     let allDoneDays = days.filter { allDone(on: $0) }.count
+    var challengeBonus = 0
+    if let first = days.first {
+      var week = DayKey.weekStart(first)
+      let current = DayKey.weekStart(today)
+      while week <= current {
+        if challenge(week: week, today: today).done { challengeBonus += WeeklyChallenge.bonus }
+        week = DayKey.add(days: 7, to: week)
+      }
+    }
 
     return Growth(
-      sunshine: total,
+      day: today,
+      sunshine: total + challengeBonus,
       today: sunshine(on: today),
-      stage: .at(total),
+      stage: .at(total + challengeBonus),
       streak: current,
       bestStreak: best,
       records: records,
       weekReviews: weekReflections.count,
       allDoneDays: allDoneDays,
-      droopy: droopy)
+      droopy: droopy,
+      challenge: challenge(week: today, today: today),
+      challengeBonus: challengeBonus)
+  }
+}
+
+// MARK: - Weekly challenge
+
+/// One small goal a week, picked by the week so it is the same all week long.
+struct WeeklyChallenge {
+  enum Kind: CaseIterable {
+    case notes, reflections, moods, activeDays, allDone, completions
+  }
+
+  static let bonus = 5
+
+  let week: String
+  let kind: Kind
+  let target: Int
+  let progress: Int
+
+  var done: Bool { progress >= target }
+
+  var title: String {
+    switch kind {
+    case .notes: "这周写 \(target) 条记录"
+    case .reflections: "这周写 \(target) 次每日复盘"
+    case .moods: "这周有 \(target) 天记下心情"
+    case .activeDays: "这周有 \(target) 天来打卡"
+    case .allDone: "这周有 \(target) 天全部完成"
+    case .completions: "这周完成 \(target) 次事项"
+    }
+  }
+}
+
+extension AppState {
+  func challenge(week day: String, today: String) -> WeeklyChallenge {
+    let monday = DayKey.weekStart(day)
+    let week = (0..<7).map { DayKey.add(days: $0, to: monday) }
+    let elapsed = week.filter { $0 <= today }
+    let hasTasks = tasks.contains { task in week.contains { task.occurs(on: $0) } }
+    // Task goals only for weeks that have tasks.
+    let pool: [WeeklyChallenge.Kind] = hasTasks ? WeeklyChallenge.Kind.allCases : [.notes, .reflections, .moods, .activeDays]
+    let seed = Int(monday.filter(\.isNumber)) ?? 0
+    let kind = pool[(seed / 7) % pool.count]
+
+    let target: Int
+    let progress: Int
+    switch kind {
+    case .notes:
+      target = 3
+      progress = elapsed.reduce(0) { $0 + moments(on: $1).count }
+    case .reflections:
+      target = 2
+      progress = elapsed.filter { reflectionNote(on: $0) != nil }.count
+    case .moods:
+      target = 4
+      progress = elapsed.filter { mood(on: $0) != nil }.count
+    case .activeDays:
+      target = 5
+      progress = elapsed.filter { day in hasNotes(on: day) || tasks.contains { $0.isDone(on: day) } }.count
+    case .allDone:
+      target = 3
+      progress = elapsed.filter { allDone(on: $0) }.count
+    case .completions:
+      target = 10
+      progress = elapsed.reduce(0) { sum, day in sum + tasks.filter { $0.isDone(on: day) }.count }
+    }
+    return WeeklyChallenge(week: monday, kind: kind, target: target, progress: progress)
+  }
+
+  /// One-off tasks left undone on an earlier day move to `today`; returns whether any moved.
+  mutating func carryOver(to today: String) -> Bool {
+    var changed = false
+    for i in tasks.indices where tasks[i].repeatMode == .once {
+      let task = tasks[i]
+      guard task.date < today, !task.done.values.contains(true) else { continue }
+      tasks[i].carriedFrom = task.carriedFrom ?? task.date
+      tasks[i].date = today
+      changed = true
+    }
+    return changed
+  }
+
+  /// What 小日 wears today: a festival outfit only during its week.
+  func wornOutfit(today: String) -> MascotOutfit? {
+    guard let outfit = settings.mascotOutfit.flatMap(MascotOutfit.init(rawValue:)) else { return nil }
+    if outfit.isFestival && !Festivals.isWearable(outfit, today: today) { return nil }
+    return outfit
+  }
+
+  var plant: MascotPlant { settings.mascotPlant.flatMap(MascotPlant.init(rawValue:)) ?? .cherry }
+
+  /// Last week's 下周重点 that are not already this week's tasks, with that week's Monday.
+  func focusThisWeek(today: String) -> (week: String, items: [String])? {
+    let lastWeek = DayKey.add(days: -7, to: DayKey.weekStart(today))
+    guard let items = weekReflections[lastWeek]?.nextItems, !items.isEmpty else { return nil }
+    let monday = DayKey.weekStart(today)
+    let taskTitles = Set(tasks.filter { $0.date >= monday || $0.repeatMode.isRecurring }.map(\.title))
+    let open = items.filter { !taskTitles.contains($0) }
+    return open.isEmpty ? nil : (lastWeek, open)
+  }
+}
+
+// MARK: - Festivals
+
+/// Festival outfits can be worn from three days before to three days after the day.
+/// 春节 and 中秋 follow the Chinese calendar.
+enum Festivals {
+  private static var cache: [String: String] = [:]
+
+  /// The festival's day in a Gregorian year.
+  static func day(of outfit: MascotOutfit, year: Int) -> String? {
+    switch outfit {
+    case .pumpkin: return String(format: "%04d-10-31", year)
+    case .santaHat: return String(format: "%04d-12-25", year)
+    case .lunarHat: return lunar(month: 1, day: 1, year: year)
+    case .bunnyEars: return lunar(month: 8, day: 15, year: year)
+    default: return nil
+    }
+  }
+
+  /// The current window, or the next one.
+  static func window(of outfit: MascotOutfit, around today: String) -> (start: String, end: String)? {
+    let year = Int(today.prefix(4)) ?? 2026
+    for y in [year - 1, year, year + 1] {
+      guard let day = day(of: outfit, year: y) else { continue }
+      let end = DayKey.add(days: 3, to: day)
+      if end >= today { return (DayKey.add(days: -3, to: day), end) }
+    }
+    return nil
+  }
+
+  static func isWearable(_ outfit: MascotOutfit, today: String) -> Bool {
+    guard let w = window(of: outfit, around: today) else { return false }
+    return w.start <= today && today <= w.end
+  }
+
+  /// Within two weeks of the window, so it is worth showing.
+  static func isNear(_ outfit: MascotOutfit, today: String) -> Bool {
+    guard let w = window(of: outfit, around: today) else { return false }
+    return DayKey.add(days: -14, to: w.start) <= today && today <= w.end
+  }
+
+  private static func lunar(month: Int, day: Int, year: Int) -> String? {
+    let key = "\(year)-\(month)-\(day)"
+    if let cached = cache[key] { return cached }
+    var chinese = Calendar(identifier: .chinese)
+    chinese.timeZone = DayKey.calendar.timeZone
+    var date = DayKey.date(String(format: "%04d-01-01", year))
+    for _ in 0..<366 {
+      let c = chinese.dateComponents([.month, .day], from: date)
+      if c.month == month, c.day == day, c.isLeapMonth != true {
+        let found = DayKey.of(date)
+        cache[key] = found
+        return found
+      }
+      date = DayKey.calendar.date(byAdding: .day, value: 1, to: date) ?? date
+    }
+    return nil
   }
 }

@@ -79,19 +79,20 @@ final class OneDayUITests: XCTestCase {
     XCTAssertTrue(app.buttons["撤销"].waitForExistence(timeout: 3))
   }
 
-  /// Regression: checking a task off used to make the filter highlight jump to another segment.
-  func testFilterSelectionSurvivesToggling() {
+  /// Finished tasks fold away under 「已完成」 and come back when unchecked.
+  func testDoneTasksFoldAway() {
     let app = launch(["-OneDayTab", "tasks"])
-    let all = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "全部")).firstMatch
-    XCTAssertTrue(all.waitForExistence(timeout: 8))
-    XCTAssertTrue(all.isSelected)
     let check = app.buttons["完成事项：整理房间"]
-    for _ in 0..<3 {
-      check.firstMatch.tap()
-      XCTAssertTrue(all.isSelected, "「全部」 stays selected after completing")
-      app.buttons["取消完成：整理房间"].firstMatch.tap()
-      XCTAssertTrue(all.isSelected, "「全部」 stays selected after un-completing")
-    }
+    XCTAssertTrue(check.waitForExistence(timeout: 8))
+    check.tap()
+    XCTAssertTrue(check.waitForNonExistence(timeout: 5), "moves out of the open list")
+    let folded = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "已完成")).firstMatch
+    XCTAssertTrue(folded.waitForExistence(timeout: 5))
+    folded.tap()
+    let uncheck = app.buttons["取消完成：整理房间"]
+    XCTAssertTrue(uncheck.waitForExistence(timeout: 5), "shown when unfolded")
+    uncheck.tap()
+    XCTAssertTrue(app.buttons["完成事项：整理房间"].waitForExistence(timeout: 5), "back among the open tasks")
   }
 
   func testHomeCaptureExpandsFromOneLine() {
@@ -213,7 +214,26 @@ final class OneDayUITests: XCTestCase {
     let ring = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "今天完成")).firstMatch
     XCTAssertTrue(ring.waitForExistence(timeout: 10))
     ring.tap()
-    XCTAssertTrue(app.staticTexts["小日的成长"].waitForExistence(timeout: 10), "tapping 小日 opens its growth page")
-    XCTAssertTrue(app.staticTexts["怎样收集阳光"].exists)
+    XCTAssertFalse(app.staticTexts["小日的成长"].waitForExistence(timeout: 2), "a tap only makes 小日 react")
+    ring.press(forDuration: 1.0)
+    XCTAssertTrue(app.staticTexts["小日的成长"].waitForExistence(timeout: 10), "a long press opens its growth page")
+    XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "怎样收集阳光")).firstMatch.exists)
+  }
+
+  func testEditTask() {
+    let app = launch(["-OneDayTab", "tasks"])
+    let row = app.staticTexts["整理房间"]
+    XCTAssertTrue(row.waitForExistence(timeout: 8))
+    row.press(forDuration: 1.0)
+    XCTAssertTrue(app.buttons["编辑"].waitForExistence(timeout: 5))
+    app.buttons["编辑"].tap()
+    let field = app.textFields.firstMatch
+    XCTAssertTrue(field.waitForExistence(timeout: 10))
+    XCTAssertEqual(field.value as? String, "整理房间", "the editor starts from the task")
+    field.tap()
+    field.typeText("和书桌")
+    app.buttons["保存"].tap()
+    let renamed = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "整理房间和书桌")).firstMatch
+    XCTAssertTrue(renamed.waitForExistence(timeout: 10))
   }
 }

@@ -27,6 +27,7 @@ struct WidgetSnapshot: Codable, Hashable {
   var stage: Int?
   var outfit: String?
   var droopy: Bool?
+  var plant: String?
 
   var doneCount: Int { today.filter(\.done).count }
   var total: Int { today.count }

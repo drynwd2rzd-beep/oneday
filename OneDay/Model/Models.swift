@@ -193,9 +193,11 @@ struct TaskItem: Codable, Identifiable, Hashable {
   var weekdays: [Int] = []
   /// `.weekly`: how many times a week.
   var perWeek = 0
+  /// A one-off task left undone and moved on: the day it was first meant for.
+  var carriedFrom: String?
 
   enum CodingKeys: String, CodingKey {
-    case id, title, date, created, done, reminder, planId, weekdays, perWeek
+    case id, title, date, created, done, reminder, planId, weekdays, perWeek, carriedFrom
     case repeatMode = "repeat"
   }
 
@@ -223,6 +225,7 @@ struct TaskItem: Codable, Identifiable, Hashable {
     planId = c.string("planId")
     weekdays = c.get("weekdays", as: LenientArray<Int>.self)?.items ?? []
     perWeek = c.get("perWeek", as: Int.self) ?? 0
+    carriedFrom = c.string("carriedFrom")
   }
 
   func occurs(on day: String) -> Bool {
@@ -432,6 +435,8 @@ struct Settings: Codable, Hashable {
   var fontStyle: FontStyle = .system
   /// What 小日 wears (a `MascotOutfit` raw value), if anything.
   var mascotOutfit: String?
+  /// What grows on 小日's head (a `MascotPlant` raw value); 樱桃 when unset.
+  var mascotPlant: String?
   var customTags: [String] = []
   var celebratedDays: [String] = []
   var notifications = NotificationPrefs()
@@ -456,6 +461,7 @@ struct Settings: Codable, Hashable {
     bgTone = c.get("bgTone", as: BgTone.self) ?? d.bgTone
     fontStyle = c.get("fontStyle", as: FontStyle.self) ?? d.fontStyle
     mascotOutfit = c.string("mascotOutfit").flatMap { MascotOutfit(rawValue: $0)?.rawValue }
+    mascotPlant = c.string("mascotPlant").flatMap { MascotPlant(rawValue: $0)?.rawValue }
     customTags = c.get("customTags", as: LenientArray<String>.self)?.items ?? []
     celebratedDays = c.get("celebratedDays", as: LenientArray<String>.self)?.items ?? []
     notifications = c.get("notifications", as: NotificationPrefs.self) ?? d.notifications
@@ -475,6 +481,8 @@ struct AppState: Codable {
   var dayReflections: [String: DayReflection] = [:]
   /// 一周复盘 by the week's Monday.
   var weekReflections: [String: WeekReflection] = [:]
+  /// The day's overall mood (1…5), set without writing a note.
+  var dayMoods: [String: Int] = [:]
 
   init() {}
 
@@ -486,6 +494,7 @@ struct AppState: Codable {
     settings = c.get("settings", as: Settings.self) ?? Settings()
     dayReflections = c.get("dayReflections", as: [String: DayReflection].self) ?? [:]
     weekReflections = c.get("weekReflections", as: [String: WeekReflection].self) ?? [:]
+    dayMoods = c.get("dayMoods", as: [String: Int].self) ?? [:]
   }
 
   /// Mirrors the web version's `normalize()` so imported and edited data stay valid.
@@ -555,6 +564,7 @@ struct AppState: Codable {
       if !r.isEmpty { weeks[DayKey.weekStart(key)] = r }
     }
     weekReflections = weeks
+    dayMoods = dayMoods.filter { DayKey.isValid($0.key) }.mapValues { min(max($0, 1), 5) }
     // A task can only point at a plan that still exists.
     let planIds = Set(plans.map(\.id))
     for i in tasks.indices {

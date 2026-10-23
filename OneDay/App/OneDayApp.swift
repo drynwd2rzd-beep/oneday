@@ -130,7 +130,7 @@ struct RootView: View {
       Group {
         switch target {
         case .day(let day):
-          DayReflectionSheet(day: day, note: store.state.reflectionNote(on: day))
+          DayReflectionSheet(day: day, note: store.state.reflectionNote(on: day), mood: store.state.dayMoods[day])
         case .week(let week):
           WeekReviewBrowser(start: week)
         }
@@ -184,7 +184,7 @@ struct MotivationSheet: View {
     VStack(spacing: 18) {
       MascotView(
         mood: .party, size: 120, stage: Store.shared.state.growth(today: Store.shared.today).stage.rawValue,
-        outfit: Store.shared.mascotOutfit)
+        outfit: Store.shared.mascotOutfit, plant: Store.shared.mascotPlant)
         .keyframeAnimator(initialValue: CGFloat(0), trigger: appeared) { view, hop in
           view.offset(y: hop)
         } keyframes: { _ in

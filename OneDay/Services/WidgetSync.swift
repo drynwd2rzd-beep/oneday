@@ -33,8 +33,9 @@ enum WidgetSync {
       wroteToday: state.hasNotes(on: today),
       week: week,
       stage: growth.stage.rawValue,
-      outfit: state.settings.mascotOutfit,
-      droopy: growth.droopy)
+      outfit: state.wornOutfit(today: today)?.rawValue,
+      droopy: growth.droopy,
+      plant: state.settings.mascotPlant)
   }
 
   /// Writes the snapshot and reloads widgets only when something they show has changed.

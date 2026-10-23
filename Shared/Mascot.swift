@@ -48,6 +48,8 @@ struct MascotView: View {
   var outfit: MascotOutfit?
   /// After a few quiet days the leaves hang down.
   var droopy = false
+  /// What blooms and fruits on top.
+  var plant: MascotPlant = .cherry
 
   private let ink = Color(red: 0.36, green: 0.23, blue: 0.16)
   private let bodyTop = Color(red: 1.0, green: 0.89, blue: 0.56)
@@ -78,7 +80,7 @@ struct MascotView: View {
 
       if outfit == .halo { halo(line: line) }
       // The sprout grows with 小日; under a hat it pokes out of the top instead.
-      if outfit != .hat { sprout(line: line, lift: 0) }
+      if outfit?.coversHead != true { sprout(line: line, lift: 0) }
 
       // Body.
       Ellipse()
@@ -167,39 +169,141 @@ struct MascotView: View {
         .position(x: s * 0.5, y: s * (top - 0.02))
     case 3:
       Ellipse()
-        .fill(Color(red: 1, green: 0.66, blue: 0.74))
+        .fill(plant.bud)
         .overlay(Ellipse().stroke(ink, lineWidth: line * 0.8))
         .frame(width: s * 0.1, height: s * 0.13)
         .position(x: s * 0.5, y: s * (top - 0.03))
     case 4:
-      ZStack {
-        ForEach(0..<5, id: \.self) { i in
-          let angle = Double(i) / 5 * 2 * .pi - .pi / 2
-          Circle()
-            .fill(Color(red: 1, green: 0.78, blue: 0.84))
-            .overlay(Circle().stroke(ink, lineWidth: line * 0.7))
-            .frame(width: s * 0.11, height: s * 0.11)
-            .offset(x: CGFloat(cos(angle)) * s * 0.06, y: CGFloat(sin(angle)) * s * 0.06)
-        }
-        Circle()
-          .fill(Color(red: 1, green: 0.8, blue: 0.3))
-          .overlay(Circle().stroke(ink, lineWidth: line * 0.7))
-          .frame(width: s * 0.075, height: s * 0.075)
-      }
-      .position(x: s * 0.5, y: s * (top - 0.04))
+      flower(scale: 1, line: line)
+        .position(x: s * 0.5, y: s * (top - 0.04))
     default:
+      fruit(line: line)
+        .position(x: s * 0.5, y: s * (top - 0.045))
+    }
+  }
+
+  /// The open flower of the chosen plant.
+  private func flower(scale k: CGFloat, line: CGFloat) -> some View {
+    let s = size * k
+    let count = plant == .sunflower ? 10 : 5
+    return ZStack {
+      ForEach(0..<count, id: \.self) { i in
+        let angle = Double(i) / Double(count) * 2 * .pi - .pi / 2
+        Group {
+          if plant == .sunflower {
+            Ellipse()
+              .fill(plant.petal)
+              .overlay(Ellipse().stroke(ink, lineWidth: line * 0.6))
+              .frame(width: s * 0.05, height: s * 0.1)
+              .rotationEffect(.radians(angle + .pi / 2))
+          } else {
+            Circle()
+              .fill(plant.petal)
+              .overlay(Circle().stroke(ink, lineWidth: line * 0.7))
+              .frame(width: s * 0.11, height: s * 0.11)
+          }
+        }
+        .offset(
+          x: CGFloat(cos(angle)) * s * (plant == .sunflower ? 0.075 : 0.06),
+          y: CGFloat(sin(angle)) * s * (plant == .sunflower ? 0.075 : 0.06))
+      }
+      Circle()
+        .fill(plant.center)
+        .overlay(Circle().stroke(ink, lineWidth: line * 0.7))
+        .frame(width: s * (plant == .sunflower ? 0.1 : 0.075), height: s * (plant == .sunflower ? 0.1 : 0.075))
+    }
+  }
+
+  /// What the chosen plant bears at 结果.
+  @ViewBuilder
+  private func fruit(line: CGFloat) -> some View {
+    let s = size
+    switch plant {
+    case .cherry:
       ZStack {
         Circle()
           .fill(Color(red: 0.9, green: 0.27, blue: 0.3))
           .overlay(Circle().stroke(ink, lineWidth: line * 0.8))
           .frame(width: s * 0.14, height: s * 0.14)
-        Circle()
-          .fill(Color.white.opacity(0.7))
-          .frame(width: s * 0.035, height: s * 0.035)
-          .offset(x: -s * 0.025, y: -s * 0.025)
+        shine(s * 0.035).offset(x: -s * 0.025, y: -s * 0.025)
       }
-      .position(x: s * 0.5, y: s * (top - 0.045))
+    case .strawberry:
+      ZStack {
+        StrawberryShape()
+          .fill(Color(red: 0.93, green: 0.25, blue: 0.3))
+          .overlay(StrawberryShape().stroke(ink, lineWidth: line * 0.8))
+          .frame(width: s * 0.15, height: s * 0.16)
+        ForEach(Array([(-0.03, 0.0), (0.03, 0.0), (0.0, 0.035), (-0.02, -0.03), (0.02, -0.03)].enumerated()), id: \.offset) { _, xy in
+          let (x, y) = xy
+          Capsule().fill(Color(red: 1, green: 0.88, blue: 0.4))
+            .frame(width: s * 0.012, height: s * 0.02)
+            .offset(x: s * x, y: s * y)
+        }
+        HStack(spacing: -s * 0.02) {
+          ForEach(0..<3, id: \.self) { i in
+            Ellipse().fill(leaf).overlay(Ellipse().stroke(ink, lineWidth: line * 0.5))
+              .frame(width: s * 0.06, height: s * 0.035)
+              .rotationEffect(.degrees(Double(i - 1) * 30))
+          }
+        }
+        .offset(y: -s * 0.075)
+      }
+    case .orange:
+      ZStack {
+        Circle()
+          .fill(Color(red: 1, green: 0.62, blue: 0.18))
+          .overlay(Circle().stroke(ink, lineWidth: line * 0.8))
+          .frame(width: s * 0.15, height: s * 0.15)
+        shine(s * 0.035).offset(x: -s * 0.03, y: -s * 0.025)
+        Ellipse().fill(leaf).overlay(Ellipse().stroke(ink, lineWidth: line * 0.6))
+          .frame(width: s * 0.08, height: s * 0.04)
+          .rotationEffect(.degrees(-25))
+          .offset(x: s * 0.05, y: -s * 0.075)
+      }
+    case .apple:
+      ZStack {
+        Capsule().fill(Color(red: 0.45, green: 0.3, blue: 0.2))
+          .frame(width: s * 0.018, height: s * 0.05)
+          .offset(y: -s * 0.08)
+        Ellipse()
+          .fill(Color(red: 0.88, green: 0.2, blue: 0.24))
+          .overlay(Ellipse().stroke(ink, lineWidth: line * 0.8))
+          .frame(width: s * 0.17, height: s * 0.15)
+        shine(s * 0.035).offset(x: -s * 0.035, y: -s * 0.025)
+        Ellipse().fill(leaf).overlay(Ellipse().stroke(ink, lineWidth: line * 0.6))
+          .frame(width: s * 0.08, height: s * 0.04)
+          .rotationEffect(.degrees(-30))
+          .offset(x: s * 0.05, y: -s * 0.085)
+      }
+    case .blueberry:
+      ZStack {
+        ForEach(Array([(-0.045, 0.02), (0.045, 0.02), (0.0, -0.035)].enumerated()), id: \.offset) { _, xy in
+          let (x, y) = xy
+          ZStack {
+            Circle()
+              .fill(Color(red: 0.36, green: 0.44, blue: 0.82))
+              .overlay(Circle().stroke(ink, lineWidth: line * 0.7))
+            shine(s * 0.02).offset(x: -s * 0.015, y: -s * 0.015)
+          }
+          .frame(width: s * 0.09, height: s * 0.09)
+          .offset(x: s * x, y: s * y)
+        }
+      }
+    case .sunflower:
+      ZStack {
+        flower(scale: 1.35, line: line)
+        ForEach(Array([(-0.02, -0.015), (0.02, -0.015), (0.0, 0.02), (-0.025, 0.02), (0.025, 0.02)].enumerated()), id: \.offset) { _, xy in
+          let (x, y) = xy
+          Circle().fill(Color(red: 0.25, green: 0.16, blue: 0.1))
+            .frame(width: s * 0.014, height: s * 0.014)
+            .offset(x: s * x, y: s * y)
+        }
+      }
     }
+  }
+
+  private func shine(_ d: CGFloat) -> some View {
+    Circle().fill(Color.white.opacity(0.7)).frame(width: d, height: d)
   }
 
   // MARK: Outfits
@@ -297,10 +401,85 @@ struct MascotView: View {
         .fill(Color(red: 0.2, green: 0.2, blue: 0.24))
         .frame(width: s * 0.07, height: s * 0.04)
         .position(x: s * 0.37, y: s * 0.715)
+    case .some(.lunarHat):
+      Ellipse()
+        .fill(festiveRed)
+        .overlay(Ellipse().stroke(ink, lineWidth: line * 0.85))
+        .frame(width: s * 0.5, height: s * 0.3)
+        .position(x: s * 0.5, y: s * 0.24)
+      Capsule()
+        .fill(gold)
+        .overlay(Capsule().stroke(ink, lineWidth: line * 0.7))
+        .frame(width: s * 0.56, height: s * 0.07)
+        .position(x: s * 0.5, y: s * 0.32)
+      ZStack {
+        Circle().fill(gold).overlay(Circle().stroke(ink, lineWidth: line * 0.7))
+        Text("福")
+          .font(.system(size: s * 0.085, weight: .black))
+          .foregroundStyle(festiveRed)
+      }
+      .frame(width: s * 0.13, height: s * 0.13)
+      .position(x: s * 0.5, y: s * 0.19)
+      sprout(line: line, lift: 0.18)
+    case .some(.bunnyEars):
+      ForEach(Array([(-1.0, 0.37), (1.0, 0.63)].enumerated()), id: \.offset) { _, ear in
+        let (side, x) = ear
+        ZStack {
+          Ellipse().fill(Color.white).overlay(Ellipse().stroke(ink, lineWidth: line * 0.8))
+          Ellipse().fill(Color(red: 1, green: 0.75, blue: 0.82)).frame(width: s * 0.05, height: s * 0.19)
+        }
+        .frame(width: s * 0.12, height: s * 0.3)
+        .rotationEffect(.degrees(side * 14))
+        .position(x: s * x, y: s * 0.13)
+      }
+    case .some(.pumpkin):
+      ZStack {
+        Ellipse().fill(pumpkinOrange).overlay(Ellipse().stroke(ink, lineWidth: line * 0.85))
+        Ellipse().stroke(ink.opacity(0.5), lineWidth: line * 0.6).frame(width: s * 0.16)
+        Capsule().fill(ink.opacity(0.35)).frame(width: line * 0.6)
+      }
+      .frame(width: s * 0.46, height: s * 0.26)
+      .position(x: s * 0.5, y: s * 0.22)
+      Capsule()
+        .fill(leaf)
+        .overlay(Capsule().stroke(ink, lineWidth: line * 0.7))
+        .frame(width: s * 0.05, height: s * 0.09)
+        .rotationEffect(.degrees(15))
+        .position(x: s * 0.52, y: s * 0.07)
+    case .some(.santaHat):
+      Path { p in
+        p.move(to: CGPoint(x: s * 0.22, y: s * 0.3))
+        p.addQuadCurve(to: CGPoint(x: s * 0.74, y: s * 0.05), control: CGPoint(x: s * 0.36, y: s * 0.02))
+        p.addQuadCurve(to: CGPoint(x: s * 0.78, y: s * 0.3), control: CGPoint(x: s * 0.66, y: s * 0.14))
+        p.closeSubpath()
+      }
+      .fill(festiveRed)
+      .overlay(
+        Path { p in
+          p.move(to: CGPoint(x: s * 0.22, y: s * 0.3))
+          p.addQuadCurve(to: CGPoint(x: s * 0.74, y: s * 0.05), control: CGPoint(x: s * 0.36, y: s * 0.02))
+          p.addQuadCurve(to: CGPoint(x: s * 0.78, y: s * 0.3), control: CGPoint(x: s * 0.66, y: s * 0.14))
+          p.closeSubpath()
+        }
+        .stroke(ink, lineWidth: line * 0.85))
+      Capsule()
+        .fill(Color.white)
+        .overlay(Capsule().stroke(ink, lineWidth: line * 0.8))
+        .frame(width: s * 0.66, height: s * 0.1)
+        .position(x: s * 0.5, y: s * 0.3)
+      Circle()
+        .fill(Color.white)
+        .overlay(Circle().stroke(ink, lineWidth: line * 0.8))
+        .frame(width: s * 0.11, height: s * 0.11)
+        .position(x: s * 0.76, y: s * 0.06)
     case .some(.halo), .some(.cosmos), .none:
       EmptyView()
     }
   }
+
+  private var festiveRed: Color { Color(red: 0.88, green: 0.22, blue: 0.24) }
+  private var gold: Color { Color(red: 0.98, green: 0.78, blue: 0.3) }
+  private var pumpkinOrange: Color { Color(red: 0.98, green: 0.58, blue: 0.2) }
 
   private var chrome: Color { Color(red: 0.84, green: 0.87, blue: 0.93) }
   private var violet: Color { Color(red: 0.72, green: 0.62, blue: 1.0) }
@@ -490,6 +669,8 @@ enum MascotOutfit: String, CaseIterable, Codable, Identifiable {
   case scarf, glasses, hat, halo
   /// The æ series, after aespa's cyber, chrome and cosmic looks (no logos or likenesses).
   case headset, visor, stageMic, cosmos
+  /// Festival outfits, wearable in the week around the day.
+  case lunarHat, bunnyEars, pumpkin, santaHat
   var id: String { rawValue }
 
   var name: String {
@@ -502,8 +683,69 @@ enum MascotOutfit: String, CaseIterable, Codable, Identifiable {
     case .visor: "未来护目镜"
     case .stageMic: "舞台耳麦"
     case .cosmos: "宇宙光芒"
+    case .lunarHat: "新春福帽"
+    case .bunnyEars: "中秋兔耳"
+    case .pumpkin: "南瓜帽"
+    case .santaHat: "圣诞帽"
     }
   }
 
   var isAeSeries: Bool { [.headset, .visor, .stageMic, .cosmos].contains(self) }
+  var isFestival: Bool { [.lunarHat, .bunnyEars, .pumpkin, .santaHat].contains(self) }
+  /// Sits on the head, so the sprout is drawn by the outfit (or hidden under it).
+  var coversHead: Bool { [.hat, .lunarHat, .pumpkin, .santaHat].contains(self) }
+}
+
+/// What grows on 小日's head from 花苞 on; chosen on the growth page.
+enum MascotPlant: String, CaseIterable, Codable, Identifiable {
+  case cherry, strawberry, orange, apple, blueberry, sunflower
+  var id: String { rawValue }
+
+  var name: String {
+    switch self {
+    case .cherry: "樱桃"
+    case .strawberry: "草莓"
+    case .orange: "橘子"
+    case .apple: "苹果"
+    case .blueberry: "蓝莓"
+    case .sunflower: "向日葵"
+    }
+  }
+
+  var bud: Color {
+    switch self {
+    case .cherry: Color(red: 1, green: 0.66, blue: 0.74)
+    case .apple: Color(red: 1, green: 0.8, blue: 0.84)
+    case .sunflower: Color(red: 0.6, green: 0.78, blue: 0.4)
+    default: Color(red: 0.96, green: 0.95, blue: 0.9)
+    }
+  }
+
+  var petal: Color {
+    switch self {
+    case .cherry: Color(red: 1, green: 0.78, blue: 0.84)
+    case .apple: Color(red: 1, green: 0.88, blue: 0.9)
+    case .sunflower: Color(red: 1, green: 0.78, blue: 0.15)
+    default: Color.white
+    }
+  }
+
+  var center: Color {
+    plant == .sunflower ? Color(red: 0.45, green: 0.3, blue: 0.18) : Color(red: 1, green: 0.8, blue: 0.3)
+  }
+
+  private var plant: MascotPlant { self }
+}
+
+/// A rounded strawberry, point down.
+private struct StrawberryShape: Shape {
+  func path(in r: CGRect) -> Path {
+    var p = Path()
+    p.move(to: CGPoint(x: r.midX, y: r.maxY))
+    p.addQuadCurve(to: CGPoint(x: r.minX, y: r.minY + r.height * 0.3), control: CGPoint(x: r.minX, y: r.maxY * 0.85))
+    p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY + r.height * 0.3), control: CGPoint(x: r.midX, y: r.minY - r.height * 0.2))
+    p.addQuadCurve(to: CGPoint(x: r.midX, y: r.maxY), control: CGPoint(x: r.maxX, y: r.maxY * 0.85))
+    p.closeSubpath()
+    return p
+  }
 }

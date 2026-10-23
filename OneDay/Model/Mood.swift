@@ -75,7 +75,9 @@ struct MonthRecap {
 
 extension AppState {
   /// Average mood of a day's notes, if any were given one.
+  /// The day's overall mood when one was chosen, otherwise the average of its notes' moods.
   func mood(on day: String) -> Double? {
+    if let overall = dayMoods[day] { return Double(overall) }
     let values = (notes[day] ?? []).compactMap(\.mood)
     guard !values.isEmpty else { return nil }
     return Double(values.reduce(0, +)) / Double(values.count)
@@ -107,7 +109,6 @@ extension AppState {
       recordings += note.media.filter { $0.kind == .audio }.count
       if let place = note.place { places[place, default: 0] += 1 }
       for tag in note.tags { tags[tag, default: 0] += 1 }
-      if let mood = note.mood { moods[mood, default: 0] += 1 }
       // The longest note of the month is its highlight.
       if note.text.count > (highlight?.text.count ?? 0) { highlight = (day, note.text) }
     }
@@ -115,6 +116,10 @@ extension AppState {
     let ranked = { (dict: [String: Int]) in
       dict.map { CountedItem(name: $0.key, count: $0.value) }
         .sorted { $0.count != $1.count ? $0.count > $1.count : $0.name < $1.name }
+    }
+    // One mood per day, whether chosen for the day or taken from its notes.
+    for day in DayKey.days(inMonth: month) {
+      if let value = mood(on: day), let face = Mood(average: value) { moods[face.rawValue, default: 0] += 1 }
     }
     let moodTotal = moods.reduce(0) { $0 + $1.key * $1.value }
     let moodCount = moods.values.reduce(0, +)

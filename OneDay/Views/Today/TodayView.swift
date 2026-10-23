@@ -166,13 +166,18 @@ private struct HeroModule: View {
   @State private var showGrowth = false
   /// Bumped when the bubble is tapped away, so the next line (or none) shows.
   @State private var bubbleTick = 0
+  /// Taps on 小日: each one plays a little reaction.
+  @State private var pokes = 0
+  /// What 小日 says for a moment after a tap.
+  @State private var pokeLine: MascotLine?
+  @State private var excited = false
 
   var body: some View {
     let now = Date()
     let list = store.state.tasks(on: store.today)
     let done = list.filter { $0.isDone(on: store.today) }.count
     let growth = store.state.growth(today: store.today)
-    let line = bubbleTick >= 0 ? MascotSpeech.line(state: store.state, today: store.today, growth: growth, now: now) : nil
+    let line = pokeLine ?? (bubbleTick >= 0 ? MascotSpeech.line(state: store.state, today: store.today, growth: growth, now: now) : nil)
     let layout = typeSize.isAccessibilitySize
       ? AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.section))
       : AnyLayout(HStackLayout(alignment: .center, spacing: Spacing.inner))
@@ -197,23 +202,32 @@ private struct HeroModule: View {
               MascotSpeech.dismiss(line, today: store.today)
               withAnimation(.snappy) { bubbleTick += 1 }
             }
+          } onMood: { level in
+            store.setDayMood(level, on: store.today)
+            withAnimation(.snappy) { bubbleTick += 1 }
           }
           .padding(.top, 8)
           .transition(.scale(scale: 0.8, anchor: .trailing).combined(with: .opacity))
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      Button {
-        showGrowth = true
-      } label: {
-        TodayRing(
-          done: done, total: list.count,
-          mood: growth.droopy && done == 0 ? .sleepy : MascotMood.of(done: done, total: list.count, at: now),
-          stage: growth.stage.rawValue, outfit: store.mascotOutfit, droopy: growth.droopy)
-          .frame(width: 124, height: 124)
-      }
-      .buttonStyle(.plain)
-      .accessibilityHint("打开小日的成长")
+      // Tap: 小日 reacts. Long press: its growth page.
+      TodayRing(
+        done: done, total: list.count,
+        mood: excited ? .party : growth.droopy && done == 0 ? .sleepy : MascotMood.of(done: done, total: list.count, at: now),
+        stage: growth.stage.rawValue, outfit: store.mascotOutfit, droopy: growth.droopy && !excited,
+        plant: store.mascotPlant, pokes: pokes)
+        .frame(width: 124, height: 124)
+        .contentShape(Circle())
+        .onTapGesture { poke(droopy: growth.droopy) }
+        .onLongPressGesture(minimumDuration: 0.4) {
+          Haptics.success()
+          showGrowth = true
+        }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("轻点和小日玩，长按打开小日的成长")
+        .accessibilityAction { poke(droopy: growth.droopy) }
+        .accessibilityAction(named: "小日的成长") { showGrowth = true }
     }
     .padding(.top, 20)
     .animation(.snappy, value: line?.id)
@@ -224,6 +238,31 @@ private struct HeroModule: View {
     }
     #endif
   }
+
+  private static let pokePhrases = ["嘿嘿～", "被你发现啦", "一起慢慢来", "今天也辛苦啦", "摸摸头～", "我在努力长大哦", "有你在真好", "再点我要害羞啦"]
+
+  /// 小日 hops, spins or wiggles, cheers up for a moment and says something.
+  private func poke(droopy: Bool) {
+    Haptics.tap()
+    pokes += 1
+    excited = true
+    let text = droopy ? "你回来啦！" : Self.pokePhrases[(pokes - 1) % Self.pokePhrases.count]
+    withAnimation(.snappy) { pokeLine = MascotLine(id: "poke\(pokes)", text: text) }
+    let current = pokes
+    Task { @MainActor in
+      try? await Task.sleep(for: .seconds(1.2))
+      excited = false
+      try? await Task.sleep(for: .seconds(1.3))
+      if pokes == current { withAnimation(.snappy) { pokeLine = nil } }
+    }
+  }
+}
+
+/// How 小日 moves when tapped.
+private struct PokeMotion {
+  var lift: CGFloat = 0
+  var turn: Double = 0
+  var scale: CGFloat = 1
 }
 
 /// Today's progress as a ring around 小日, whose face follows it. 小日 hops when a task is
@@ -238,6 +277,9 @@ struct TodayRing: View {
   var stage = 1
   var outfit: MascotOutfit?
   var droopy = false
+  var plant: MascotPlant = .cherry
+  /// Bumped on each tap; alternates a hop, a spin and a wiggle.
+  var pokes = 0
 
   private var progress: Double { total == 0 ? 0 : Double(done) / Double(total) }
 
@@ -273,7 +315,7 @@ struct TodayRing: View {
 
   @ViewBuilder
   private func mascot(side: CGFloat) -> some View {
-    let base = MascotView(mood: mood, size: side * 0.6, stage: stage, outfit: outfit, droopy: droopy)
+    let base = MascotView(mood: mood, size: side * 0.6, stage: stage, outfit: outfit, droopy: droopy, plant: plant)
       .offset(y: -side * 0.04)
     if reduceMotion {
       base
@@ -285,6 +327,29 @@ struct TodayRing: View {
           KeyframeTrack {
             SpringKeyframe(-side * 0.08, duration: 0.18, spring: .snappy)
             SpringKeyframe(0, duration: 0.35, spring: .bouncy)
+          }
+        }
+        .keyframeAnimator(initialValue: PokeMotion(), trigger: pokes) { view, m in
+          view
+            .offset(y: m.lift)
+            .rotationEffect(.degrees(m.turn))
+            .scaleEffect(m.scale)
+        } keyframes: { _ in
+          let kind = pokes % 3
+          let turns: [Double] = kind == 1 ? [120, 240, 360, 360] : kind == 2 ? [14, -14, 8, 0] : [0, 0, 0, 0]
+          KeyframeTrack(\.lift) {
+            SpringKeyframe(kind == 0 ? -side * 0.12 : -side * 0.03, duration: 0.18, spring: .snappy)
+            SpringKeyframe(0, duration: 0.4, spring: .bouncy)
+          }
+          KeyframeTrack(\.turn) {
+            CubicKeyframe(turns[0], duration: 0.12)
+            CubicKeyframe(turns[1], duration: 0.12)
+            CubicKeyframe(turns[2], duration: 0.12)
+            CubicKeyframe(turns[3], duration: 0.14)
+          }
+          KeyframeTrack(\.scale) {
+            SpringKeyframe(1.08, duration: 0.15, spring: .snappy)
+            SpringKeyframe(1, duration: 0.35, spring: .bouncy)
           }
         }
         .phaseAnimator([false, true]) { view, breathe in
@@ -322,6 +387,27 @@ private struct TodayTasksModule: View {
         }
       }
       VStack(alignment: .leading, spacing: 0) {
+        if let focus = store.state.focusThisWeek(today: day) {
+          // Last week's 下周重点, one line; the review opens on tap.
+          Button {
+            store.reflection = .week(focus.week)
+          } label: {
+            HStack(spacing: 8) {
+              Image(systemName: "scope").foregroundStyle(Color.sun)
+              Text("本周重点：" + focus.items.joined(separator: " · "))
+                .font(.app(.subheadline))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+              Spacer(minLength: 4)
+              Image(systemName: "chevron.right").font(.app(.caption).weight(.semibold)).foregroundStyle(.tertiary)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+          }
+          .buttonStyle(.plain)
+          .accessibilityHint("打开上周的复盘")
+          Divider()
+        }
         if open.isEmpty {
           EmptyState(
             title: list.isEmpty ? "今天没有待办" : "今天的事项都完成了",

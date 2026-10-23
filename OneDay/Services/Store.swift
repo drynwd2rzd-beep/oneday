@@ -145,6 +145,7 @@ final class Store {
     #if DEBUG
     applyLaunchArguments()
     #endif
+    carryOverUnfinished()
   }
 
   // MARK: Derived
@@ -192,8 +193,14 @@ final class Store {
     let now = DayKey.today
     if now != today {
       today = now
+      carryOverUnfinished()
       WidgetSync.publish(state, today: today)
     }
+  }
+
+  /// One-off tasks left undone on an earlier day move to today, remembering where they began.
+  func carryOverUnfinished() {
+    if state.carryOver(to: today) { save() }
   }
 
   // MARK: Routes (home screen quick actions, widget links)
@@ -270,6 +277,62 @@ final class Store {
     save()
     Haptics.tap()
     toast("已添加")
+  }
+
+  /// Saves an edited task; its completion history is kept.
+  func updateTask(
+    id: String, title: String, repeatMode: RepeatMode, date: String, weekdays: [Int], perWeek: Int,
+    reminder: Int?, planId: String?
+  ) {
+    guard let i = state.tasks.firstIndex(where: { $0.id == id }) else { return }
+    let t = title.trimmed
+    guard !t.isEmpty else { return toast("名字不能是空的") }
+    checkpoint("编辑事项")
+    var task = state.tasks[i]
+    task.title = t
+    if task.repeatMode == .once && repeatMode == .once && task.date != date { task.carriedFrom = nil }
+    task.repeatMode = repeatMode
+    task.date = date
+    if repeatMode.isRecurring { task.created = min(task.created, date) }
+    task.weekdays = repeatMode == .weekdays ? weekdays : []
+    task.perWeek = repeatMode == .weekly ? perWeek : 0
+    task.reminder = reminder
+    task.planId = planId
+    state.tasks[i] = task
+    save()
+    Haptics.tap()
+    toast("已保存", undoable: "编辑事项")
+  }
+
+  /// A one-off task moves to the day after `day`.
+  func moveToTomorrow(_ id: String, from day: String) {
+    guard let i = state.tasks.firstIndex(where: { $0.id == id }), state.tasks[i].repeatMode == .once else { return }
+    checkpoint("改到明天")
+    state.tasks[i].carriedFrom = state.tasks[i].carriedFrom ?? state.tasks[i].date
+    state.tasks[i].date = DayKey.add(days: 1, to: day)
+    save()
+    Haptics.tap()
+    toast("已改到明天", undoable: "改到明天")
+  }
+
+  /// Puts the given tasks in this order, keeping every other task where it was.
+  func reorderTasks(_ ids: [String]) {
+    let slots = state.tasks.indices.filter { ids.contains(state.tasks[$0].id) }
+    let byId = Dictionary(state.tasks.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+    let ordered = ids.compactMap { byId[$0] }
+    guard slots.count == ordered.count else { return }
+    checkpoint("调整顺序")
+    for (slot, task) in zip(slots, ordered) { state.tasks[slot] = task }
+    save()
+  }
+
+  /// The day's overall mood, without writing a note; nil clears it.
+  func setDayMood(_ value: Int?, on day: String) {
+    guard state.dayMoods[day] != value else { return }
+    state.dayMoods[day] = value
+    save()
+    Haptics.tap()
+    if value != nil { toast("记下了今天的心情") }
   }
 
   func setPlan(_ planId: String?, for taskId: String) {
@@ -356,23 +419,23 @@ final class Store {
   // MARK: Reflections
 
   /// Saves the day's 复盘 note (or removes it when the text is emptied).
+  /// The mood chosen here is the day's overall mood.
   func saveDayReflection(day: String, text: String, mood: Int?) {
     let clean = text.trimmed
     let existing = state.reflectionNote(on: day)
-    guard clean != (existing?.text ?? "") || (existing != nil && mood != existing?.mood) else { return }
+    guard clean != (existing?.text ?? "") || mood != state.dayMoods[day] else { return }
     checkpoint("每日复盘")
+    state.dayMoods[day] = mood
     var list = state.notes[day] ?? []
     if let i = list.firstIndex(where: \.isReflection) {
       if clean.isEmpty {
         list.remove(at: i)
       } else {
         list[i].text = clean
-        list[i].mood = mood
       }
     } else if !clean.isEmpty {
       var note = NoteEntry(text: clean, time: day == today ? DayKey.clock() : "", photos: [], tags: [])
       note.isReflection = true
-      note.mood = mood
       list.append(note)
     }
     state.notes[day] = list.isEmpty ? nil : list
@@ -603,7 +666,16 @@ final class Store {
     save()
   }
 
-  var mascotOutfit: MascotOutfit? { state.settings.mascotOutfit.flatMap(MascotOutfit.init(rawValue:)) }
+  /// What 小日 wears today (festival outfits only in their week).
+  var mascotOutfit: MascotOutfit? { state.wornOutfit(today: today) }
+
+  var mascotPlant: MascotPlant { state.plant }
+
+  func setPlant(_ plant: MascotPlant) {
+    state.settings.mascotPlant = plant == .cherry ? nil : plant.rawValue
+    save()
+    Haptics.tap()
+  }
 
   func setFontStyle(_ style: FontStyle) {
     JournalFont.style = style

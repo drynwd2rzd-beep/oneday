@@ -165,7 +165,9 @@ final class FeatureTests: XCTestCase {
     XCTAssertEqual(recap.bestStreak?.title, "阅读")
     XCTAssertEqual(recap.bestStreak?.days, 4)
     XCTAssertEqual(recap.highlight?.day, "2026-10-21")
-    XCTAssertEqual(try XCTUnwrap(recap.moodAverage), 4, accuracy: 0.001)
+    // One mood per day: the 20th averages 5 and 2 (3.5, counted as 不错), the 21st is 很好.
+    XCTAssertEqual(try XCTUnwrap(recap.moodAverage), 4.5, accuracy: 0.001)
+    XCTAssertEqual(recap.moodCounts, [4: 1, 5: 1])
     XCTAssertTrue(s.recap(month: DayKey.date("2026-08-01")).isEmpty)
     XCTAssertEqual(s.photoTimeline.map(\.photo), ["p2.jpg", "p1.jpg"])
   }
@@ -408,5 +410,49 @@ final class FeatureTests: XCTestCase {
     XCTAssertEqual(later.sunshine, 35, "sunshine is never lost")
     XCTAssertEqual(later.streak, 0)
     XCTAssertEqual(GrowthStage.at(320), .fruit)
+  }
+
+  func testCarryOverAndDayMood() {
+    var s = AppState()
+    var late = TaskItem(title: "寄快递", day: "2026-10-20", repeatMode: .once, reminder: nil)
+    let finished = { () -> TaskItem in
+      var t = TaskItem(title: "体检", day: "2026-10-20", repeatMode: .once, reminder: nil)
+      t.done["2026-10-20"] = true
+      return t
+    }()
+    late.reminder = 9 * 60
+    s.tasks = [late, finished]
+    XCTAssertTrue(s.carryOver(to: today))
+    XCTAssertEqual(s.tasks[0].date, today, "undone one-off task moves to today")
+    XCTAssertEqual(s.tasks[0].carriedFrom, "2026-10-20")
+    XCTAssertEqual(s.tasks[1].date, "2026-10-20", "done tasks stay where they were")
+    XCTAssertFalse(s.carryOver(to: today), "nothing more to move")
+
+    var note = NoteEntry(text: "x", time: "", photos: [], tags: [])
+    note.mood = 2
+    s.notes[today] = [note]
+    XCTAssertEqual(s.mood(on: today), 2)
+    s.dayMoods[today] = 5
+    XCTAssertEqual(s.mood(on: today), 5, "the day's own mood wins")
+  }
+
+  func testFestivalsChallengeAndFocus() {
+    XCTAssertEqual(Festivals.day(of: .lunarHat, year: 2027), "2027-02-06", "春节 from the Chinese calendar")
+    XCTAssertEqual(Festivals.day(of: .bunnyEars, year: 2026), "2026-09-25", "中秋")
+    XCTAssertTrue(Festivals.isWearable(.pumpkin, today: "2026-10-30"))
+    XCTAssertFalse(Festivals.isWearable(.pumpkin, today: "2026-11-04"))
+    var s = AppState()
+    s.settings.mascotOutfit = MascotOutfit.pumpkin.rawValue
+    XCTAssertNil(s.wornOutfit(today: "2026-11-10"), "festival outfits come off after their week")
+    XCTAssertEqual(s.wornOutfit(today: "2026-10-31"), .pumpkin)
+
+    let a = s.challenge(week: "2026-10-22", today: today)
+    let b = s.challenge(week: "2026-10-19", today: today)
+    XCTAssertEqual(a.kind, b.kind, "the same challenge all week")
+    XCTAssertNotEqual(a.kind, .completions, "no task goals without tasks")
+
+    s.weekReflections["2026-10-12"] = WeekReflection(gains: "", problems: "", next: "早睡\n游泳")
+    s.tasks = [TaskItem(title: "游泳", day: "2026-10-20", repeatMode: .once, reminder: nil)]
+    XCTAssertEqual(s.focusThisWeek(today: today)?.items, ["早睡"], "focus items that are not tasks yet")
   }
 }
